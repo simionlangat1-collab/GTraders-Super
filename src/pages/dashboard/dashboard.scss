@@ -458,3 +458,35 @@
         margin-inline-start: 0.4rem;
     }
 }
+/* GTRADERS SUPER - DARK NAVY DASHBOARD THEME */
+
+.tab__dashboard {
+    --general-main-1: #10182b;
+    --general-section-1: #18243a;
+    --general-section-2: #202e49;
+    --general-section-6: #243451;
+
+    --text-general: #d7e3f5;
+    --text-prominent: #ffffff;
+    --text-less-prominent: #9aacc6;
+
+    --border-normal: #30415f;
+    --button-primary-default: #2583ff;
+
+    background: #10182b;
+    color: #d7e3f5;
+
+    .tab__dashboard__content {
+        background: #10182b;
+    }
+
+    .tab__dashboard__header {
+        .title {
+            color: #ffffff;
+        }
+
+        .subtitle {
+            color: #9aacc6;
+        }
+    }
+}
