@@ -490,3 +490,46 @@
         }
     }
 }
+/* GTRADERS SUPER - PREMIUM DASHBOARD ACTION CARDS */
+
+.tab__dashboard__table {
+    background: #10182b;
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.tab__dashboard__table__tiles {
+    gap: 16px;
+}
+
+.tab__dashboard__table__block {
+    background: #18243a;
+    border: 1px solid #30415f;
+    border-radius: 14px;
+    padding: 18px 12px;
+    transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.tab__dashboard__table__block:active {
+    transform: scale(0.97);
+    border-color: #2583ff;
+}
+
+.tab__dashboard__table__images {
+    background: #202e49;
+    border: 1px solid #30415f;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.25s ease;
+}
+
+.tab__dashboard__table__block:hover
+.tab__dashboard__table__images {
+    background: #263c60;
+}
+
+.tab__dashboard__table__block .deriv-text {
+    color: #ffffff;
+}
