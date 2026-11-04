@@ -15,13 +15,16 @@ const START_MARKER =
 const END_MARKER =
     '/* End generated brand configuration */';
 
+const NEXT_SECTION =
+    '    // App Cards gradient background';
+
 function validateBrandConfig() {
     const issues = [];
 
     if (!brandConfig.colors) {
         issues.push('Missing colors configuration.');
     } else {
-        const requiredColors = [
+        [
             'primary',
             'secondary',
             'tertiary',
@@ -32,9 +35,7 @@ function validateBrandConfig() {
             'neutral',
             'white',
             'black'
-        ];
-
-        requiredColors.forEach((color) => {
+        ].forEach((color) => {
             if (!brandConfig.colors[color]) {
                 issues.push(`Missing required color: ${color}`);
             }
@@ -51,14 +52,11 @@ function validateBrandConfig() {
         });
     }
 
-    if (issues.length > 0) {
-        console.error('Brand configuration validation failed:');
-
-        issues.forEach((issue) => {
-            console.error(`- ${issue}`);
-        });
-
-        process.exit(1);
+    if (issues.length) {
+        throw new Error(
+            'Brand configuration validation failed:\n' +
+            issues.map((issue) => `- ${issue}`).join('\n')
+        );
     }
 
     console.log('Brand configuration validated successfully.');
@@ -67,7 +65,7 @@ function validateBrandConfig() {
 function generateBrandVariables() {
     const { colors, typography } = brandConfig;
 
-    const lines = [
+    return [
         START_MARKER,
         '    /* Brand colors */',
         `    --brand-white: ${colors.white};`,
@@ -90,16 +88,12 @@ function generateBrandVariables() {
         `    --brand-font-secondary: ${typography.font_family.secondary};`,
         `    --brand-font-monospace: ${typography.font_family.monospace};`,
         END_MARKER
-    ];
-
-    return lines.join('\n');
+    ].join('\n');
 }
 
 function updateBrandColorsInThemes() {
     if (!fs.existsSync(THEMES_PATH)) {
-        throw new Error(
-            `Theme file not found: ${THEMES_PATH}`
-        );
+        throw new Error(`Theme file not found: ${THEMES_PATH}`);
     }
 
     let content = fs.readFileSync(THEMES_PATH, 'utf8');
@@ -107,9 +101,9 @@ function updateBrandColorsInThemes() {
     const startCount = content.split(START_MARKER).length - 1;
     const endCount = content.split(END_MARKER).length - 1;
 
-    if (startCount !== endCount || startCount > 1) {
+    if (startCount > 1 || endCount > 1 || startCount !== endCount) {
         throw new Error(
-            'Invalid brand markers found. Check _themes.scss manually before regenerating.'
+            'Invalid brand markers found. Check _themes.scss manually.'
         );
     }
 
@@ -120,35 +114,30 @@ function updateBrandColorsInThemes() {
         const end = content.indexOf(END_MARKER) + END_MARKER.length;
 
         content =
-            content.substring(0, start) +
+            content.slice(0, start) +
             generatedSection +
-            content.substring(end);
+            content.slice(end);
     } else {
-        const insertionText =
-            '    --text-align-center: center;';
+        const start = content.indexOf(START_MARKER);
+        const next = content.indexOf(NEXT_SECTION, start);
 
-        const insertionPoint = content.indexOf(insertionText);
-
-        if (insertionPoint === -1) {
+        if (start === -1 || next === -1) {
             throw new Error(
-                'Could not locate safe insertion point in _themes.scss.'
+                'Could not safely locate the existing brand section in _themes.scss.'
             );
         }
 
-        const insertAfter =
-            insertionPoint + insertionText.length;
-
         content =
-            content.substring(0, insertAfter) +
-            '\n\n' +
+            content.slice(0, start) +
             generatedSection +
-            content.substring(insertAfter);
+            '\n\n' +
+            content.slice(next);
     }
 
     fs.writeFileSync(THEMES_PATH, content, 'utf8');
 
     console.log('Brand variables updated successfully.');
-    console.log('Original Deriv theme variables preserved.');
+    console.log('Duplicate legacy brand variables removed.');
 }
 
 function main() {
