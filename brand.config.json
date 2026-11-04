@@ -73,13 +73,13 @@
       "enable_theme_toggle": false
     },
     "hostname": {
-      "production": {
-        "com": "gtraders-super.netlify.app"
-      },
-      "staging": {
-        "com": "gtraders-super.netlify.app"
-      }
-    },
+  "production": {
+    "com": "gtraders-super-ke.netlify.app"
+  },
+  "staging": {
+    "com": "gtraders-super-ke.netlify.app"
+  }
+}
     "auth2_url": {
       "production": "https://auth.deriv.com/oauth2/",
       "staging": "https://staging-auth.deriv.com/oauth2/"
