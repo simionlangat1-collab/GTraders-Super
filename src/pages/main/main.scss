@@ -754,3 +754,31 @@
     align-items: center;
     justify-content: center;
 }
+/* GTRADERS SUPER - HOT MAGENTA NAVIGATION */
+
+.main__container {
+    .dc-tabs {
+        &__list {
+            background: #A52383 !important;
+            border-radius: 12px 12px 0 0;
+        }
+
+        &__item {
+            color: #ffffff !important;
+            transition: background 0.25s ease;
+
+            &:hover {
+                background: #861C6A !important;
+            }
+        }
+
+        &__active {
+            background: #861C6A !important;
+            color: #ffffff !important;
+        }
+
+        &__active-line {
+            background: #FF4FCB !important;
+        }
+    }
+}
