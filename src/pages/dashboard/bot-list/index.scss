@@ -567,3 +567,82 @@
         }
     }
 }
+/* GTRADERS SUPER - PREMIUM SAVED BOTS */
+
+.bot-list {
+    &__container {
+        width: 100%;
+        padding: 2rem 1.6rem;
+        background: #10182b;
+    }
+
+    &__wrapper {
+        width: 100%;
+        max-width: 850px;
+        padding: 2rem;
+        background: #18243a;
+        border: 1px solid #30415f;
+        border-radius: 18px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    &__title {
+        color: #ffffff;
+        font-size: 1.8rem;
+        margin-bottom: 1.6rem;
+    }
+
+    &__header {
+        background: #202e49;
+        border-bottom: 1px solid #22d3ee;
+        border-radius: 10px 10px 0 0;
+
+        .dc-text {
+            color: #22d3ee !important;
+            font-weight: 700;
+        }
+    }
+
+    &__table {
+        background: #18243a;
+        border-radius: 0 0 10px 10px;
+    }
+
+    &__item {
+        border-bottom: 1px solid #30415f;
+        transition: background 0.2s ease;
+
+        &:hover {
+            background: #243451;
+        }
+
+        .dc-text {
+            color: #d7e3f5;
+        }
+
+        &__actions {
+            button {
+                svg {
+                    fill: #22d3ee;
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 767px) {
+    .bot-list {
+        &__container {
+            padding: 1.2rem 0.4rem;
+        }
+
+        &__wrapper {
+            padding: 1.2rem;
+            border-radius: 14px;
+        }
+
+        &__title {
+            font-size: 1.6rem;
+        }
+    }
+}
