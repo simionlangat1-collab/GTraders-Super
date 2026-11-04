@@ -33,6 +33,21 @@ const DashboardComponent = observer(({ handleTabChange }: TMobileIconGuide) => {
                         <Announcements is_mobile={!isDesktop} is_tablet={isTablet} handleTabChange={handleTabChange} />
                     )}
                     <div className='quick-panel'>
+                        {/* GTRADERS SUPER - PREMIUM WELCOME SECTION */}
+                        <div className='gtraders-welcome'>
+                            <span className='gtraders-welcome__eyebrow'>
+                                WELCOME TO GTRADERS SUPER
+                            </span>
+
+                            <h1 className='gtraders-welcome__title'>
+                                Trade Smarter. Trade Safer.
+                            </h1>
+
+                            <p className='gtraders-welcome__description'>
+                                Your intelligent trading workspace for smarter market decisions.
+                            </p>
+                        </div>
+
                         <div
                             className={classNames('tab__dashboard__header', {
                                 'tab__dashboard__header--listed': isDesktop && has_dashboard_strategies,
