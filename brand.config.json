@@ -1,12 +1,12 @@
 
 {
-  "brand_name": "GTraders Fresh",
-  "brand_domain": "yourbrand.com",
+  "brand_name": "GTraders Super",
+  "brand_domain": "gtraders-super.netlify.app",
   "brand_hostname": {
-    "staging": "staging.yourbrand.com/dashboard",
-    "production": "yourbrand.com/dashboard"
+    "staging": "gtraders-super.netlify.app/dashboard",
+    "production": "gtraders-super.netlify.app/dashboard"
   },
-  "domain_name": "YourBrand.com",
+  "domain_name": "GTraders Super",
   "colors": {
     "primary": "#3b82f6",
     "secondary": "#64748b",
@@ -59,14 +59,14 @@
     "css_variable_prefix": "--brand"
   },
   "platform": {
-    "name": "GTraders Fresh",
+    "name": "GTraders Super",
     "logo": {
       "type": "component",
       "component_name": "BrandLogo",
-      "alt_text": "GTraders Fresh",
+      "alt_text": "GTraders Super",
       "link_url": "/",
       "show_text": false,
-      "text": "GTraders Fresh"
+      "text": "GTraders Super"
     },
     "footer": {
       "enable_language_settings": false,
@@ -74,10 +74,10 @@
     },
     "hostname": {
       "production": {
-        "com": "bot.yourbrand.com"
+        "com": "gtraders-super.netlify.app"
       },
       "staging": {
-        "com": "staging-bot.yourbrand.com"
+        "com": "gtraders-super.netlify.app"
       }
     },
     "auth2_url": {
