@@ -1,150 +1,25 @@
+
 const fs = require('fs');
 const path = require('path');
 
-// Import brand configuration from project root
 const brandConfig = require('../brand.config.json');
 
-// Main function to update brand colors in _themes.scss
-const updateBrandColorsInThemes = () => {
-    const themesPath = path.join(__dirname, '../src/components/shared/styles/_themes.scss');
+const THEMES_PATH = path.join(
+    __dirname,
+    '../src/components/shared/styles/_themes.scss'
+);
 
-    if (!fs.existsSync(themesPath)) {
-        console.error('❌ _themes.scss file not found');
-        process.exit(1);
-    }
+const START_MARKER =
+    '/* Brand colors - dynamically generated from brand.config.json */';
 
-    // Read the current themes file
-    let themesContent = fs.readFileSync(themesPath, 'utf8');
-    const originalContent = themesContent;
+const END_MARKER =
+    '/* End generated brand configuration */';
 
-    // Extract colors and typography from brand config
-    const { colors, typography } = brandConfig;
-
-    // Generate brand color variables from config
-    const brandColorLines = [
-        '    /* Brand colors - dynamically generated from brand.config.json */',
-        `    --brand-white: ${colors.white};`,
-        `    --brand-dark-grey: ${colors.black};`,
-        `    --brand-red-coral: ${colors.primary}; /* legacy compatibility */`,
-        `    --brand-orange: ${colors.tertiary}; /* legacy compatibility */`,
-        '',
-        '    /* Dynamic brand colors (set by brand configuration) */',
-        `    --brand-primary: ${colors.primary};`,
-        `    --brand-secondary: ${colors.secondary};`,
-        `    --brand-tertiary: ${colors.tertiary};`,
-        `    --brand-success: ${colors.success};`,
-        `    --brand-danger: ${colors.danger};`,
-        `    --brand-warning: ${colors.warning};`,
-        `    --brand-info: ${colors.info};`,
-        `    --brand-neutral: ${colors.neutral};`,
-    ];
-
-    // Generate typography variables if available
-    if (typography && typography.font_family) {
-        brandColorLines.push('');
-        brandColorLines.push('    /* Brand typography - dynamically generated from brand.config.json */');
-        brandColorLines.push(`    --brand-font-primary: ${typography.font_family.primary};`);
-        brandColorLines.push(`    --brand-font-secondary: ${typography.font_family.secondary};`);
-        brandColorLines.push(`    --brand-font-monospace: ${typography.font_family.monospace};`);
-    }
-
-    // Find and replace the brand colors section
-    let insertionPoint = -1;
-    let endPoint = -1;
-
-    // Look for existing brand colors section (with or without AI markers)
-    const brandCommentStart = themesContent.indexOf(
-        '/* Brand colors - dynamically generated from brand.config.json */'
-    );
-    const legacyBrandStart = themesContent.indexOf('    // Brand primary colors');
-
-    if (brandCommentStart !== -1) {
-        // Found modern brand section with comment
-        insertionPoint = themesContent.lastIndexOf('\n', brandCommentStart) + 1;
-
-        // Look for end marker - either AI closing tag or next major section
-        const aiEndMarker = themesContent.indexOf('/* [/AI] */', brandCommentStart);
-        if (aiEndMarker !== -1) {
-            endPoint = themesContent.indexOf('\n', aiEndMarker) + 1;
-        } else {
-            // Find end by looking for next CSS section or end of root block
-            const nextSection = themesContent.indexOf('\n    // App Cards', brandCommentStart);
-            const nextComment = themesContent.indexOf('\n    /*', brandCommentStart + 100); // Skip current comment
-            const nextThemeClass = themesContent.indexOf('\n    .theme--', brandCommentStart);
-
-            endPoint = Math.min(...[nextSection, nextComment, nextThemeClass].filter(pos => pos > -1));
-            if (endPoint === Infinity) {
-                // Fallback - find next blank lines
-                endPoint = themesContent.indexOf('\n\n    ', brandCommentStart + 100);
-            }
-        }
-    } else if (legacyBrandStart !== -1) {
-        // Found legacy brand section
-        insertionPoint = legacyBrandStart;
-        endPoint = themesContent.indexOf('\n    // App Cards', legacyBrandStart);
-        if (endPoint === -1) {
-            endPoint = themesContent.indexOf('\n    .theme--', legacyBrandStart);
-        }
-    } else {
-        // No existing brand section - insert after text align
-        const textAlignEnd = themesContent.indexOf('    --text-align-center: center;');
-        if (textAlignEnd !== -1) {
-            insertionPoint = themesContent.indexOf('\n', textAlignEnd) + 1;
-            endPoint = insertionPoint;
-        }
-    }
-
-    if (insertionPoint === -1) {
-        console.error('❌ Could not find insertion point in _themes.scss');
-        process.exit(1);
-    }
-
-    // Replace or insert the brand colors section
-    const beforeSection = themesContent.substring(0, insertionPoint);
-    const afterSection =
-        endPoint > insertionPoint ? themesContent.substring(endPoint) : themesContent.substring(insertionPoint);
-
-    themesContent = beforeSection + '\n\n' + brandColorLines.join('\n') + '\n' + afterSection;
-
-    // Write the updated file
-    fs.writeFileSync(themesPath, themesContent, 'utf8');
-
-    // Check if changes were made
-    const hasChanges = originalContent !== themesContent;
-
-    if (hasChanges) {
-        console.log('✅ Brand styling updated successfully in _themes.scss!');
-        console.log(`📁 Updated: ${themesPath}`);
-        console.log('📊 Changes made:');
-        console.log('   Colors:');
-        console.log(`      • Brand White: ${colors.white}`);
-        console.log(`      • Brand Dark Grey: ${colors.black}`);
-        console.log(`      • Primary: ${colors.primary}`);
-        console.log(`      • Secondary: ${colors.secondary}`);
-        console.log(`      • Tertiary: ${colors.tertiary}`);
-        console.log(`      • Success: ${colors.success}`);
-        console.log(`      • Danger: ${colors.danger}`);
-        console.log(`      • Warning: ${colors.warning}`);
-        console.log(`      • Info: ${colors.info}`);
-        if (typography && typography.font_family) {
-            console.log('   Typography:');
-            console.log(`      • Primary Font: ${typography.font_family.primary.substring(0, 50)}...`);
-            console.log(`      • Secondary Font: ${typography.font_family.secondary}`);
-            console.log(`      • Monospace Font: ${typography.font_family.monospace}`);
-        }
-    } else {
-        console.log('✓ No changes needed - brand styling already up to date');
-    }
-
-    return hasChanges;
-};
-
-// Validation function
-const validateBrandConfig = () => {
+function validateBrandConfig() {
     const issues = [];
 
     if (!brandConfig.colors) {
-        issues.push('Missing colors configuration in brand.config.json');
+        issues.push('Missing colors configuration.');
     } else {
         const requiredColors = [
             'primary',
@@ -156,81 +31,147 @@ const validateBrandConfig = () => {
             'info',
             'neutral',
             'white',
-            'black',
+            'black'
         ];
-        requiredColors.forEach(color => {
+
+        requiredColors.forEach((color) => {
             if (!brandConfig.colors[color]) {
                 issues.push(`Missing required color: ${color}`);
             }
         });
     }
 
-    // Optional typography validation (warnings only)
-    if (brandConfig.typography) {
-        if (!brandConfig.typography.font_family) {
-            console.warn('⚠️  Typography configuration found but font_family is missing');
-        } else {
-            const requiredFonts = ['primary', 'secondary', 'monospace'];
-            requiredFonts.forEach(font => {
-                if (!brandConfig.typography.font_family[font]) {
-                    console.warn(`⚠️  Missing recommended font: ${font}`);
-                }
-            });
-        }
+    if (!brandConfig.typography?.font_family) {
+        issues.push('Missing typography.font_family configuration.');
+    } else {
+        ['primary', 'secondary', 'monospace'].forEach((font) => {
+            if (!brandConfig.typography.font_family[font]) {
+                issues.push(`Missing font: ${font}`);
+            }
+        });
     }
 
     if (issues.length > 0) {
-        console.error('❌ Brand configuration issues:');
-        issues.forEach(issue => console.error(`  - ${issue}`));
+        console.error('Brand configuration validation failed:');
+
+        issues.forEach((issue) => {
+            console.error(`- ${issue}`);
+        });
+
         process.exit(1);
     }
 
-    console.log('✅ Brand configuration is valid');
-    return true;
-};
+    console.log('Brand configuration validated successfully.');
+}
 
-// Add script to package.json if it doesn't exist
-const addPackageScript = () => {
-    const packageJsonPath = path.join(__dirname, '../package.json');
+function generateBrandVariables() {
+    const { colors, typography } = brandConfig;
 
-    if (!fs.existsSync(packageJsonPath)) {
-        console.log('⚠️  package.json not found, skipping script addition');
-        return;
+    const lines = [
+        START_MARKER,
+        '    /* Brand colors */',
+        `    --brand-white: ${colors.white};`,
+        `    --brand-dark-grey: ${colors.black};`,
+        `    --brand-red-coral: ${colors.primary};`,
+        `    --brand-orange: ${colors.tertiary};`,
+        '',
+        '    /* Dynamic brand colors */',
+        `    --brand-primary: ${colors.primary};`,
+        `    --brand-secondary: ${colors.secondary};`,
+        `    --brand-tertiary: ${colors.tertiary};`,
+        `    --brand-success: ${colors.success};`,
+        `    --brand-danger: ${colors.danger};`,
+        `    --brand-warning: ${colors.warning};`,
+        `    --brand-info: ${colors.info};`,
+        `    --brand-neutral: ${colors.neutral};`,
+        '',
+        '    /* Brand typography */',
+        `    --brand-font-primary: ${typography.font_family.primary};`,
+        `    --brand-font-secondary: ${typography.font_family.secondary};`,
+        `    --brand-font-monospace: ${typography.font_family.monospace};`,
+        END_MARKER
+    ];
+
+    return lines.join('\n');
+}
+
+function updateBrandColorsInThemes() {
+    if (!fs.existsSync(THEMES_PATH)) {
+        throw new Error(
+            `Theme file not found: ${THEMES_PATH}`
+        );
     }
 
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    let content = fs.readFileSync(THEMES_PATH, 'utf8');
 
-    if (!packageJson.scripts) {
-        packageJson.scripts = {};
+    const startCount = content.split(START_MARKER).length - 1;
+    const endCount = content.split(END_MARKER).length - 1;
+
+    if (startCount !== endCount || startCount > 1) {
+        throw new Error(
+            'Invalid brand markers found. Check _themes.scss manually before regenerating.'
+        );
     }
 
-    if (!packageJson.scripts['generate:brand-css']) {
-        packageJson.scripts['generate:brand-css'] = 'node scripts/generate-brand-css.js';
-        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf8');
-        console.log('✅ Added "generate:brand-css" script to package.json');
-    }
-};
+    const generatedSection = generateBrandVariables();
 
-// Main execution
-if (require.main === module) {
-    console.log('🎨 Updating brand colors in _themes.scss...\n');
+    if (startCount === 1) {
+        const start = content.indexOf(START_MARKER);
+        const end = content.indexOf(END_MARKER) + END_MARKER.length;
+
+        content =
+            content.substring(0, start) +
+            generatedSection +
+            content.substring(end);
+    } else {
+        const insertionText =
+            '    --text-align-center: center;';
+
+        const insertionPoint = content.indexOf(insertionText);
+
+        if (insertionPoint === -1) {
+            throw new Error(
+                'Could not locate safe insertion point in _themes.scss.'
+            );
+        }
+
+        const insertAfter =
+            insertionPoint + insertionText.length;
+
+        content =
+            content.substring(0, insertAfter) +
+            '\n\n' +
+            generatedSection +
+            content.substring(insertAfter);
+    }
+
+    fs.writeFileSync(THEMES_PATH, content, 'utf8');
+
+    console.log('Brand variables updated successfully.');
+    console.log('Original Deriv theme variables preserved.');
+}
+
+function main() {
+    console.log('Starting GTraders Super brand generation...\n');
 
     validateBrandConfig();
-    const hasChanges = updateBrandColorsInThemes();
-    addPackageScript();
+    updateBrandColorsInThemes();
 
-    console.log('\n🎯 Next steps:');
-    if (hasChanges) {
-        console.log('1. The brand colors in _themes.scss have been updated with AI markers');
-        console.log('2. To regenerate: npm run generate:brand-css');
-        console.log('3. Restart your dev server to see the changes');
-    } else {
-        console.log('1. No changes were needed');
-        console.log('2. To force regeneration: npm run generate:brand-css');
+    console.log('\nGTraders Super branding generation completed.');
+}
+
+if (require.main === module) {
+    try {
+        main();
+    } catch (error) {
+        console.error('\nBrand generation failed:');
+        console.error(error.message);
+        process.exit(1);
     }
 }
 
 module.exports = {
-    updateBrandColorsInThemes,
     validateBrandConfig,
+    generateBrandVariables,
+    updateBrandColorsInThemes
 };
