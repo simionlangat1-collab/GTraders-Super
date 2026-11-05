@@ -14,10 +14,18 @@ const AppContent = lazy(() => import('./app-content'));
 const AppRootLoader = ({
     progress,
     message,
+    isConnected,
 }: {
     progress: number;
     message: string;
-}) => <ChunkLoader progress={progress} message={message} />;
+    isConnected: boolean;
+}) => (
+    <ChunkLoader
+        progress={progress}
+        message={message}
+        isConnected={isConnected}
+    />
+);
 
 const ErrorComponentWrapper = observer(() => {
     const { common } = useStore();
@@ -43,8 +51,14 @@ const AppRoot = () => {
     const api_base_initialized = useRef(false);
 
     const [is_api_initialized, setIsApiInitialized] = useState(false);
+    const [isConnected, setIsConnected] = useState(
+        connectionStatus$.getValue() === CONNECTION_STATUS.OPENED
+    );
+
     const [startupProgress, setStartupProgress] = useState(0);
-    const [startupMessage, setStartupMessage] = useState('Preparing GTraders Super...');
+    const [startupMessage, setStartupMessage] = useState(
+        'Preparing GTraders Super...'
+    );
 
     useEffect(() => {
         let isMounted = true;
@@ -52,7 +66,10 @@ const AppRoot = () => {
         const connectionSubscription = connectionStatus$.subscribe(status => {
             if (!isMounted) return;
 
-            if (status === CONNECTION_STATUS.OPENED) {
+            const connected = status === CONNECTION_STATUS.OPENED;
+            setIsConnected(connected);
+
+            if (connected) {
                 setStartupProgress(50);
                 setStartupMessage('Deriv connection established...');
             } else if (status === CONNECTION_STATUS.CLOSED) {
@@ -79,18 +96,30 @@ const AppRoot = () => {
 
                 if (isMounted) {
                     setStartupProgress(30);
-                    setStartupMessage('Deriv API initialized. Waiting for connection...');
+                    setStartupMessage(
+                        'Deriv API initialized. Waiting for connection...'
+                    );
                 }
 
-                if (connectionStatus$.getValue() === CONNECTION_STATUS.OPENED && isMounted) {
+                if (
+                    connectionStatus$.getValue() === CONNECTION_STATUS.OPENED &&
+                    isMounted
+                ) {
+                    setIsConnected(true);
                     setStartupProgress(50);
                     setStartupMessage('Deriv connection established...');
                 }
             } catch (error) {
-                console.error('GTraders Super API initialization failed:', error);
+                console.error(
+                    'GTraders Super API initialization failed:',
+                    error
+                );
 
                 if (isMounted) {
-                    setStartupMessage('Deriv connection unavailable. Retrying...');
+                    setIsConnected(false);
+                    setStartupMessage(
+                        'Deriv connection unavailable. Retrying...'
+                    );
                 }
             } finally {
                 if (isMounted) {
@@ -112,6 +141,7 @@ const AppRoot = () => {
             <AppRootLoader
                 progress={startupProgress}
                 message={startupMessage}
+                isConnected={isConnected}
             />
         );
     }
@@ -121,7 +151,10 @@ const AppRoot = () => {
             fallback={
                 <AppRootLoader
                     progress={startupProgress}
-                    message={localize('Loading GTraders Super dashboard...')}
+                    message={localize(
+                        'Loading GTraders Super dashboard...'
+                    )}
+                    isConnected={isConnected}
                 />
             }
         >
