@@ -30,6 +30,7 @@ class DBotStore extends DBotStoreInterface {
         this.toggleStrategyModal = store.toggleStrategyModal;
         this.handleFileChange = store.handleFileChange;
         this.setLoading = store.setLoading;
+        this.setStartupProgress = store.setStartupProgress;
 
         reaction(
             () => this.client.loginid,
