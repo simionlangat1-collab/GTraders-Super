@@ -360,4 +360,62 @@
         --header-background-mt5: #{constants.$color-blue-8};
         --header-background-others: #{constants.$color-green-7};
     }
+
+    /* GTraders Super premium midnight palette */
+    .theme--light,
+    .theme--dark {
+        --general-main-1: #071447;
+        --general-main-2: #081b55;
+        --general-main-3: #0b205e;
+        --general-main-4: rgba(0, 217, 255, 0.10);
+        --general-section-1: #0b1b4b;
+        --general-section-2: #050b35;
+        --general-section-3: #10245d;
+        --general-section-4: #122b70;
+        --general-section-5: #0b205e;
+        --general-section-6: #142b68;
+        --general-disabled: #263765;
+        --general-hover: #123078;
+        --general-active: #183d8c;
+
+        --text-general: #d8eaff;
+        --text-primary: #b9d4f5;
+        --text-less-prominent: #91add0;
+        --text-prominent: #ffffff;
+        --text-disabled: #7890b4;
+        --text-disabled-1: #7890b4;
+        --text-hint: #b9d4f5;
+        --text-info-blue: #00d9ff;
+        --text-info-blue-background: #123078;
+
+        --brand-primary: #00d9ff;
+        --brand-secondary: #087cff;
+        --brand-tertiary: #7900ff;
+        --brand-red-coral: #087cff;
+        --brand-orange: #7900ff;
+
+        --button-primary-default: #087cff;
+        --button-primary-hover: #00a9ff;
+        --button-primary-light-default: rgba(0, 217, 255, 0.16);
+        --button-primary-light-hover: rgba(0, 217, 255, 0.24);
+        --button-toggle-primary: #087cff;
+        --button-secondary-default: #183d8c;
+
+        --border-normal: rgba(0, 217, 255, 0.20);
+        --border-normal-1: rgba(0, 217, 255, 0.22);
+        --border-normal-2: rgba(0, 217, 255, 0.28);
+        --border-normal-3: rgba(0, 217, 255, 0.16);
+        --border-hover: #00d9ff;
+        --border-active: #00d9ff;
+        --border-divider: rgba(0, 217, 255, 0.16);
+
+        --fill-normal: #081b55;
+        --fill-normal-1: #0b205e;
+        --fill-hover: #123078;
+        --fill-active: #087cff;
+
+        --header-background-mt5: #071447;
+        --header-background-others: #071447;
+    }
+
 }
