@@ -1,3 +1,4 @@
+
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import ErrorBoundary from '@/components/error-component/error-boundary';
@@ -10,8 +11,14 @@ import './app-root.scss';
 
 const AppContent = lazy(() => import('./app-content'));
 
-const AppRootLoader = () => {
-    return <ChunkLoader message={localize('Loading...')} />;
+const AppRootLoader = ({
+    progress,
+    message,
+}: {
+    progress: number;
+    message: string;
+}) => {
+    return <ChunkLoader progress={progress} message={message} />;
 };
 
 const ErrorComponentWrapper = observer(() => {
@@ -37,38 +44,86 @@ const AppRoot = () => {
     const store = useStore();
     const api_base_initialized = useRef(false);
     const [is_api_initialized, setIsApiInitialized] = useState(false);
+    const [startupProgress, setStartupProgress] = useState(0);
+    const [startupMessage, setStartupMessage] = useState('Preparing GTraders Super...');
 
-    // Initialize API
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (!is_api_initialized) {
-                setIsApiInitialized(true);
-            }
-        }, 5000);
+        let isMounted = true;
 
         const initializeApi = async () => {
-            if (!api_base_initialized.current) {
-                try {
-                    await api_base.init();
-                    api_base_initialized.current = true;
-                } catch (error) {
-                    console.error('API initialization failed:', error);
-                    api_base_initialized.current = false;
-                } finally {
+            if (api_base_initialized.current) {
+                setStartupProgress(100);
+                setStartupMessage('GTraders Super is ready');
+                setIsApiInitialized(true);
+                return;
+            }
+
+            try {
+                if (isMounted) {
+                    setStartupProgress(20);
+                    setStartupMessage('Initializing AI Engine...');
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 250));
+
+                if (isMounted) {
+                    setStartupProgress(35);
+                    setStartupMessage('Preparing Deriv Connection...');
+                }
+
+                await api_base.init();
+                api_base_initialized.current = true;
+
+                if (isMounted) {
+                    setStartupProgress(75);
+                    setStartupMessage('Loading trading dashboard...');
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 250));
+
+                if (isMounted) {
+                    setStartupProgress(100);
+                    setStartupMessage('GTraders Super is ready');
+                }
+            } catch (error) {
+                console.error('API initialization failed:', error);
+
+                if (isMounted) {
+                    setStartupProgress(100);
+                    setStartupMessage('Starting in offline mode...');
+                }
+            } finally {
+                if (isMounted) {
                     setIsApiInitialized(true);
-                    clearTimeout(timeoutId); // Clear timeout if API init completes
                 }
             }
         };
 
         initializeApi();
-        return () => clearTimeout(timeoutId);
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    if (!store || !is_api_initialized) return <AppRootLoader />;
+    if (!store || !is_api_initialized) {
+        return (
+            <AppRootLoader
+                progress={startupProgress}
+                message={startupMessage}
+            />
+        );
+    }
 
     return (
-        <Suspense fallback={<AppRootLoader />}>
+        <Suspense
+            fallback={
+                <AppRootLoader
+                    progress={100}
+                    message={localize('Loading dashboard...')}
+                />
+            }
+        >
             <ErrorBoundary root_store={store}>
                 <ErrorComponentWrapper />
                 <AppContent />
