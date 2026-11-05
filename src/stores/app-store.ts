@@ -55,10 +55,12 @@ export default class AppStore {
 
         if (!this.dbot_store) return;
 
+        // Begin workspace initialization.
+        blockly_store.setWorkspaceReady(false);
         blockly_store.setLoading(true);
 
         try {
-            // Load Blockly, create the workspace and inject the saved strategy.
+            // Load Blockly, create workspace and inject saved strategy.
             await DBot.initWorkspace(
                 '/',
                 this.dbot_store,
@@ -67,7 +69,6 @@ export default class AppStore {
                 false
             );
 
-            // Workspace is ready.
             blockly_store.setContainerSize();
 
             this.registerCurrencyReaction.call(this);
@@ -77,13 +78,18 @@ export default class AppStore {
             window.addEventListener('click', this.onClickOutsideBlockly);
 
             blockly_store.getCachedActiveTab();
+
+            // Workspace and saved strategy are now ready.
+            blockly_store.setWorkspaceReady(true);
         } catch (error) {
+            blockly_store.setWorkspaceReady(false);
+
             console.error(
                 'GTraders Super Blockly workspace initialization failed:',
                 error
             );
         } finally {
-            // Never leave the loading overlay stuck after success or failure.
+            // Always release the loading state.
             blockly_store.setLoading(false);
         }
     };
@@ -210,6 +216,7 @@ export default class AppStore {
         const { client, common } = this.core;
         const { handleFileChange } = load_modal;
         const { setLoading } = blockly_store;
+
         const { setContractUpdateConfig } = summary_card;
 
         const {
