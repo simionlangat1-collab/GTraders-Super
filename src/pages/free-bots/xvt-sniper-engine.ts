@@ -140,8 +140,8 @@ export default class XvtSniperEngine {
     stop() {
         this.running = false;
         this.forgetTickSubscription();
-        if (this.currentContractId) {
-            this.setStatus('Stopping: waiting for the open contract to settle. No new trades will be placed.');
+        if (this.currentContractId || this.busy) {
+            this.setStatus('Stopping: resolving the pending trade request or waiting for the open contract to settle. No new trades will be placed.');
         } else {
             this.cleanup();
             this.setStatus('Bot stopped.');
@@ -276,6 +276,14 @@ export default class XvtSniperEngine {
             const proposal = proposalResponse?.proposal;
             if (!proposal?.id || !Number.isFinite(Number(proposal.ask_price))) {
                 throw new Error('Deriv did not return a valid trade proposal.');
+            }
+
+            if (!this.running) {
+                this.busy = false;
+                this.cleanup();
+                this.setStatus('Bot stopped before purchase. No new contract was opened.');
+                this.callbacks.onStopped?.();
+                return;
             }
 
             const buyResponse = await this.api.send({
