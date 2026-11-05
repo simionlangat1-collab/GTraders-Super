@@ -1253,14 +1253,27 @@ g.editing .blocklyEditableText {
     display: none !important;
 }
 
-/* GTRADERS SUPER: keep selected Blockly field values visible on the dark workspace */
+/* GTRADERS SUPER: keep Blockly field values readable on both light and dark themes */
+/* Default/light theme: white value boxes need dark text. */
 .zelos-renderer.zelos_renderer-theme rect.blocklyFieldRect.blocklyDropdownRect {
-    fill: #101a3d !important;
+    fill: #ffffff !important;
     stroke: #00d9ff !important;
 }
 
 .zelos-renderer.zelos_renderer-theme .blocklyDropdownText,
 .zelos-renderer.zelos_renderer-theme .blocklyEditableText > text,
 .zelos-renderer.zelos_renderer-theme .blocklyNonEditableText > text {
+    fill: #111111 !important;
+}
+
+/* Dark theme: retain dark value boxes with bright, readable text. */
+.theme--dark .zelos-renderer.zelos_renderer-theme rect.blocklyFieldRect.blocklyDropdownRect {
+    fill: #101a3d !important;
+    stroke: #00d9ff !important;
+}
+
+.theme--dark .zelos-renderer.zelos_renderer-theme .blocklyDropdownText,
+.theme--dark .zelos-renderer.zelos_renderer-theme .blocklyEditableText > text,
+.theme--dark .zelos-renderer.zelos_renderer-theme .blocklyNonEditableText > text {
     fill: #ffffff !important;
 }
