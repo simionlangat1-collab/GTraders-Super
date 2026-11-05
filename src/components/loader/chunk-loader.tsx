@@ -6,12 +6,12 @@ type ChunkLoaderProps = {
 };
 
 const startupStages = [
-    { icon: '▣', label: 'AI Engine', threshold: 15 },
+    { icon: '▣', label: 'Core Application', threshold: 15 },
     { icon: '☁', label: 'Deriv Connection', threshold: 30 },
-    { icon: '◉', label: 'Scanner Engine', threshold: 45 },
+    { icon: '◉', label: 'Market Scanner', threshold: 45 },
     { icon: '▥', label: 'Signal Engine', threshold: 60 },
-    { icon: '◆', label: 'AI Coach', threshold: 75 },
-    { icon: '◎', label: 'Live Market Data', threshold: 90 },
+    { icon: '◆', label: 'AI Intelligence', threshold: 75 },
+    { icon: '◎', label: 'Blockly Workspace', threshold: 92 },
     { icon: '▣', label: 'Dashboard Ready', threshold: 100 },
 ];
 
@@ -20,10 +20,7 @@ export default function ChunkLoader({
     progress = 0,
     isConnected = false,
 }: ChunkLoaderProps) {
-    const percentage = Math.max(
-        0,
-        Math.min(100, Math.round(progress))
-    );
+    const percentage = Math.max(0, Math.min(100, Math.round(progress)));
 
     const connectionInterrupted =
         message.toLowerCase().includes('interrupted') ||
@@ -105,21 +102,30 @@ export default function ChunkLoader({
                 </div>
 
                 <div className='gtraders-loader__brand'>
-                    <h1>GTraders <span>Super</span></h1>
+                    <h1>
+                        GTraders <span>Super</span>
+                    </h1>
                     <p>PROFESSIONAL AI TRADING INTELLIGENCE</p>
                 </div>
 
                 <div className='gtraders-loader__status-list'>
                     {startupStages.map((stage, index) => {
-                        const completed =
-                            index === 1
-                                ? isConnected
-                                : percentage >= stage.threshold &&
-                                  !(connectionInterrupted && index > 1);
+                        const isConnectionStage = index === 1;
+
+                        const completed = isConnectionStage
+                            ? isConnected
+                            : percentage >= stage.threshold &&
+                              !(connectionInterrupted && index > 1);
+
+                        const previousThreshold =
+                            index === 0
+                                ? 0
+                                : startupStages[index - 1].threshold;
 
                         const active =
                             !completed &&
-                            percentage >= (index === 0 ? 0 : startupStages[index - 1].threshold);
+                            percentage >= previousThreshold &&
+                            !(connectionInterrupted && index > 1);
 
                         return (
                             <div
