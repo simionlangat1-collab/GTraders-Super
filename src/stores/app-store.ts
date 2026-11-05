@@ -53,14 +53,24 @@ export default class AppStore {
             }
         }, 10000);
 
-        if (!this.dbot_store) return;
+        if (!this.dbot_store) {
+            console.error(
+                'GTraders Super: DBot stores were not initialized before workspace startup.'
+            );
+            return;
+        }
 
-        // Begin workspace initialization.
+        // Start the real Blockly workspace initialization.
         blockly_store.setWorkspaceReady(false);
         blockly_store.setLoading(true);
+        blockly_store.setStartupProgress(
+            78,
+            'Initializing Blockly engine...'
+        );
 
         try {
-            // Load Blockly, create workspace and inject saved strategy.
+            // Load Blockly modules, create the workspace and restore
+            // the most recent saved strategy.
             await DBot.initWorkspace(
                 '/',
                 this.dbot_store,
@@ -69,17 +79,44 @@ export default class AppStore {
                 false
             );
 
+            // DBot.initWorkspace resolves only after the saved strategy
+            // has been injected into the Blockly workspace.
+            blockly_store.setStartupProgress(
+                92,
+                'Blockly workspace and saved strategy loaded.'
+            );
+
+            // Resize the initialized workspace.
             blockly_store.setContainerSize();
 
+            blockly_store.setStartupProgress(
+                95,
+                'Finalizing workspace layout...'
+            );
+
+            // Register application reactions and account listeners.
             this.registerCurrencyReaction.call(this);
             this.registerOnAccountSwitch.call(this);
             this.registerResidenceChangeReaction.call(this);
 
+            blockly_store.setStartupProgress(
+                97,
+                'Registering account and currency services...'
+            );
+
+            // Register workspace interaction listener.
             window.addEventListener('click', this.onClickOutsideBlockly);
 
+            // Restore the previously selected workspace tab.
             blockly_store.getCachedActiveTab();
 
-            // Workspace and saved strategy are now ready.
+            blockly_store.setStartupProgress(
+                99,
+                'Completing GTraders Super startup...'
+            );
+
+            // 100% is reached only after workspace initialization,
+            // strategy restoration and application setup are complete.
             blockly_store.setWorkspaceReady(true);
         } catch (error) {
             blockly_store.setWorkspaceReady(false);
@@ -89,7 +126,6 @@ export default class AppStore {
                 error
             );
         } finally {
-            // Always release the loading state.
             blockly_store.setLoading(false);
         }
     };
@@ -216,7 +252,6 @@ export default class AppStore {
         const { client, common } = this.core;
         const { handleFileChange } = load_modal;
         const { setLoading } = blockly_store;
-
         const { setContractUpdateConfig } = summary_card;
 
         const {
