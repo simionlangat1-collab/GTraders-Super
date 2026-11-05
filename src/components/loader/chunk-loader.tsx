@@ -2,23 +2,32 @@
 type ChunkLoaderProps = {
     message?: string;
     progress?: number;
+    isConnected?: boolean;
 };
 
 const startupStages = [
-    { icon: '▣', label: 'AI Engine' },
-    { icon: '☁', label: 'Deriv Connection' },
-    { icon: '◉', label: 'Scanner Engine' },
-    { icon: '▥', label: 'Signal Engine' },
-    { icon: '◆', label: 'AI Coach' },
-    { icon: '◎', label: 'Live Market Data' },
-    { icon: '▣', label: 'Dashboard Ready' },
+    { icon: '▣', label: 'AI Engine', threshold: 15 },
+    { icon: '☁', label: 'Deriv Connection', threshold: 30 },
+    { icon: '◉', label: 'Scanner Engine', threshold: 45 },
+    { icon: '▥', label: 'Signal Engine', threshold: 60 },
+    { icon: '◆', label: 'AI Coach', threshold: 75 },
+    { icon: '◎', label: 'Live Market Data', threshold: 90 },
+    { icon: '▣', label: 'Dashboard Ready', threshold: 100 },
 ];
 
 export default function ChunkLoader({
     message = 'Initializing GTraders Super...',
     progress = 0,
+    isConnected = false,
 }: ChunkLoaderProps) {
-    const percentage = Math.max(0, Math.min(100, Math.round(progress)));
+    const percentage = Math.max(
+        0,
+        Math.min(100, Math.round(progress))
+    );
+
+    const connectionInterrupted =
+        message.toLowerCase().includes('interrupted') ||
+        message.toLowerCase().includes('unavailable');
 
     return (
         <div className='app-root gtraders-loader'>
@@ -102,7 +111,15 @@ export default function ChunkLoader({
 
                 <div className='gtraders-loader__status-list'>
                     {startupStages.map((stage, index) => {
-                        const completed = percentage >= (index + 1) * 12.5;
+                        const completed =
+                            index === 1
+                                ? isConnected
+                                : percentage >= stage.threshold &&
+                                  !(connectionInterrupted && index > 1);
+
+                        const active =
+                            !completed &&
+                            percentage >= (index === 0 ? 0 : startupStages[index - 1].threshold);
 
                         return (
                             <div
@@ -118,7 +135,7 @@ export default function ChunkLoader({
                                 </span>
 
                                 <span className='gtraders-loader__status-check'>
-                                    {completed ? '✓' : '○'}
+                                    {completed ? '✓' : active ? '◌' : '○'}
                                 </span>
                             </div>
                         );
@@ -134,16 +151,14 @@ export default function ChunkLoader({
                         aria-valuemax={100}
                         aria-valuenow={percentage}
                     >
-                        <span
-                            style={{ width: `${percentage}%` }}
-                        />
+                        <span style={{ width: `${percentage}%` }} />
                     </div>
 
                     <div className='gtraders-loader__percentage'>
                         {percentage}%
                     </div>
 
-                    <p className='gtraders-loader__message'>
+                    <p className='gtraders-loader__message' role='status'>
                         {message}
                     </p>
                 </div>
