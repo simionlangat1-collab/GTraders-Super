@@ -1,4 +1,3 @@
-
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import ErrorBoundary from '@/components/error-component/error-boundary';
@@ -63,12 +62,16 @@ const AppRoot = () => {
 
         const initializeApi = async () => {
             try {
-                setStartupProgress(10);
-                setStartupMessage('Initializing GTraders Super...');
+                if (isMounted) {
+                    setStartupProgress(10);
+                    setStartupMessage('Initializing GTraders Super...');
+                }
 
                 if (!api_base_initialized.current) {
-                    setStartupProgress(20);
-                    setStartupMessage('Preparing Deriv API...');
+                    if (isMounted) {
+                        setStartupProgress(20);
+                        setStartupMessage('Preparing Deriv API...');
+                    }
 
                     await api_base.init();
                     api_base_initialized.current = true;
@@ -79,7 +82,7 @@ const AppRoot = () => {
                     setStartupMessage('Deriv API initialized. Waiting for connection...');
                 }
 
-                if (connectionStatus$.getValue() === CONNECTION_STATUS.OPENED) {
+                if (connectionStatus$.getValue() === CONNECTION_STATUS.OPENED && isMounted) {
                     setStartupProgress(50);
                     setStartupMessage('Deriv connection established...');
                 }
@@ -124,7 +127,10 @@ const AppRoot = () => {
         >
             <ErrorBoundary root_store={store}>
                 <ErrorComponentWrapper />
-                <AppContent />
+                <AppContent
+                    onStartupProgress={setStartupProgress}
+                    onStartupMessage={setStartupMessage}
+                />
             </ErrorBoundary>
         </Suspense>
     );
