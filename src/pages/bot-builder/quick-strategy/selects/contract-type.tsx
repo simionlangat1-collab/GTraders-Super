@@ -1,13 +1,12 @@
-import React from 'react';
+
+import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
-import debounce from 'debounce';
 import { Field, FieldProps, useFormikContext } from 'formik';
 import { observer } from 'mobx-react-lite';
 import Autocomplete from '@/components/shared_ui/autocomplete';
 import { TItem } from '@/components/shared_ui/dropdown-list';
 import Text from '@/components/shared_ui/text';
-import { ApiHelpers } from '@/external/bot-skeleton';
-import { api_base } from '@/external/bot-skeleton';
+import { ApiHelpers, api_base } from '@/external/bot-skeleton';
 import { requestOptionsProposalForQS } from '@/external/bot-skeleton/scratch/options-proposal-handler';
 import { useStore } from '@/hooks/useStore';
 import { localize } from '@deriv-com/translations';
@@ -31,208 +30,291 @@ type TProposalRequest = {
 
 const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
     const { isDesktop } = useDevice();
-    const [list, setList] = React.useState<TDropdownItems[]>([]);
+    const [list, setList] = useState<TDropdownItems[]>([]);
+    const [is_loading, setIsLoading] = useState(false);
+
     const { quick_strategy, client } = useStore();
     const { setValue } = quick_strategy;
-    const { setFieldValue, values, setFieldError } = useFormikContext<TFormData>();
+
+    const {
+        setFieldValue,
+        values,
+        setFieldError,
+    } = useFormikContext<TFormData>();
+
     const { symbol, tradetype } = values;
 
-    React.useEffect(() => {
-        if (tradetype && symbol) {
-            const selected = values?.type;
-            const getContractTypes = async () => {
-                const { contracts_for } = (ApiHelpers?.instance as unknown as TApiHelpersInstance) ?? {};
-                const categories = await contracts_for?.getContractTypes?.(tradetype);
-                setList(categories);
-                const has_selected = categories?.some(contract => contract.value === selected);
-                if (!has_selected) {
-                    setFieldValue?.(name, categories?.[0]?.value);
-                    setValue(name, categories?.[0]?.value);
-                }
-            };
-            getContractTypes();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [symbol, tradetype]);
+    const requestSequence = useRef(0);
+    const mounted = useRef(true);
 
-    // Define the validation function
-    const validateMinMaxForOptions = async (values: TFormData) => {
-        if (!values.type || !values.symbol || !values.durationtype) return;
+    useEffect(() => {
+        mounted.current = true;
 
-        // Set loading state to true before API call
-        quick_strategy.setOptionsLoading(true);
-
-        const amount = Number(values.stake) || 0;
-        const contract_type = values.type;
-        const duration_unit = values.durationtype;
-        const duration = Number(values.duration) || 0;
-
-        const request_proposal: TProposalRequest = {
-            amount,
-            currency: client?.currency,
-            underlying_symbol: values.symbol as string,
-            contract_type: contract_type as string,
-            duration_unit: duration_unit as string,
-            duration,
-            basis: 'stake',
+        return () => {
+            mounted.current = false;
+            requestSequence.current += 1;
+            quick_strategy.setOptionsLoading(false);
         };
-        try {
-            await requestOptionsProposalForQS(request_proposal, api_base.api);
+    }, [quick_strategy]);
 
-            // Clear previous errors if validation passes
-            setFieldError('stake', undefined);
-        } catch (error_response: any) {
-            // Enhanced error handling for ContractBuyValidationError and other API errors
-            let error_message = 'An error occurred while validating your input';
-            let should_show_error = false;
+    // Load contract types whenever the symbol or trade type changes.
+    useEffect(() => {
+        let isActive = true;
 
-            // Handle different error response formats
-            if (error_response?.message) {
-                error_message = error_response.message;
-            } else if (error_response?.error?.message) {
-                error_message = error_response.error.message;
+        const loadContractTypes = async () => {
+            if (!tradetype || !symbol) {
+                setList([]);
+                return;
             }
 
-            // Handle ContractBuyValidationError specifically
-            if (
-                error_response?.code === 'ContractBuyValidationError' ||
-                error_response?.error?.code === 'ContractBuyValidationError'
-            ) {
-                // This is a stake amount validation error - always show it if stake has a value
-                should_show_error = values.stake !== '' && values.stake !== undefined && values.stake !== null;
-            } else if (error_response?.code === 'MarketIsClosed' || error_response?.error?.code === 'MarketIsClosed') {
-                // Don't show market closed errors as field errors - these are handled elsewhere
-                should_show_error = false;
-            } else if (
-                error_response?.code === 'InvalidSymbol' ||
-                error_response?.code === 'InvalidContractType' ||
-                error_response?.code === 'InvalidDuration' ||
-                error_response?.error?.code === 'InvalidSymbol' ||
-                error_response?.error?.code === 'InvalidContractType' ||
-                error_response?.error?.code === 'InvalidDuration'
-            ) {
-                // Show validation errors for invalid selections
-                should_show_error = true;
-            } else if (
-                error_message.includes('connection') ||
-                error_message.includes('network') ||
-                error_message.includes('timeout')
-            ) {
-                // Don't show network errors as field errors - these are temporary
-                should_show_error = false;
-                console.warn('Network error during proposal validation:', error_message);
-            } else {
-                // For other errors, show them if stake has a value
-                should_show_error = values.stake !== '' && values.stake !== undefined && values.stake !== null;
+            try {
+                const helpers = ApiHelpers?.instance as unknown as
+                    | TApiHelpersInstance
+                    | undefined;
+
+                const categories =
+                    await helpers?.contracts_for?.getContractTypes?.(
+                        tradetype
+                    );
+
+                if (!isActive || !mounted.current) return;
+
+                const available_categories = Array.isArray(categories)
+                    ? categories
+                    : [];
+
+                setList(available_categories);
+
+                const selected = String(values?.type ?? '');
+
+                const has_selected = available_categories.some(
+                    item => item.value === selected
+                );
+
+                if (!has_selected) {
+                    const first_value =
+                        available_categories[0]?.value ?? '';
+
+                    setFieldValue(name, first_value);
+                    setValue(name, first_value);
+                }
+            } catch (error) {
+                if (!isActive || !mounted.current) return;
+
+                console.error(
+                    'GTraders Super: Failed to load contract types:',
+                    error
+                );
+
+                setList([]);
+            }
+        };
+
+        void loadContractTypes();
+
+        return () => {
+            isActive = false;
+        };
+    }, [
+        symbol,
+        tradetype,
+        name,
+        setFieldValue,
+        setValue,
+        values?.type,
+    ]);
+
+    // Validate stake and contract options with protection against stale requests.
+    useEffect(() => {
+        const {
+            type,
+            symbol: selected_symbol,
+            durationtype,
+            duration,
+            stake,
+        } = values;
+
+        if (
+            !type ||
+            !selected_symbol ||
+            !durationtype ||
+            !duration
+        ) {
+            quick_strategy.setOptionsLoading(false);
+            return;
+        }
+
+        const sequence = ++requestSequence.current;
+
+        const timer = setTimeout(async () => {
+            if (!mounted.current || sequence !== requestSequence.current) {
+                return;
             }
 
-            console.warn('Proposal validation error:', should_show_error);
-            if (should_show_error) {
-                // Handle stake amount validation errors with proper translation
+            setIsLoading(true);
+            quick_strategy.setOptionsLoading(true);
+
+            const request_proposal: TProposalRequest = {
+                amount: Number(stake) || 0,
+                currency: client?.currency,
+                underlying_symbol: String(selected_symbol),
+                contract_type: String(type),
+                duration_unit: String(durationtype),
+                duration: Number(duration) || 0,
+                basis: 'stake',
+            };
+
+            try {
+                await requestOptionsProposalForQS(
+                    request_proposal,
+                    api_base.api
+                );
+
+                if (
+                    !mounted.current ||
+                    sequence !== requestSequence.current
+                ) {
+                    return;
+                }
+
+                setFieldError('stake', undefined);
+            } catch (error_response: any) {
+                if (
+                    !mounted.current ||
+                    sequence !== requestSequence.current
+                ) {
+                    return;
+                }
+
+                let error_message =
+                    'An error occurred while validating your input';
+
+                if (error_response?.message) {
+                    error_message = error_response.message;
+                } else if (error_response?.error?.message) {
+                    error_message = error_response.error.message;
+                }
+
+                const error_code =
+                    error_response?.code ??
+                    error_response?.error?.code;
+
+                let should_show_error = false;
+
+                if (error_code === 'ContractBuyValidationError') {
+                    should_show_error =
+                        stake !== '' &&
+                        stake !== undefined &&
+                        stake !== null;
+                } else if (error_code === 'MarketIsClosed') {
+                    should_show_error = false;
+                } else if (
+                    [
+                        'InvalidSymbol',
+                        'InvalidContractType',
+                        'InvalidDuration',
+                    ].includes(error_code)
+                ) {
+                    should_show_error = true;
+                } else if (
+                    /connection|network|timeout/i.test(error_message)
+                ) {
+                    should_show_error = false;
+                    console.warn(
+                        'GTraders Super: Temporary network issue during proposal validation:',
+                        error_message
+                    );
+                } else {
+                    should_show_error =
+                        stake !== '' &&
+                        stake !== undefined &&
+                        stake !== null;
+                }
+
+                if (!should_show_error) return;
+
                 let translated_error_message = error_message;
 
-                // Check if this is a minimum stake validation error
-                if (error_message.includes("Please enter a stake amount that's at least")) {
-                    // Extract the minimum amount from the error message
-                    const amountMatch = error_message.match(/at least (\d+\.?\d*)/);
-                    if (amountMatch && amountMatch[1]) {
-                        const minAmount = amountMatch[1];
-                        // Use the translation key with parameter substitution
-                        translated_error_message = localize("Please enter a stake amount that's at least {{param1}}.", {
-                            param1: minAmount,
-                        });
-                    } else {
-                        // Fallback to direct translation if we can't extract the amount
-                        translated_error_message = localize(error_message);
-                    }
-                }
-                // Check if this is a maximum stake/payout validation error
-                else if (error_message.includes('Minimum stake of') && error_message.includes('maximum payout of')) {
-                    // Extract minimum stake and maximum payout values
-                    const minStakeMatch = error_message.match(/Minimum stake of (\d+\.?\d*)/);
-                    const maxPayoutMatch = error_message.match(/maximum payout of (\d+\.?\d*)/);
-                    const currentPayoutMatch = error_message.match(/Current payout is (\d+\.?\d*)/);
+                if (
+                    error_message.includes(
+                        "Please enter a stake amount that's at least"
+                    )
+                ) {
+                    const match = error_message.match(
+                        /at least (\d+\.?\d*)/
+                    );
 
-                    if (minStakeMatch && maxPayoutMatch && currentPayoutMatch) {
-                        const minStake = minStakeMatch[1];
-                        const maxPayout = maxPayoutMatch[1];
-                        const currentPayout = currentPayoutMatch[1];
-                        // Use the translation key with parameter substitution
-                        translated_error_message = localize(
-                            'Minimum stake of {{param1}} and maximum payout of {{param2}}. Current payout is {{param3}}.',
-                            {
-                                param1: minStake,
-                                param2: maxPayout,
-                                param3: currentPayout,
-                            }
-                        );
-                    } else {
-                        // Fallback to direct translation if we can't extract the values
-                        translated_error_message = localize(error_message);
-                    }
-                }
-                // Check if this is a maximum stake validation error (alternative format)
-                else if (error_message.includes("Please enter a stake amount that's at most")) {
-                    // Extract the maximum amount from the error message
-                    const amountMatch = error_message.match(/at most (\d+\.?\d*)/);
-                    if (amountMatch && amountMatch[1]) {
-                        const maxAmount = amountMatch[1];
-                        // Use the translation key with parameter substitution
-                        translated_error_message = localize("Please enter a stake amount that's at most {{param1}}.", {
-                            param1: maxAmount,
-                        });
-                    } else {
-                        // Fallback to direct translation if we can't extract the amount
-                        translated_error_message = localize(error_message);
-                    }
+                    translated_error_message = match?.[1]
+                        ? localize(
+                              "Please enter a stake amount that's at least {{param1}}.",
+                              { param1: match[1] }
+                          )
+                        : localize(error_message);
+                } else if (
+                    error_message.includes('Minimum stake of') &&
+                    error_message.includes('maximum payout of')
+                ) {
+                    const min_match = error_message.match(
+                        /Minimum stake of (\d+\.?\d*)/
+                    );
+                    const max_match = error_message.match(
+                        /maximum payout of (\d+\.?\d*)/
+                    );
+                    const current_match = error_message.match(
+                        /Current payout is (\d+\.?\d*)/
+                    );
+
+                    translated_error_message =
+                        min_match && max_match && current_match
+                            ? localize(
+                                  'Minimum stake of {{param1}} and maximum payout of {{param2}}. Current payout is {{param3}}.',
+                                  {
+                                      param1: min_match[1],
+                                      param2: max_match[1],
+                                      param3: current_match[1],
+                                  }
+                              )
+                            : localize(error_message);
+                } else if (
+                    error_message.includes(
+                        "Please enter a stake amount that's at most"
+                    )
+                ) {
+                    const match = error_message.match(
+                        /at most (\d+\.?\d*)/
+                    );
+
+                    translated_error_message = match?.[1]
+                        ? localize(
+                              "Please enter a stake amount that's at most {{param1}}.",
+                              { param1: match[1] }
+                          )
+                        : localize(error_message);
                 } else {
-                    // For other error messages, use direct translation
                     translated_error_message = localize(error_message);
                 }
 
                 setFieldError('stake', translated_error_message);
+            } finally {
+                if (
+                    mounted.current &&
+                    sequence === requestSequence.current
+                ) {
+                    setIsLoading(false);
+                    quick_strategy.setOptionsLoading(false);
+                }
             }
-        } finally {
-            // Set loading state to false after API call (whether it succeeded or failed)
-            quick_strategy.setOptionsLoading(false);
-        }
-    };
+        }, 1000);
 
-    // Store the latest version of validateMinMaxForOptions in a ref
-    const validateMinMaxForOptionsRef = React.useRef(validateMinMaxForOptions);
+        return () => {
+            clearTimeout(timer);
 
-    // Update the ref whenever the function changes
-    React.useEffect(() => {
-        validateMinMaxForOptionsRef.current = validateMinMaxForOptions;
-    }, [validateMinMaxForOptions]);
-
-    // Create a stable debounced function that uses the ref to always access the latest function
-    const debounceChange = React.useMemo(() => {
-        return debounce(
-            values => {
-                return validateMinMaxForOptionsRef.current(values);
-            },
-            1000,
-            {
-                immediate: false,
-            }
-        );
-    }, []);
-
-    React.useEffect(() => {
-        if (values.type && values.symbol && values.durationtype) {
-            // Set loading state to true before API call
-            quick_strategy.setOptionsLoading(true);
-            debounceChange(values);
-
-            // Add cleanup function to prevent loading state from getting stuck
-            return () => {
-                // Cancel the debounced function call
-                debounceChange.clear();
-                // Reset loading state in case component unmounts before debounced function executes
+            if (sequence === requestSequence.current) {
+                requestSequence.current += 1;
+                setIsLoading(false);
                 quick_strategy.setOptionsLoading(false);
-            };
-        }
+            }
+        };
     }, [
         values.stake,
         values.type,
@@ -240,16 +322,16 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
         values.durationtype,
         values.duration,
         client?.currency,
-        values,
-        debounceChange,
+        quick_strategy,
+        setFieldError,
     ]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         setFieldError('stake', undefined);
-    }, [values.stake]);
+    }, [values.stake, setFieldError]);
 
     const handleChange = (value: string) => {
-        setFieldValue?.(name, value);
+        setFieldValue(name, value);
         setValue(name, value);
     };
 
@@ -259,24 +341,44 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
         <div className='qs__form__field qs__form__field__input no-top-spacing'>
             <Field name={name} key={key} id={key}>
                 {({ field }: FieldProps) => {
-                    const selected_item = list?.find(item => item?.value === field?.value);
+                    const selected_item = list.find(
+                        item => item?.value === field?.value
+                    );
+
                     if (!isDesktop) {
                         return (
-                            <ul className='qs__form__field__list' data-testid='dt_qs_contract_types'>
+                            <ul
+                                className='qs__form__field__list'
+                                data-testid='dt_qs_contract_types'
+                            >
                                 {list.map(item => {
-                                    const is_active = selected_item?.value === item?.value;
+                                    const is_active =
+                                        selected_item?.value === item?.value;
+
                                     return (
                                         <li
-                                            key={item?.value}
-                                            className={classNames('qs__form__field__list__item', {
-                                                'qs__form__field__list__item--active': is_active,
-                                            })}
-                                            onClick={() => {
-                                                handleChange(item?.value);
-                                            }}
+                                            key={item.value}
+                                            className={classNames(
+                                                'qs__form__field__list__item',
+                                                {
+                                                    'qs__form__field__list__item--active':
+                                                        is_active,
+                                                }
+                                            )}
+                                            onClick={() =>
+                                                handleChange(item.value)
+                                            }
                                         >
-                                            <Text size='xs' color='prominent' weight={is_active ? 'bold ' : 'normal'}>
-                                                {item?.text}
+                                            <Text
+                                                size='xs'
+                                                color='prominent'
+                                                weight={
+                                                    is_active
+                                                        ? 'bold'
+                                                        : 'normal'
+                                                }
+                                            >
+                                                {item.text}
                                             </Text>
                                         </li>
                                     );
@@ -284,6 +386,7 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                             </ul>
                         );
                     }
+
                     return (
                         <Autocomplete
                             {...field}
@@ -294,15 +397,17 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                             value={selected_item?.text || ''}
                             list_items={list}
                             onItemSelection={(item: TItem) => {
-                                const { value } = item as TDropdownItems;
-                                if (value) {
-                                    handleChange(value);
+                                const selected = item as TDropdownItems;
+
+                                if (selected?.value) {
+                                    handleChange(selected.value);
                                 }
                             }}
                         />
                     );
                 }}
             </Field>
+            {is_loading ? null : null}
         </div>
     );
 });
