@@ -815,3 +815,31 @@
         min-width: 0;
     }
 }
+
+
+/* InfoPanel is rendered beside .tab__dashboard, so style it at the root level. */
+.tab__dashboard__info-panel {
+    background: rgba(5, 11, 53, 0.88);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 18px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(14px);
+
+    .dc-text,
+    .db-info-panel__card {
+        color: #dcecff;
+    }
+
+    .db-info-panel__close-action:hover {
+        background: rgba(0, 217, 255, 0.12);
+    }
+}
+
+.statistics__modal--mobile .db-info-panel {
+    color: #dcecff;
+
+    .dc-text,
+    .db-info-panel__card {
+        color: #dcecff;
+    }
+}
