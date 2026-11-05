@@ -75,3 +75,55 @@ body.theme--dark {
     background: transparent;
 }
 
+/* Premium glass treatment for the shared application chrome */
+.app-header,
+.layout .deriv-header,
+.app-footer,
+.derivs-secondary-tabs {
+    background: rgba(5, 11, 53, 0.88) !important;
+    border-color: rgba(0, 217, 255, 0.20) !important;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
+
+.app-header,
+.layout .deriv-header {
+    box-shadow: 0 5px 24px rgba(0, 0, 0, 0.20);
+}
+
+.app-footer {
+    box-shadow: 0 -5px 24px rgba(0, 0, 0, 0.18);
+}
+
+.bot-dashboard {
+    background: transparent !important;
+}
+
+::selection {
+    color: #ffffff;
+    background: rgba(8, 124, 255, 0.72);
+}
+
+body.theme--light,
+body.theme--dark {
+    scrollbar-color: #087cff #050b35;
+    scrollbar-width: thin;
+}
+
+body.theme--light::-webkit-scrollbar,
+body.theme--dark::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+body.theme--light::-webkit-scrollbar-track,
+body.theme--dark::-webkit-scrollbar-track {
+    background: #050b35;
+}
+
+body.theme--light::-webkit-scrollbar-thumb,
+body.theme--dark::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    background: linear-gradient(180deg, #00d9ff, #7900ff);
+}
+
