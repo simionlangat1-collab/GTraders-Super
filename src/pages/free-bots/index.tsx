@@ -112,7 +112,7 @@ const FreeBots = () => {
 
     useEffect(() => {
         if (connectionStatus !== CONNECTION_STATUS.OPENED && engineRef.current) {
-            engineRef.current.stop();
+            engineRef.current.dispose();
             engineRef.current = null;
             setIsRunning(false);
             setStatus('Deriv connection closed. Bot stopped.');
@@ -202,6 +202,7 @@ const FreeBots = () => {
                 },
                 onProfit: setSessionProfit,
                 onError: setErrorMessage,
+                onStopped: () => setIsRunning(false),
             }
         );
 
@@ -252,10 +253,7 @@ const FreeBots = () => {
                             <h2>G - T Sniper XVT Bot</h2>
                             <p>Precision entries using a rolling 100-tick digit analysis.</p>
                         </div>
-                        <button className='xvt-button xvt-button--quiet' onClick={() => {
-                            if (isRunning) stopBot();
-                            setIsBotOpen(false);
-                        }}>
+                        <button className='xvt-button xvt-button--quiet' onClick={() => setIsBotOpen(false)} disabled={isRunning}>
                             Back to Free Bots
                         </button>
                     </div>
