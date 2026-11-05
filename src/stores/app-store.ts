@@ -251,7 +251,7 @@ export default class AppStore {
 
         const { client, common } = this.core;
         const { handleFileChange } = load_modal;
-        const { setLoading } = blockly_store;
+        const { setLoading, setStartupProgress } = blockly_store;
         const { setContractUpdateConfig } = summary_card;
 
         const {
@@ -267,6 +267,7 @@ export default class AppStore {
             load_modal,
             run_panel,
             setLoading,
+            setStartupProgress,
             setContractUpdateConfig,
             handleFileChange,
             is_mobile,
