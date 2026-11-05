@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { Field, FieldProps, useFormikContext } from 'formik';
 import { MarketIcon } from '@/components/market/market-icon';
@@ -35,48 +36,107 @@ const SymbolSelect: React.FC = () => {
     const { quick_strategy } = useStore();
     const { isDesktop } = useDevice();
     const { setValue, selected_strategy } = quick_strategy;
-    const [active_symbols, setActiveSymbols] = React.useState<TSymbol[]>([]);
+
+    const [active_symbols, setActiveSymbols] = useState<TSymbol[]>([]);
     const [is_input_started, setIsInputStarted] = useState(false);
-    const [input_value, setInputValue] = useState({ text: '', value: '' });
-    const [last_selected_symbol, setLastSelectedSymbol] = useState({ text: '', value: '' });
+    const [input_value, setInputValue] = useState({
+        text: '',
+        value: '',
+    });
+    const [last_selected_symbol, setLastSelectedSymbol] = useState({
+        text: '',
+        value: '',
+    });
+
     const { setFieldValue, values } = useFormikContext<TFormData>();
-    const is_strategy_accumulator = V2_QS_STRATEGIES.includes(selected_strategy);
+
+    const is_strategy_accumulator =
+        V2_QS_STRATEGIES.includes(selected_strategy);
 
     const symbols = useMemo(
         () =>
             active_symbols
-                .map((symbol: TSymbol) => ({
-                    component: <MarketOption key={symbol.text} symbol={symbol} />,
+                .filter(
+                    symbol =>
+                        !is_strategy_accumulator ||
+                        symbol.submarket === 'random_index'
+                )
+                .map(symbol => ({
+                    component: (
+                        <MarketOption
+                            key={symbol.value}
+                            symbol={symbol}
+                        />
+                    ),
                     ...symbol,
-                }))
-                .filter(symbol => !is_strategy_accumulator || symbol?.submarket === 'random_index'),
+                })),
         [active_symbols, is_strategy_accumulator]
     );
 
     useEffect(() => {
-        const { active_symbols } =
-            (ApiHelpers?.instance as unknown as {
-                active_symbols: {
-                    getSymbolsForBot: () => TSymbol[];
-                };
-            }) ?? {};
-        const symbols = active_symbols?.getSymbolsForBot?.();
-        setActiveSymbols(symbols);
+        let isMounted = true;
 
-        const has_symbol = !!symbols?.find(symbol => symbol?.value === values?.symbol);
-        if (!has_symbol) {
-            setFieldValue('symbol', symbols?.[0]?.value);
-            setValue('symbol', symbols?.[0]?.value);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        const loadSymbols = () => {
+            const helpers = ApiHelpers?.instance as unknown as {
+                active_symbols?: {
+                    getSymbolsForBot?: () => TSymbol[];
+                };
+            };
+
+            const available_symbols =
+                helpers?.active_symbols?.getSymbolsForBot?.() ?? [];
+
+            if (!isMounted) return;
+
+            setActiveSymbols(available_symbols);
+
+            const available_for_strategy = available_symbols.filter(
+                symbol =>
+                    !is_strategy_accumulator ||
+                    symbol.submarket === 'random_index'
+            );
+
+            const has_symbol = available_for_strategy.some(
+                symbol => symbol.value === values?.symbol
+            );
+
+            if (!has_symbol && available_for_strategy.length > 0) {
+                const first_symbol = available_for_strategy[0];
+
+                setFieldValue('symbol', first_symbol.value);
+                setValue('symbol', first_symbol.value);
+            }
+        };
+
+        loadSymbols();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [
+        is_strategy_accumulator,
+        setFieldValue,
+        setValue,
+        values?.symbol,
+    ]);
 
     useEffect(() => {
-        const selected_symbol = symbols.find(symbol => symbol.value === values.symbol);
+        const selected_symbol = symbols.find(
+            symbol => symbol.value === values.symbol
+        );
+
         if (selected_symbol) {
-            setInputValue({ text: selected_symbol.text, value: selected_symbol.value });
+            setInputValue({
+                text: selected_symbol.text,
+                value: selected_symbol.value,
+            });
+
+            setLastSelectedSymbol({
+                text: selected_symbol.text,
+                value: selected_symbol.value,
+            });
         }
-    }, [symbols, values.symbol, setInputValue]);
+    }, [symbols, values.symbol]);
 
     const handleFocus = () => {
         if (isDesktop && !is_input_started) {
@@ -84,55 +144,87 @@ const SymbolSelect: React.FC = () => {
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInputValue({ ...input_value, text: e.target.value });
+    const handleInputChange = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        setInputValue({
+            ...input_value,
+            text: event.target.value,
+        });
     };
 
     const handleItemSelection = (item: TItem) => {
-        if (item?.value) {
-            const { value } = item as TSymbol;
-            setFieldValue('symbol', value);
-            setValue('symbol', value);
-            setIsInputStarted(false);
-        }
+        if (!item?.value) return;
+
+        const selected = item as TSymbol;
+
+        setFieldValue('symbol', selected.value);
+        setValue('symbol', selected.value);
+
+        setInputValue({
+            text: selected.text,
+            value: selected.value,
+        });
+
+        setLastSelectedSymbol({
+            text: selected.text,
+            value: selected.value,
+        });
+
+        setIsInputStarted(false);
     };
 
     const handleHideDropdownList = () => {
-        if (isDesktop) {
-            const selectedSymbol = symbols.find(symbol => symbol.value === values.symbol);
-            if (selectedSymbol && selectedSymbol.text !== input_value.text) {
-                setInputValue({ text: selectedSymbol.text, value: selectedSymbol.value });
-                setLastSelectedSymbol({ text: selectedSymbol.text, value: selectedSymbol.value });
-                setIsInputStarted(false);
-            }
-            if (!selectedSymbol) {
-                setInputValue({ text: last_selected_symbol.text, value: last_selected_symbol.value });
-                setIsInputStarted(false);
-            }
+        if (!isDesktop) return;
+
+        const selected_symbol = symbols.find(
+            symbol => symbol.value === values.symbol
+        );
+
+        if (selected_symbol) {
+            setInputValue({
+                text: selected_symbol.text,
+                value: selected_symbol.value,
+            });
+
+            setLastSelectedSymbol({
+                text: selected_symbol.text,
+                value: selected_symbol.value,
+            });
+        } else {
+            setInputValue({
+                text: last_selected_symbol.text,
+                value: last_selected_symbol.value,
+            });
         }
+
+        setIsInputStarted(false);
     };
 
     return (
         <div className='qs__form__field qs__form__field__input'>
             <Field name='symbol' key='asset' id='asset'>
                 {({ field: { ...rest_field } }: FieldProps) => (
-                    <>
-                        <Autocomplete
-                            {...rest_field}
-                            readOnly={!isDesktop}
-                            inputMode='none'
-                            data-testid='dt_qs_symbol'
-                            autoComplete='off'
-                            className='qs__autocomplete'
-                            value={input_value.text}
-                            list_items={symbols}
-                            onItemSelection={handleItemSelection}
-                            onChange={handleInputChange}
-                            onFocus={handleFocus}
-                            onHideDropdownList={handleHideDropdownList}
-                            leading_icon={<MarketIcon type={input_value.value} size='sm' />}
-                        />
-                    </>
+                    <Autocomplete
+                        {...rest_field}
+                        readOnly={!isDesktop}
+                        inputMode='none'
+                        data-testid='dt_qs_symbol'
+                        autoComplete='off'
+                        className='qs__autocomplete'
+                        value={input_value.text}
+                        list_items={symbols}
+                        onItemSelection={handleItemSelection}
+                        onChange={handleInputChange}
+                        onFocus={handleFocus}
+                        onHideDropdownList={handleHideDropdownList}
+                        leading_icon={
+                            <MarketIcon
+                                type={input_value.value}
+                                size='sm'
+                            />
+                        }
+                    />
                 )}
             </Field>
         </div>
