@@ -297,6 +297,9 @@ export default class XvtSniperEngine {
             if (openResponse?.proposal_open_contract) {
                 this.handleContractUpdate(openResponse.proposal_open_contract);
             }
+            if (this.currentContractId !== String(buy.contract_id)) {
+                this.forgetOpenContractSubscription();
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Trade request failed.';
             this.callbacks.onError?.(message);
@@ -331,9 +334,12 @@ export default class XvtSniperEngine {
         if (this.settledContractIds.has(this.currentContractId)) return;
 
         const settledId = this.currentContractId;
-        this.settledContractIds.add(settledId);
         const profit = Number(contract.profit ?? (Number(contract.sell_price) - Number(contract.buy_price)));
-        if (!Number.isFinite(profit)) return;
+        if (!Number.isFinite(profit)) {
+            this.callbacks.onError?.('Deriv returned an invalid contract profit. The open contract remains under monitoring.');
+            return;
+        }
+        this.settledContractIds.add(settledId);
 
         this.sessionProfit += profit;
         const won = profit > 0;
