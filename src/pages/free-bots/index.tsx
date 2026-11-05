@@ -14,6 +14,7 @@ type TAnalysis = {
     ticks: number;
     counts: number[];
     topDigits: number[];
+    predictionDigit: number | null;
     favourableCount: number;
     favourablePercent: number;
     momentumReady: boolean;
@@ -24,6 +25,7 @@ const emptyAnalysis: TAnalysis = {
     ticks: 0,
     counts: Array(10).fill(0),
     topDigits: [],
+    predictionDigit: null,
     favourableCount: 0,
     favourablePercent: 0,
     momentumReady: false,
@@ -219,7 +221,6 @@ const FreeBots = () => {
 
     const stopBot = () => {
         engineRef.current?.stop();
-        setIsRunning(false);
     };
 
     const selectedBarrier = direction === 'OVER'
@@ -363,6 +364,14 @@ const FreeBots = () => {
                             <span className={analysis.momentumReady ? 'xvt-momentum xvt-momentum--ready' : 'xvt-momentum'}>
                                 {analysis.momentumReady ? 'Momentum confirmed' : 'Waiting for momentum'}
                             </span>
+                        </div>
+                        <div className='xvt-prediction'>
+                            <div>
+                                <span>Estimated next digit</span>
+                                <small>Most frequent digit in the latest {analysis.ticks} ticks · historical estimate only</small>
+                            </div>
+                            <strong>{analysis.predictionDigit ?? '—'}</strong>
+                            <small>{analysis.predictionDigit !== null ? analysis.counts[analysis.predictionDigit] : 0} occurrence(s)</small>
                         </div>
                         <div className='xvt-digit-grid'>
                             {rankedDigits.map(item => (
