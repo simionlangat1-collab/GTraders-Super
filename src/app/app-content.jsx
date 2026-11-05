@@ -25,9 +25,15 @@ import './app.scss';
 import 'react-toastify/dist/ReactToastify.css';
 import '../components/bot-notification/bot-notification.scss';
 
-const AppContent = observer(() => {
+const AppContent = observer(({
+    onStartupProgress,
+    onStartupMessage,
+}) => {
     const [is_api_initialized, setIsApiInitialized] = React.useState(false);
     const [is_loading, setIsLoading] = React.useState(true);
+    const [loadingMessage, setLoadingMessage] = React.useState(
+        'Preparing live market data...'
+    );
 
     const store = useStore();
     const { app, transactions, common, client } = store;
@@ -59,17 +65,34 @@ const AppContent = observer(() => {
         if (connectionStatus === CONNECTION_STATUS.OPENED) {
             setIsApiInitialized(true);
             common.setSocketOpened(true);
+
+            onStartupProgress?.(55);
+            onStartupMessage?.('Deriv connection established...');
+            setLoadingMessage('Preparing live market data...');
         } else {
             common.setSocketOpened(false);
+
+            if (connectionStatus === CONNECTION_STATUS.CLOSED) {
+                onStartupMessage?.('Connection interrupted. Reconnecting...');
+                setLoadingMessage('Waiting for market connection...');
+            }
         }
-    }, [common, connectionStatus]);
+    }, [
+        common,
+        connectionStatus,
+        onStartupProgress,
+        onStartupMessage,
+    ]);
 
     const { current_language } = common;
     const html = document.documentElement;
 
     useEffect(() => {
         html?.setAttribute('lang', current_language.toLowerCase());
-        html?.setAttribute('dir', current_language.toLowerCase() === 'ar' ? 'rtl' : 'ltr');
+        html?.setAttribute(
+            'dir',
+            current_language.toLowerCase() === 'ar' ? 'rtl' : 'ltr'
+        );
     }, [current_language, html]);
 
     const handleMessage = React.useCallback(
@@ -79,7 +102,9 @@ const AppContent = observer(() => {
 
                 if (
                     proposal_open_contract?.status !== 'open' &&
-                    !recovered_transactions?.includes(proposal_open_contract?.contract_id)
+                    !recovered_transactions?.includes(
+                        proposal_open_contract?.contract_id
+                    )
                 ) {
                     recoverPendingContracts(proposal_open_contract);
                 }
@@ -110,7 +135,13 @@ const AppContent = observer(() => {
                 msg_listener.current = null;
             }
         };
-    }, [is_api_initialized, client.is_logged_in, client.loginid, handleMessage, connectionStatus]);
+    }, [
+        is_api_initialized,
+        client.is_logged_in,
+        client.loginid,
+        handleMessage,
+        connectionStatus,
+    ]);
 
     const init = () => {
         ServerTime.init(common);
@@ -122,20 +153,26 @@ const AppContent = observer(() => {
                 GTM.init(store);
             })
             .catch(error => {
-                console.error('GTraders Super analytics initialization failed:', error);
+                console.error(
+                    'GTraders Super analytics initialization failed:',
+                    error
+                );
             });
     };
 
     useEffect(() => {
         if (!is_api_initialized) return;
 
-        // Initialize the app only once.
         if (!has_initialized.current) {
             init();
             has_initialized.current = true;
         }
 
         setIsLoading(true);
+        setLoadingMessage('Loading live market data...');
+
+        onStartupProgress?.(60);
+        onStartupMessage?.('Loading live market data...');
 
         let intervalId;
         let cancelled = false;
@@ -150,22 +187,47 @@ const AppContent = observer(() => {
                 intervalId = undefined;
             }
 
+            onStartupProgress?.(65);
+            onStartupMessage?.('Initializing market scanner...');
+
+            setLoadingMessage('Initializing market scanner...');
+
             Promise.resolve(active_symbols.retrieveActiveSymbols(true))
                 .then(() => {
                     if (!cancelled) {
+                        onStartupProgress?.(75);
+                        onStartupMessage?.(
+                            'Market data loaded. Preparing workspace...'
+                        );
+
+                        setLoadingMessage(
+                            'Market data loaded. Preparing workspace...'
+                        );
+
                         setIsLoading(false);
                     }
                 })
                 .catch(error => {
-                    console.error('GTraders Super active symbols initialization failed:', error);
+                    console.error(
+                        'GTraders Super active symbols initialization failed:',
+                        error
+                    );
 
                     if (!cancelled) {
+                        onStartupProgress?.(75);
+                        onStartupMessage?.(
+                            'Market data unavailable. Continuing safely...'
+                        );
+
+                        setLoadingMessage(
+                            'Market data unavailable. Continuing safely...'
+                        );
+
                         setIsLoading(false);
                     }
                 });
         };
 
-        // Wait until the Active Symbols service is available.
         retrieveActiveSymbols();
 
         if (!ApiHelpers?.instance?.active_symbols) {
@@ -179,23 +241,30 @@ const AppContent = observer(() => {
                 clearInterval(intervalId);
             }
         };
-        // Initialization and symbol retrieval follow the API connection and account.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [is_api_initialized, client.loginid]);
+    }, [
+        is_api_initialized,
+        client.loginid,
+        onStartupProgress,
+        onStartupMessage,
+    ]);
 
     if (common?.error) return null;
 
     return is_loading ? (
-    <ChunkLoader
-        progress={50}
-        isConnected={connectionStatus === CONNECTION_STATUS.OPENED}
-        message={localize('Loading live market data...')}
-    />
-) : (
+        <ChunkLoader
+            progress={75}
+            isConnected={connectionStatus === CONNECTION_STATUS.OPENED}
+            message={localize(loadingMessage)}
+        />
+    ) : (
         <AuthLoadingWrapper>
             <ThemeProvider theme={is_dark_mode_on ? 'dark' : 'light'}>
                 <BlocklyLoading />
-                <div className='bot-dashboard bot' data-testid='dt_bot_dashboard'>
+
+                <div
+                    className='bot-dashboard bot'
+                    data-testid='dt_bot_dashboard'
+                >
                     <Audio />
                     <Main />
                     <BotBuilder />
