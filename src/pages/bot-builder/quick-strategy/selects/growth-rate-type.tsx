@@ -1,6 +1,5 @@
 import React from 'react';
 import classNames from 'classnames';
-import debounce from 'debounce';
 import { Field, FieldProps, useFormikContext } from 'formik';
 import { observer } from 'mobx-react-lite';
 import Autocomplete from '@/components/shared_ui/autocomplete';
@@ -13,324 +12,421 @@ import { useStore } from '@/hooks/useStore';
 import { localize } from '@deriv-com/translations';
 import { TDropdownItems, TFormData } from '../types';
 
-// TRANSLATION EXTRACTION HINTS
-// These translation keys are required for the CLI extraction tool (npx deriv-extract-translations)
-// to detect dynamically used error messages from getLocalizedErrorMessage() calls.
-// The actual translations are used at runtime in the error handling logic below (lines 160-170).
-// DO NOT REMOVE - Required for proper i18n extraction and translation coverage.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TRANSLATION_KEYS = {
-    LimitOrderAmountTooLow: localize('Enter an amount equal to or higher than {{param1}}.'),
-    ContractBuyValidationError: localize('Contract purchase validation failed'),
-    MinimumTickCount: localize('Minimum tick count allowed is {{ min }}'),
-    MaximumTickCount: localize('Maximum tick count allowed is {{ max }}'),
-    InvalidMinStake: localize("Please enter a stake amount that's at least {{param1}}."),
-};
+const GROWTH_RATES: TDropdownItems[] = [
+{ text: '1%', value: '0.01' },
+{ text: '2%', value: '0.02' },
+{ text: '3%', value: '0.03' },
+{ text: '4%', value: '0.04' },
+{ text: '5%', value: '0.05' },
+];
 
 type TContractTypes = {
-    name: string;
-    attached?: boolean;
-};
-
-type TProposalRequest = {
-    amount: number;
-    currency: string;
-    growth_rate: number;
-    symbol: string;
-    limit_order: {
-        take_profit?: number;
-    };
-    boolean_tick_count: boolean;
+name: string;
+attached?: boolean;
 };
 
 type TErrorResponse = {
-    message?: string;
-    error?: {
-        code?: string;
-        subcode?: string;
-        message?: string;
-        code_args?: any[];
-        details?: {
-            field?: string;
-        };
-    };
+code?: string;
+subcode?: string;
+message?: string;
+details?: {
+field?: string;
+};
+error?: {
+code?: string;
+subcode?: string;
+message?: string;
+details?: {
+field?: string;
+};
+};
 };
 
-/**
- * Helper function to get localized error message with subcode priority
- * Prioritizes subcode over code for consistency with centralized error handling
- */
-const getLocalizedError = (typedError: TErrorResponse): string => {
-    if (typedError?.error?.subcode) {
-        return getLocalizedErrorMessage(typedError.error.subcode, typedError.error);
-    } else if (typedError?.error?.code) {
-        return getLocalizedErrorMessage(typedError.error.code, typedError.error);
-    }
-    return typedError?.error?.message || '';
+const getLocalizedError = (error: TErrorResponse): string => {
+const details = error?.error ?? error;
+
+if (details?.subcode) {
+    return getLocalizedErrorMessage(details.subcode, details);
+}
+
+if (details?.code) {
+    return getLocalizedErrorMessage(details.code, details);
+}
+
+return details?.message || error?.message || '';
+
 };
 
 const GrowthRateSelect: React.FC<TContractTypes> = observer(({ name }) => {
-    const { ui, client } = useStore();
-    const { is_desktop } = ui;
-    const [list, setList] = React.useState<TDropdownItems[]>([]);
-    const { quick_strategy } = useStore();
-    const { setValue, setAdditionalData } = quick_strategy;
-    const { setFieldValue, values, setFieldError, errors } = useFormikContext<TFormData>();
+const { ui, client, quick_strategy } = useStore();
 
-    const prev_proposal_payload = React.useRef<TProposalRequest | null>(null);
-    const ref_max_payout = React.useRef<TProposalRequest | null>(null);
-    const prev_error = React.useRef<{
-        tick_count: string | null;
-        take_profit: string | null;
-    }>({
-        tick_count: null,
-        take_profit: null,
-    });
+const { is_desktop } = ui;
 
-    React.useEffect(() => {
-        setList([
-            { text: '1%', value: '0.01' },
-            { text: '2%', value: '0.02' },
-            { text: '3%', value: '0.03' },
-            { text: '4%', value: '0.04' },
-            { text: '5%', value: '0.05' },
-        ]);
-        setFieldValue?.('tradetype', 'accumulator');
-        setValue('tradetype', 'accumulator');
-    }, []);
+const { setValue, setAdditionalData } = quick_strategy;
 
-    React.useEffect(() => {
-        if (values.boolean_tick_count) {
-            setFieldValue('take_profit', 0);
-            setFieldError('tick_count', prev_error.current?.tick_count ?? undefined);
-            setFieldError('take_profit', undefined);
-        } else {
-            setFieldValue('tick_count', 0);
-            setFieldError('take_profit', prev_error.current?.take_profit ?? undefined);
-            setFieldError('tick_count', undefined);
+const {
+    setFieldValue,
+    values,
+    setFieldError,
+} = useFormikContext<TFormData>();
+
+const requestSequence = React.useRef(0);
+const mounted = React.useRef(true);
+
+const previousErrors = React.useRef<{
+    tick_count: string | null;
+    take_profit: string | null;
+}>({
+    tick_count: null,
+    take_profit: null,
+});
+
+const maxPayout = React.useRef<unknown>(null);
+
+React.useEffect(() => {
+    mounted.current = true;
+
+    setFieldValue('tradetype', 'accumulator');
+    setValue('tradetype', 'accumulator');
+
+    return () => {
+        mounted.current = false;
+        requestSequence.current += 1;
+    };
+}, [setFieldValue, setValue]);
+
+// Keep mutually exclusive accumulator validation fields synchronized.
+React.useEffect(() => {
+    if (values.boolean_tick_count) {
+        void setFieldValue('take_profit', 0);
+        setFieldError(
+            'tick_count',
+            previousErrors.current.tick_count ?? undefined
+        );
+        setFieldError('take_profit', undefined);
+    } else {
+        void setFieldValue('tick_count', 0);
+        setFieldError(
+            'take_profit',
+            previousErrors.current.take_profit ?? undefined
+        );
+        setFieldError('tick_count', undefined);
+    }
+}, [
+    values.boolean_tick_count,
+    setFieldValue,
+    setFieldError,
+]);
+
+// Validate accumulator proposals with stale-response protection.
+React.useEffect(() => {
+    const sequence = ++requestSequence.current;
+
+    const {
+        stake,
+        symbol,
+        growth_rate,
+        take_profit,
+        boolean_tick_count,
+        tick_count,
+    } = values;
+
+    if (
+        !symbol ||
+        !growth_rate ||
+        !client?.currency ||
+        !mounted.current
+    ) {
+        return;
+    }
+
+    const timer = setTimeout(async () => {
+        if (
+            !mounted.current ||
+            sequence !== requestSequence.current
+        ) {
+            return;
         }
-    }, [values, errors.take_profit, errors.tick_count, values.boolean_tick_count, setFieldValue, setFieldError]);
 
-    const validateMinMaxForAccumulators = async (values: TFormData) => {
-        const growth_rate = Number(values.growth_rate);
-        const amount = Number(values.stake);
-        const take_profit = Number(values.take_profit);
-        const request_proposal = {
-            amount,
-            currency: client?.currency,
-            growth_rate,
-            symbol: values.symbol,
+        const requestProposal = {
+            amount: Number(stake) || 0,
+            currency: client.currency,
+            growth_rate: Number(growth_rate),
+            symbol: String(symbol),
             limit_order: {
-                ...(!values.boolean_tick_count && { take_profit }),
+                ...(!boolean_tick_count && {
+                    take_profit: Number(take_profit) || 0,
+                }),
             },
         };
 
-        prev_proposal_payload.current = {
-            ...request_proposal,
-            symbol: String(request_proposal.symbol),
-            boolean_tick_count: Boolean(values.boolean_tick_count),
-        };
         try {
-            const response = await requestProposalForQS(request_proposal, api_base.api);
-            const min_ticks = 1;
-            const max_ticks = response?.proposal?.validation_params?.max_ticks;
+            const response = await requestProposalForQS(
+                requestProposal,
+                api_base.api
+            );
 
-            // Extract max_stake from the correct path in the API response
-            const max_stake = response?.proposal?.contract_details?.maximum_stake;
-            const min_stake = response?.proposal?.contract_details?.minimum_stake;
+            if (
+                !mounted.current ||
+                sequence !== requestSequence.current
+            ) {
+                return;
+            }
 
-            let min_error = '';
-            let max_error = '';
+            const proposal = response?.proposal;
+
+            const validationParams = proposal?.validation_params;
+            const contractDetails = proposal?.contract_details;
+
+            const maxTicks = Number(validationParams?.max_ticks);
+            const maxStake = Number(contractDetails?.maximum_stake);
+            const minStake = Number(contractDetails?.minimum_stake);
+
             setAdditionalData({
-                max_payout: ref_max_payout.current,
-                max_ticks,
-                max_stake: Number(max_stake) || 1000,
-                min_stake: Number(min_stake) || 1,
+                max_payout: maxPayout.current,
+                max_ticks: Number.isFinite(maxTicks)
+                    ? maxTicks
+                    : undefined,
+                max_stake: Number.isFinite(maxStake)
+                    ? maxStake
+                    : 1000,
+                min_stake: Number.isFinite(minStake)
+                    ? minStake
+                    : 1,
             });
-            ref_max_payout.current = response?.proposal?.validation_params?.max_payout;
-            const current_tick_count = Number(values.tick_count);
 
-            if (!isNaN(current_tick_count) && current_tick_count > max_ticks) {
-                max_error = localize('Maximum tick count allowed is {{ max }}', { max: max_ticks });
-                setFieldError('tick_count', max_error);
-                prev_error.current.tick_count = max_error;
-            } else if (!isNaN(current_tick_count) && current_tick_count < min_ticks) {
-                min_error = localize('Minimum tick count allowed is {{ min }}', { min: min_ticks });
-                setFieldError('tick_count', min_error);
-                prev_error.current.tick_count = min_error;
-            } else {
-                prev_error.current.tick_count = null;
-                setFieldError('tick_count', undefined);
-            }
-            prev_error.current.take_profit = null;
-        } catch (error_response) {
-            const typedError = error_response as TErrorResponse;
-            let error_message = typedError?.message ?? typedError?.error?.message;
+            maxPayout.current = validationParams?.max_payout ?? null;
 
-            // Use centralized error message handling for consistency
-            error_message = getLocalizedError(typedError);
+            // Validate tick count only when that option is active.
+            if (boolean_tick_count) {
+                const currentTickCount = Number(tick_count);
 
-            if (values.boolean_tick_count) {
-                setFieldError('tick_count', error_message);
-                prev_error.current.tick_count = error_message || null;
-
-                // Force rerender by updating the field value
-                const current_value = Number(values.tick_count);
-                if (current_value > 1000) {
-                    setFieldValue('tick_count', 1000);
-                } else if (current_value < 1) {
-                    setFieldValue('tick_count', 1);
-                }
-            } else {
-                // Handle take_profit field errors
-                if (typedError?.error?.details?.field === 'take_profit') {
-                    if (Number(values.take_profit) === 0) {
-                        // Use centralized error message handling
-                        error_message = getLocalizedError(typedError);
-                    } else {
-                        if (values?.take_profit && values.stake && ref_max_payout.current) {
-                            const totalPayout = Number(values.take_profit) + Number(values.stake);
-                            error_message = localize(
-                                'Your total payout is {{total}}. Enter amount less than {{max}}.',
-                                {
-                                    total: totalPayout,
-                                    max: ref_max_payout.current,
-                                }
-                            );
-                            const hint = localize('By changing your initial stake and/or take profit.');
-                            error_message = `${error_message} ${hint}`;
-                        }
-                    }
-                    setFieldError('take_profit', error_message);
-                    prev_error.current.take_profit = error_message || null;
-                }
-                // Handle other field errors with clearer logic
-                else {
-                    const errorField = typedError?.error?.details?.field;
-
-                    if (errorField === 'stake' || errorField === 'amount') {
-                        // Use centralized error message handling
-                        error_message = getLocalizedError(typedError) || error_message;
-
-                        // For 'amount' field from backend, only show error if stake has a value
-                        // For 'stake' field, always show error
-                        const shouldShowError =
-                            errorField === 'stake' ||
-                            (values.stake !== '' && values.stake !== undefined && values.stake !== null);
-
-                        if (shouldShowError) {
-                            setFieldError('stake', error_message);
-                        }
-                    } else {
-                        // Default to take_profit for unknown fields
-                        setFieldError('take_profit', error_message);
-                        prev_error.current.take_profit = error_message || null;
-                    }
-                }
-            }
-        }
-    };
-
-    const debounceChange = React.useCallback(
-        debounce(validateMinMaxForAccumulators, 1000, {
-            immediate: false,
-        }),
-        []
-    );
-
-    React.useEffect(() => {
-        if (
-            prev_proposal_payload.current?.symbol !== values.symbol ||
-            prev_proposal_payload.current?.amount !== values.stake ||
-            prev_proposal_payload.current?.limit_order?.take_profit !== values.take_profit ||
-            prev_proposal_payload.current?.currency !== client?.currency ||
-            prev_proposal_payload.current?.growth_rate !== values.growth_rate ||
-            prev_proposal_payload.current?.boolean_tick_count !== values.boolean_tick_count
-        ) {
-            debounceChange(values);
-        }
-    }, [
-        values.take_profit,
-        values.tick_count,
-        values.stake,
-        values.growth_rate,
-        client?.currency,
-        values.boolean_tick_count,
-        values,
-        debounceChange,
-    ]);
-
-    const handleChange = async (value: string) => {
-        setFieldValue?.(name, value);
-        setValue(name, value);
-    };
-
-    const key = `qs-contract-type-${name}`;
-
-    return (
-        <div className='qs__form__field qs__form__field__input no-top-spacing'>
-            <Field name={name} key={key} id={key}>
-                {({ field }: FieldProps) => {
-                    const selected_item = list?.find(item => item?.value === field?.value);
-                    if (!is_desktop) {
-                        return (
-                            <ul className='qs__form__field__list' data-testid='dt_qs_contract_types'>
-                                {list.map(item => {
-                                    const is_active = selected_item?.value === item?.value;
-                                    return (
-                                        <li
-                                            key={item?.value}
-                                            className={classNames('qs__form__field__list__item', {
-                                                'qs__form__field__list__item--active': is_active,
-                                            })}
-                                            onClick={() => {
-                                                handleChange(item?.value);
-                                            }}
-                                            onChange={() => {
-                                                handleChange(item?.value);
-                                            }}
-                                        >
-                                            <Text size='xs' color='prominent' weight={is_active ? 'bold ' : 'normal'}>
-                                                {item?.text}
-                                            </Text>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        );
-                    }
-                    return (
-                        <Autocomplete
-                            {...field}
-                            readOnly
-                            data_testid='dt_qs_contract_type'
-                            autoComplete='off'
-                            className='qs__select contract-type'
-                            value={selected_item?.text || ''}
-                            list_items={list}
-                            onItemSelection={(item: TItem) => {
-                                const { value } = item as TDropdownItems;
-                                if (value) {
-                                    handleChange(value);
-                                }
-                            }}
-                            dropdown_offset={'0'}
-                            historyValue={''}
-                            input_id={key}
-                            is_alignment_top={false}
-                            is_list_visible={false}
-                            list_height={''}
-                            list_portal_id={''}
-                            not_found_text={''}
-                            onHideDropdownList={() => {}}
-                            onShowDropdownList={() => {}}
-                            should_filter_by_char={false}
-                        />
+                if (
+                    Number.isFinite(maxTicks) &&
+                    currentTickCount > maxTicks
+                ) {
+                    const message = localize(
+                        'Maximum tick count allowed is {{ max }}',
+                        { max: maxTicks }
                     );
-                }}
-            </Field>
-        </div>
-    );
+
+                    previousErrors.current.tick_count = message;
+                    setFieldError('tick_count', message);
+                } else if (
+                    currentTickCount < 1
+                ) {
+                    const message = localize(
+                        'Minimum tick count allowed is {{ min }}',
+                        { min: 1 }
+                    );
+
+                    previousErrors.current.tick_count = message;
+                    setFieldError('tick_count', message);
+                } else {
+                    previousErrors.current.tick_count = null;
+                    setFieldError('tick_count', undefined);
+                }
+            } else {
+                previousErrors.current.take_profit = null;
+                setFieldError('take_profit', undefined);
+            }
+
+            setFieldError('stake', undefined);
+        } catch (error_response) {
+            if (
+                !mounted.current ||
+                sequence !== requestSequence.current
+            ) {
+                return;
+            }
+
+            const error = error_response as TErrorResponse;
+
+            const errorDetails = error?.error ?? error;
+
+            const errorMessage =
+                getLocalizedError(error) ||
+                'An error occurred while validating your input';
+
+            if (
+                /connection|network|timeout/i.test(errorMessage)
+            ) {
+                console.warn(
+                    'GTraders Super: Temporary accumulator validation issue:',
+                    errorMessage
+                );
+                return;
+            }
+
+            const errorField = errorDetails?.details?.field;
+
+            if (
+                errorField === 'stake' ||
+                errorField === 'amount'
+            ) {
+                if (
+                    errorField === 'stake' ||
+                    (stake !== '' &&
+                        stake !== undefined &&
+                        stake !== null)
+                ) {
+                    setFieldError('stake', errorMessage);
+                }
+
+                return;
+            }
+
+            if (errorField === 'take_profit') {
+                let message = errorMessage;
+
+                if (
+                    Number(take_profit) > 0 &&
+                    Number(stake) > 0 &&
+                    maxPayout.current !== null
+                ) {
+                    const totalPayout =
+                        Number(take_profit) + Number(stake);
+
+                    message = localize(
+                        'Your total payout is {{total}}. Enter amount less than {{max}}.',
+                        {
+                            total: totalPayout,
+                            max: maxPayout.current,
+                        }
+                    );
+
+                    message += ` ${localize(
+                        'By changing your initial stake and/or take profit.'
+                    )}`;
+                }
+
+                previousErrors.current.take_profit = message;
+                setFieldError('take_profit', message);
+                return;
+            }
+
+            if (boolean_tick_count) {
+                previousErrors.current.tick_count = errorMessage;
+                setFieldError('tick_count', errorMessage);
+
+                const currentValue = Number(tick_count);
+
+                if (currentValue > 1000) {
+                    void setFieldValue('tick_count', 1000);
+                } else if (
+                    !Number.isNaN(currentValue) &&
+                    currentValue < 1
+                ) {
+                    void setFieldValue('tick_count', 1);
+                }
+            } else {
+                previousErrors.current.take_profit = errorMessage;
+                setFieldError('take_profit', errorMessage);
+            }
+        }
+    }, 1000);
+
+    return () => {
+        clearTimeout(timer);
+
+        if (sequence === requestSequence.current) {
+            requestSequence.current += 1;
+        }
+    };
+}, [
+    values.symbol,
+    values.stake,
+    values.growth_rate,
+    values.take_profit,
+    values.tick_count,
+    values.boolean_tick_count,
+    client?.currency,
+    setAdditionalData,
+    setFieldError,
+    setFieldValue,
+]);
+
+const handleChange = (value: string) => {
+    setFieldValue(name, value);
+    setValue(name, value);
+};
+
+const key = `qs-growth-rate-${name}`;
+
+return (
+    <div className='qs__form__field qs__form__field__input no-top-spacing'>
+        <Field name={name} key={key} id={key}>
+            {({ field }: FieldProps) => {
+                const selectedItem = GROWTH_RATES.find(
+                    item => item.value === field.value
+                );
+
+                if (!is_desktop) {
+                    return (
+                        <ul
+                            className='qs__form__field__list'
+                            data-testid='dt_qs_growth_rates'
+                        >
+                            {GROWTH_RATES.map(item => {
+                                const isActive =
+                                    selectedItem?.value === item.value;
+
+                                return (
+                                    <li
+                                        key={item.value}
+                                        className={classNames(
+                                            'qs__form__field__list__item',
+                                            {
+                                                'qs__form__field__list__item--active':
+                                                    isActive,
+                                            }
+                                        )}
+                                        onClick={() =>
+                                            handleChange(item.value)
+                                        }
+                                    >
+                                        <Text
+                                            size='xs'
+                                            color='prominent'
+                                            weight={
+                                                isActive
+                                                    ? 'bold'
+                                                    : 'normal'
+                                            }
+                                        >
+                                            {item.text}
+                                        </Text>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    );
+                }
+
+                return (
+                    <Autocomplete
+                        {...field}
+                        readOnly
+                        inputMode='none'
+                        data-testid='dt_qs_growth_rate'
+                        autoComplete='off'
+                        className='qs__select contract-type'
+                        value={selectedItem?.text || ''}
+                        list_items={GROWTH_RATES}
+                        onItemSelection={(item: TItem) => {
+                            const selected = item as TDropdownItems;
+
+                            if (selected?.value) {
+                                handleChange(selected.value);
+                            }
+                        }}
+                    />
+                );
+            }}
+        </Field>
+    </div>
+);
+
 });
 
 export default GrowthRateSelect;
