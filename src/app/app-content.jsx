@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { ToastContainer } from 'react-toastify';
@@ -35,9 +36,10 @@ const AppContent = observer(() => {
     const { recovered_transactions, recoverPendingContracts } = transactions;
     const is_subscribed_to_msg_listener = React.useRef(false);
     const msg_listener = React.useRef(null);
+    const has_initialized = React.useRef(false);
+
     const { connectionStatus } = useApiBase();
 
-    // Initialize dev mode keyboard shortcuts
     useDevMode();
 
     const livechat_client_information = {
@@ -53,22 +55,19 @@ const AppContent = observer(() => {
 
     useLiveChat(livechat_client_information);
 
-    // NOTE: Disabled Intercom until further notice
-    // const token = V2GetActiveToken() ?? null;
-    // useIntercom(token);
-
     useEffect(() => {
         if (connectionStatus === CONNECTION_STATUS.OPENED) {
             setIsApiInitialized(true);
             common.setSocketOpened(true);
-        } else if (connectionStatus !== CONNECTION_STATUS.OPENED) {
+        } else {
             common.setSocketOpened(false);
         }
     }, [common, connectionStatus]);
 
     const { current_language } = common;
     const html = document.documentElement;
-    React.useEffect(() => {
+
+    useEffect(() => {
         html?.setAttribute('lang', current_language.toLowerCase());
         html?.setAttribute('dir', current_language.toLowerCase() === 'ar' ? 'rtl' : 'ltr');
     }, [current_language, html]);
@@ -77,6 +76,7 @@ const AppContent = observer(() => {
         ({ data }) => {
             if (data?.msg_type === 'proposal_open_contract' && !data?.error) {
                 const { proposal_open_contract } = data;
+
                 if (
                     proposal_open_contract?.status !== 'open' &&
                     !recovered_transactions?.includes(proposal_open_contract?.contract_id)
@@ -88,22 +88,26 @@ const AppContent = observer(() => {
         [recovered_transactions, recoverPendingContracts]
     );
 
-    React.useEffect(() => {
+    useEffect(() => {
         setSmartChartsPublicPath(getUrlBase('/js/smartcharts/'));
     }, []);
 
-    React.useEffect(() => {
-        // Check if api is initialized and then subscribe to the api messages
-        // Also we should only subscribe to the messages once user is logged in
-        // And is not already subscribed to the messages
-        if (!is_subscribed_to_msg_listener.current && client.is_logged_in && is_api_initialized && api_base?.api) {
+    useEffect(() => {
+        if (
+            !is_subscribed_to_msg_listener.current &&
+            client.is_logged_in &&
+            is_api_initialized &&
+            api_base?.api
+        ) {
             is_subscribed_to_msg_listener.current = true;
             msg_listener.current = api_base.api.onMessage()?.subscribe(handleMessage);
         }
+
         return () => {
             if (is_subscribed_to_msg_listener.current && msg_listener.current) {
                 is_subscribed_to_msg_listener.current = false;
                 msg_listener.current.unsubscribe?.();
+                msg_listener.current = null;
             }
         };
     }, [is_api_initialized, client.is_logged_in, client.loginid, handleMessage, connectionStatus]);
@@ -112,51 +116,70 @@ const AppContent = observer(() => {
         ServerTime.init(common);
         app.setDBotEngineStores();
         ApiHelpers.setInstance(app.api_helpers_store);
-        import('@/utils/gtm').then(({ default: GTM }) => {
-            GTM.init(store);
-        });
+
+        import('@/utils/gtm')
+            .then(({ default: GTM }) => {
+                GTM.init(store);
+            })
+            .catch(error => {
+                console.error('GTraders Super analytics initialization failed:', error);
+            });
     };
 
-    const changeActiveSymbolLoadingState = () => {
-        init();
+    useEffect(() => {
+        if (!is_api_initialized) return;
+
+        // Initialize the app only once.
+        if (!has_initialized.current) {
+            init();
+            has_initialized.current = true;
+        }
+
+        setIsLoading(true);
+
+        let intervalId;
+        let cancelled = false;
 
         const retrieveActiveSymbols = () => {
-            const { active_symbols } = ApiHelpers.instance;
+            const active_symbols = ApiHelpers?.instance?.active_symbols;
 
-            active_symbols.retrieveActiveSymbols(true).then(() => {
-                setIsLoading(false);
-            });
+            if (!active_symbols) return;
+
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = undefined;
+            }
+
+            Promise.resolve(active_symbols.retrieveActiveSymbols(true))
+                .then(() => {
+                    if (!cancelled) {
+                        setIsLoading(false);
+                    }
+                })
+                .catch(error => {
+                    console.error('GTraders Super active symbols initialization failed:', error);
+
+                    if (!cancelled) {
+                        setIsLoading(false);
+                    }
+                });
         };
 
-        if (ApiHelpers?.instance?.active_symbols) {
-            retrieveActiveSymbols();
-        } else {
-            // This is a workaround to fix the issue where the active symbols are not loaded immediately
-            // when the API is initialized. Should be replaced with RxJS pubsub
-            const intervalId = setInterval(() => {
-                if (ApiHelpers?.instance?.active_symbols) {
-                    clearInterval(intervalId);
-                    retrieveActiveSymbols();
-                }
-            }, 1000);
-        }
-    };
+        // Wait until the Active Symbols service is available.
+        retrieveActiveSymbols();
 
-    React.useEffect(() => {
-        if (is_api_initialized) {
-            init();
-            setIsLoading(true);
-            if (!client.is_logged_in) {
-                changeActiveSymbolLoadingState();
+        if (!ApiHelpers?.instance?.active_symbols) {
+            intervalId = setInterval(retrieveActiveSymbols, 1000);
+        }
+
+        return () => {
+            cancelled = true;
+
+            if (intervalId) {
+                clearInterval(intervalId);
             }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [is_api_initialized]);
-
-    React.useEffect(() => {
-        if (client.is_logged_in && is_api_initialized) {
-            changeActiveSymbolLoadingState();
-        }
+        };
+        // Initialization and symbol retrieval follow the API connection and account.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [is_api_initialized, client.loginid]);
 
