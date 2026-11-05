@@ -1,205 +1,341 @@
 
 .app-root {
-    height: 100vh;
-    height: 100dvh;
-    width: 100vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
 }
 
 .gtraders-loader {
-    position: fixed;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  color: #f4fbff;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(0, 229, 255, .14), transparent 46%),
+    radial-gradient(ellipse at 10% 90%, rgba(22, 186, 255, .10), transparent 38%),
+    #050b16;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  &, * { box-sizing: border-box; }
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    filter: blur(95px);
+    opacity: .2;
+    pointer-events: none;
+  }
+
+  &::before { top: -150px; left: -120px; background: #087cff; }
+  &::after { right: -150px; bottom: -160px; background: #00dfff; }
+
+  &__background {
+    position: absolute;
     inset: 0;
-    z-index: 9999;
-    width: 100%;
-    height: 100%;
     overflow: hidden;
-    background:
-        radial-gradient(ellipse at 50% 42%, rgba(37, 99, 235, 0.18), transparent 48%),
-        radial-gradient(ellipse at 85% 20%, rgba(139, 92, 246, 0.13), transparent 40%),
-        #070b18;
-    color: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    pointer-events: none;
+    opacity: .7;
+    background-image:
+      linear-gradient(rgba(22,186,255,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22,186,255,.045) 1px, transparent 1px);
+    background-size: 34px 34px;
+  }
 
-    &::before,
-    &::after {
-        content: '';
-        position: absolute;
-        width: 280px;
-        height: 280px;
-        border-radius: 50%;
-        filter: blur(90px);
-        opacity: 0.2;
-        pointer-events: none;
+  &__world-map {
+    position: absolute;
+    inset: 12% 4%;
+    opacity: .13;
+    background-image: radial-gradient(rgba(0,229,255,.8) 1px, transparent 1.5px);
+    background-size: 12px 12px;
+    mask-image: radial-gradient(ellipse, #000 5%, transparent 68%);
+  }
+
+  &__chart {
+    position: absolute;
+    width: min(36vw, 210px);
+    opacity: .34;
+    filter: drop-shadow(0 0 7px rgba(22,186,255,.55));
+    animation: gt-chart-float 6s ease-in-out infinite;
+
+    svg { display: block; width: 100%; height: auto; }
+
+    &--left { top: 13%; left: -3%; }
+    &--right { right: -4%; bottom: 13%; animation-delay: -3s; }
+  }
+
+  &__phone {
+    position: absolute;
+    width: clamp(104px, 24vw, 145px);
+    min-height: 148px;
+    padding: 12px 10px;
+    border: 1px solid rgba(22,186,255,.34);
+    border-radius: 15px;
+    background: linear-gradient(145deg, rgba(8,27,48,.72), rgba(4,13,27,.48));
+    box-shadow: 0 0 24px rgba(0,190,255,.08), inset 0 0 18px rgba(0,190,255,.04);
+    color: #9dbaca;
+    font-size: 8px;
+    letter-spacing: 1px;
+    opacity: .42;
+    animation: gt-phone-float 7s ease-in-out infinite;
+
+    span, strong { display: block; }
+    strong { margin-top: 7px; color: #00e5a8; font-size: 9px; letter-spacing: 1.5px; }
+
+    &--left { top: 29%; left: 3%; }
+    &--right { right: 3%; bottom: 27%; animation-delay: -3.5s; }
+  }
+
+  &__phone-line {
+    height: 3px;
+    margin-top: 9px;
+    border-radius: 5px;
+    background: rgba(22,186,255,.2);
+
+    &:last-of-type { width: 68%; }
+  }
+
+  &__phone-chart {
+    margin: 12px 0 9px;
+    color: #00e5ff;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px rgba(0,229,255,.6);
+    white-space: nowrap;
+  }
+
+  &__content {
+    position: relative;
+    z-index: 1;
+    width: min(88%, 390px);
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 22px 0;
+    text-align: center;
+  }
+
+  &__emblem {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    animation: gt-emblem-entrance 1s ease both;
+  }
+
+  &__ring {
+    position: absolute;
+    border: 1px solid rgba(0,229,255,.62);
+    border-radius: 50%;
+    box-shadow: 0 0 14px rgba(0,229,255,.15), inset 0 0 12px rgba(0,229,255,.08);
+
+    &--outer { inset: 1px; border-style: dashed; animation: gt-ring-spin 18s linear infinite; }
+    &--middle { inset: 10px; border-color: rgba(22,186,255,.8); animation: gt-ring-spin 12s linear infinite reverse; }
+    &--inner { inset: 20px; border-color: rgba(0,229,255,.38); }
+  }
+
+  &__emblem-core {
+    position: relative;
+    z-index: 1;
+    width: 62px;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0,229,255,.8);
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(0,229,255,.2), rgba(8,33,62,.95));
+    box-shadow: 0 0 24px rgba(0,229,255,.28), inset 0 0 15px rgba(22,186,255,.15);
+
+    span {
+      color: #fff;
+      font-size: 25px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      text-shadow: 0 0 12px #00dfff;
+    }
+  }
+
+  &__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+
+    h1 {
+      margin: 0;
+      color: #f4fbff;
+      font-size: clamp(27px, 7vw, 36px);
+      font-weight: 900;
+      letter-spacing: .5px;
+      line-height: 1.1;
+
+      span { color: #00dfff; }
     }
 
-    &::before {
-        background: #2563eb;
-        top: -150px;
-        left: -120px;
+    p {
+      margin: 0;
+      color: #7faec4;
+      font-size: clamp(8px, 2.2vw, 10px);
+      font-weight: 700;
+      letter-spacing: 2px;
     }
+  }
 
-    &::after {
-        background: #8b5cf6;
-        right: -140px;
-        bottom: -150px;
+  &__status-list {
+    width: min(100%, 285px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px 12px;
+    margin-top: 27px;
+    text-align: left;
+  }
+
+  &__status-row {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 8px;
+    border: 1px solid rgba(22,186,255,.12);
+    border-radius: 7px;
+    background: rgba(8,26,44,.52);
+  }
+
+  &__status-icon {
+    flex: 0 0 13px;
+    color: #00dfff;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  &__status-label {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: #a9c4d2;
+    font-size: 9px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__status-check {
+    flex: 0 0 12px;
+    color: #00e5a8;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  &__loading {
+    width: min(100%, 285px);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 9px 12px;
+    margin-top: 24px;
+  }
+
+  &__progress {
+    height: 6px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(0,229,255,.2);
+    border-radius: 20px;
+    background: rgba(117,171,194,.14);
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #087cff, #16baff, #00f0d0);
+      box-shadow: 0 0 12px rgba(0,229,255,.75);
+      transition: width .35s ease;
     }
+  }
 
-    &__content {
-        position: relative;
-        z-index: 1;
-        width: min(90%, 420px);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
+  &__percentage {
+    color: #00e5ff;
+    font-size: 12px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
 
-    &__logo {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        animation: gt-logo-entrance 1s ease both;
-    }
+  &__message {
+    grid-column: 1 / -1;
+    min-height: 17px;
+    margin: 0;
+    color: #91adbd;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .3px;
+  }
 
-    &__logo-ring {
-        width: 76px;
-        height: 76px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid #38bdf8;
-        border-radius: 22px;
-        background: linear-gradient(145deg, rgba(37, 99, 235, 0.25), rgba(139, 92, 246, 0.2));
-        box-shadow:
-            0 0 18px rgba(56, 189, 248, 0.45),
-            inset 0 0 18px rgba(139, 92, 246, 0.2);
-        animation: gt-logo-pulse 2.5s ease-in-out infinite;
-    }
-
-    &__logo-letter {
-        font-size: 48px;
-        font-weight: 900;
-        line-height: 1;
-        color: #ffffff;
-        text-shadow: 0 0 18px #38bdf8;
-    }
-
-    &__brand {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 3px;
-    }
-
-    &__brand-name {
-        font-size: clamp(25px, 7vw, 36px);
-        font-weight: 900;
-        letter-spacing: 2px;
-        background: linear-gradient(90deg, #ffffff, #38bdf8);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    &__brand-subtitle {
-        color: #a78bfa;
-        font-size: 15px;
-        font-weight: 800;
-        letter-spacing: 8px;
-    }
-
-    &__status {
-        width: min(100%, 290px);
-        margin-top: 65px;
-        animation: gt-fade-in 1.2s ease both;
-    }
-
-    &__progress {
-        height: 4px;
-        width: 100%;
-        overflow: hidden;
-        border-radius: 10px;
-        background: rgba(148, 163, 184, 0.18);
-
-        span {
-            display: block;
-            width: 40%;
-            height: 100%;
-            border-radius: inherit;
-            background: linear-gradient(90deg, #2563eb, #38bdf8, #a78bfa);
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
-            animation: gt-progress 1.8s ease-in-out infinite;
-        }
-    }
-
-    &__message {
-        margin-top: 22px;
-        color: #cbd5e1;
-        font-size: 13px;
-        font-weight: 500;
-        letter-spacing: 0.5px;
-    }
-
-    &__footer {
-        margin-top: 75px;
-        color: #64748b;
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: 2px;
-    }
+  &__footer {
+    margin-top: 25px;
+    color: #587789;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+  }
 }
 
-@keyframes gt-logo-entrance {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.92);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+@keyframes gt-emblem-entrance {
+  from { opacity: 0; transform: translateY(14px) scale(.88); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes gt-logo-pulse {
-    0%, 100% {
-        box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
-    }
-
-    50% {
-        box-shadow:
-            0 0 30px rgba(56, 189, 248, 0.75),
-            0 0 45px rgba(139, 92, 246, 0.3);
-    }
+@keyframes gt-ring-spin {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes gt-progress {
-    0% {
-        transform: translateX(-110%);
-    }
-
-    100% {
-        transform: translateX(260%);
-    }
+@keyframes gt-chart-float {
+  0%,100% { opacity: .24; }
+  50% { opacity: .48; }
 }
 
-@keyframes gt-fade-in {
-    from {
-        opacity: 0;
-    }
+@keyframes gt-phone-float {
+  0%,100% { translate: 0 0; }
+  50% { translate: 0 -9px; }
+}
 
-    to {
-        opacity: 1;
+@media (max-width: 380px), (max-height: 700px) {
+  .gtraders-loader {
+    &__content { padding: 12px 0; }
+    &__emblem { width: 88px; height: 88px; margin-bottom: 12px; }
+    &__emblem-core {
+      width: 52px;
+      height: 52px;
+      span { font-size: 21px; }
     }
+    &__status-list { gap: 6px 8px; margin-top: 17px; }
+    &__status-row { padding: 5px 6px; }
+    &__loading { margin-top: 16px; }
+    &__footer { margin-top: 15px; }
+    &__phone { opacity: .22; }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .gtraders-loader,
-    .gtraders-loader * {
-        animation: none !important;
-    }
+  .gtraders-loader,
+  .gtraders-loader * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
