@@ -203,9 +203,10 @@ export default class XvtSniperEngine {
             .slice(0, 2)
             .map(item => item.digit);
 
+        const isRecovery = this.lossesInCycle > 0;
         const favourableCount = this.config.direction === 'OVER'
-            ? this.digits.filter(digit => digit >= 3).length
-            : this.digits.filter(digit => digit <= 6).length;
+            ? this.digits.filter(digit => digit >= (isRecovery ? 4 : 3)).length
+            : this.digits.filter(digit => digit <= (isRecovery ? 5 : 6)).length;
         const favourablePercent = this.digits.length
             ? (favourableCount / this.digits.length) * 100
             : 0;
