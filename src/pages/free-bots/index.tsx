@@ -37,7 +37,7 @@ const FreeBots = () => {
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
     const [symbol, setSymbol] = useState('');
     const [direction, setDirection] = useState<'OVER' | 'UNDER'>('OVER');
-    const [entryDigit, setEntryDigit] = useState('7');
+    const [entryDigit, setEntryDigit] = useState('2');
     const [stake, setStake] = useState('1');
     const [takeProfit, setTakeProfit] = useState('10');
     const [stopLoss, setStopLoss] = useState('10');
@@ -366,7 +366,11 @@ const FreeBots = () => {
                         </div>
                         <div className='xvt-digit-grid'>
                             {rankedDigits.map(item => (
-                                <div className={item.digit === Number(entryDigit) ? 'xvt-digit xvt-digit--selected' : 'xvt-digit'} key={item.digit}>
+                                <div className={[
+                                    'xvt-digit',
+                                    analysis.topDigits.includes(item.digit) ? 'xvt-digit--top' : '',
+                                    item.digit === Number(entryDigit) ? 'xvt-digit--selected' : '',
+                                ].filter(Boolean).join(' ')} key={item.digit}>
                                     <strong>{item.digit}</strong>
                                     <span>{item.count}</span>
                                 </div>
@@ -378,7 +382,7 @@ const FreeBots = () => {
                             <span>Favourable digits: <strong>{analysis.favourableCount}/100 ({analysis.favourablePercent.toFixed(1)}%)</strong></span>
                         </div>
                         <p className='xvt-footnote'>
-                            Momentum filter: at least 75% favourable digits in the latest 100 ticks. This is a configurable strategy rule in the engine, not a prediction or guarantee of the next result.
+                            Momentum filter: at least 75% favourable digits in the latest 100 ticks. This is the current engine threshold, not a prediction or guarantee of the next result.
                         </p>
                     </div>
 
