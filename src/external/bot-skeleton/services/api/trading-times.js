@@ -81,8 +81,26 @@ export default class TradingTimes {
                 return;
             }
 
-            const response = await (api_base.api?.send({ trading_times: last_update_date }) ||
-                this.ws?.send({ trading_times: last_update_date }));
+            // Do not let the startup loader wait forever for trading-times data.
+            // Active-symbol initialization depends on this request completing.
+            let tradingTimesTimeout;
+            const tradingTimesRequest =
+                api_base.api?.send({ trading_times: last_update_date }) ||
+                this.ws?.send({ trading_times: last_update_date });
+
+            const response = await Promise.race([
+                Promise.resolve(tradingTimesRequest),
+                new Promise((_, reject) => {
+                    tradingTimesTimeout = setTimeout(
+                        () => reject(new Error('Trading times request timed out')),
+                        8000
+                    );
+                }),
+            ]);
+
+            if (tradingTimesTimeout) {
+                clearTimeout(tradingTimesTimeout);
+            }
 
             if (response?.error) {
                 this.setTradingTimes();
