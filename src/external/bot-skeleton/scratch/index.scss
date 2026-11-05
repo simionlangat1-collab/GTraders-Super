@@ -1261,8 +1261,8 @@ g.editing .blocklyEditableText {
 }
 
 .zelos-renderer.zelos_renderer-theme .blocklyDropdownText,
-.zelos-renderer.zelos_renderer-theme .blocklyEditableText > text,
-.zelos-renderer.zelos_renderer-theme .blocklyNonEditableText > text {
+.zelos-renderer.zelos_renderer-theme .blocklyEditableText text,
+.zelos-renderer.zelos_renderer-theme .blocklyNonEditableText text {
     fill: #111111 !important;
 }
 
@@ -1273,7 +1273,7 @@ g.editing .blocklyEditableText {
 }
 
 .theme--dark .zelos-renderer.zelos_renderer-theme .blocklyDropdownText,
-.theme--dark .zelos-renderer.zelos_renderer-theme .blocklyEditableText > text,
-.theme--dark .zelos-renderer.zelos_renderer-theme .blocklyNonEditableText > text {
+.theme--dark .zelos-renderer.zelos_renderer-theme .blocklyEditableText text,
+.theme--dark .zelos-renderer.zelos_renderer-theme .blocklyNonEditableText text {
     fill: #ffffff !important;
 }
