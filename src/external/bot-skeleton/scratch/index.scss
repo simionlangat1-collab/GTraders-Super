@@ -1252,3 +1252,15 @@ drag a block and selected text moves instead.
 g.editing .blocklyEditableText {
     display: none !important;
 }
+
+/* GTRADERS SUPER: keep selected Blockly field values visible on the dark workspace */
+.zelos-renderer.zelos_renderer-theme rect.blocklyFieldRect.blocklyDropdownRect {
+    fill: #101a3d !important;
+    stroke: #00d9ff !important;
+}
+
+.zelos-renderer.zelos_renderer-theme .blocklyDropdownText,
+.zelos-renderer.zelos_renderer-theme .blocklyEditableText > text,
+.zelos-renderer.zelos_renderer-theme .blocklyNonEditableText > text {
+    fill: #ffffff !important;
+}
