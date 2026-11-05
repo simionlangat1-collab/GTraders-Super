@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/hooks/useStore';
@@ -10,7 +9,13 @@ import ChunkLoader from '@/components/loader/chunk-loader';
 
 const BlocklyLoading = observer(() => {
     const { blockly_store } = useStore();
-    const { is_loading, is_workspace_ready } = blockly_store;
+    const {
+        is_loading,
+        is_workspace_ready,
+        startup_progress,
+        startup_message,
+    } = blockly_store;
+
     const { connectionStatus } = useApiBase();
 
     const [completionDismissed, setCompletionDismissed] = useState(false);
@@ -23,7 +28,7 @@ const BlocklyLoading = observer(() => {
 
         const timer = setTimeout(() => {
             setCompletionDismissed(true);
-        }, 450);
+        }, 700);
 
         return () => clearTimeout(timer);
     }, [is_workspace_ready]);
@@ -35,11 +40,13 @@ const BlocklyLoading = observer(() => {
     const isConnected =
         connectionStatus === CONNECTION_STATUS.OPENED;
 
-    const progress = is_workspace_ready ? 100 : 75;
+    const progress = is_workspace_ready
+        ? 100
+        : Math.min(99, Math.max(0, startup_progress));
 
     const message = is_workspace_ready
-        ? 'Saved strategy loaded. GTraders Super is ready!'
-        : 'Initializing Blockly workspace and loading saved strategy...';
+        ? 'GTraders Super is ready!'
+        : startup_message;
 
     return (
         <ChunkLoader
