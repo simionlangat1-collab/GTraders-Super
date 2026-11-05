@@ -303,6 +303,7 @@ export default class XvtSniperEngine {
                 contractType,
                 barrier,
                 entryDigit: this.config.entryDigit,
+                estimatedDigit: this.latestAnalysis.predictionDigit,
                 stake: this.currentStake,
                 recovery: isRecovery,
             });
