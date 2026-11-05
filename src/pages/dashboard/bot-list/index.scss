@@ -646,3 +646,96 @@
         }
     }
 }
+
+
+/* GTRADERS SUPER - NEON GLASS SAVED WORKSPACES */
+.bot-list {
+    &__container {
+        background: transparent;
+        padding: 2rem 1.6rem;
+    }
+
+    &__wrapper {
+        background: linear-gradient(145deg, rgba(5, 11, 53, 0.96), rgba(8, 27, 69, 0.94));
+        border: 1px solid rgba(0, 217, 255, 0.24);
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    &__title {
+        color: #ffffff;
+    }
+
+    &__header {
+        background: rgba(0, 217, 255, 0.09);
+        border-bottom: 1px solid rgba(0, 217, 255, 0.42);
+        border-radius: 10px 10px 0 0;
+
+        .dc-text {
+            color: #00d9ff !important;
+        }
+    }
+
+    &__table {
+        background: rgba(5, 11, 53, 0.52);
+        border-radius: 0 0 10px 10px;
+    }
+
+    &__item {
+        border-bottom: 1px solid rgba(0, 217, 255, 0.13);
+
+        &:hover,
+        &--selected {
+            background: rgba(0, 217, 255, 0.09);
+        }
+
+        .dc-text {
+            color: #dcecff;
+        }
+
+        &__actions {
+            button svg {
+                fill: #00d9ff;
+            }
+        }
+
+        &__responsive {
+            background: rgba(5, 11, 53, 0.98);
+            border: 1px solid rgba(0, 217, 255, 0.24);
+            border-radius: 10px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        }
+    }
+}
+
+.bot-list__table {
+    scrollbar-color: #087cff rgba(5, 11, 53, 0.8);
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: rgba(5, 11, 53, 0.8);
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 8px;
+        background: linear-gradient(180deg, #00d9ff, #7900ff);
+    }
+}
+
+@media (max-width: 767px) {
+    .bot-list {
+        &__container {
+            padding: 1.2rem 0.4rem;
+        }
+
+        &__wrapper {
+            padding: 1.2rem;
+            border-radius: 14px;
+        }
+    }
+}
