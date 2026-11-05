@@ -716,3 +716,102 @@
         }
     }
 }
+
+
+/* GTRADERS SUPER - FINAL NEON GLASS DASHBOARD CONSISTENCY */
+.tab__dashboard {
+    --general-main-1: #07112f;
+    --general-section-1: rgba(10, 24, 61, 0.92);
+    --general-section-2: rgba(12, 34, 78, 0.96);
+    --general-section-6: rgba(0, 217, 255, 0.16);
+    --text-general: #dcecff;
+    --text-prominent: #ffffff;
+    --text-less-prominent: #9eb8d8;
+    --border-normal: rgba(0, 217, 255, 0.24);
+    --button-primary-default: #087cff;
+    color: var(--text-general);
+    background: transparent;
+
+    .tab__dashboard__content {
+        background: transparent;
+    }
+
+    .tab__dashboard__info-panel {
+        background: rgba(5, 11, 53, 0.88);
+        border: 1px solid rgba(0, 217, 255, 0.2);
+        border-radius: 18px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+        backdrop-filter: blur(14px);
+    }
+
+    .db-info-panel__card {
+        color: #c5d8f2;
+    }
+
+    .db-info-panel__close-action:hover {
+        background: rgba(0, 217, 255, 0.12);
+    }
+}
+
+.gtraders-welcome {
+    border-color: rgba(0, 217, 255, 0.3);
+    background: linear-gradient(125deg, rgba(5, 11, 53, 0.96), rgba(8, 32, 83, 0.94) 58%, rgba(38, 15, 79, 0.92));
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+    &::after {
+        background: rgba(0, 217, 255, 0.2);
+    }
+
+    &__eyebrow {
+        color: #00d9ff;
+        text-shadow: 0 0 14px rgba(0, 217, 255, 0.35);
+    }
+}
+
+.tab__dashboard__table__block {
+    background: linear-gradient(145deg, rgba(8, 22, 62, 0.96), rgba(12, 35, 82, 0.92));
+    border-color: rgba(0, 217, 255, 0.22);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+
+    &:hover {
+        border-color: #00d9ff;
+        box-shadow: 0 8px 28px rgba(0, 217, 255, 0.16);
+    }
+
+    &:active {
+        border-color: #7900ff;
+        box-shadow: 0 0 18px rgba(121, 0, 255, 0.22);
+    }
+}
+
+.tab__dashboard__table__images {
+    background: linear-gradient(145deg, rgba(0, 217, 255, 0.13), rgba(121, 0, 255, 0.13));
+    border-color: rgba(0, 217, 255, 0.28);
+    box-shadow: 0 0 18px rgba(0, 217, 255, 0.1);
+
+    &:hover {
+        background: rgba(0, 217, 255, 0.18);
+        border-color: #00d9ff;
+        box-shadow: 0 0 22px rgba(0, 217, 255, 0.2);
+    }
+}
+
+.announcements__button,
+.user-guide__button,
+.tab__dashboard__preview__retrigger button,
+.tab__dashboard__home__retrigger button {
+    background: rgba(8, 25, 67, 0.9);
+    border: 1px solid rgba(0, 217, 255, 0.22);
+    color: #e5f3ff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 767px) {
+    .gtraders-welcome {
+        border-radius: 16px;
+    }
+
+    .tab__dashboard__table__block {
+        min-width: 0;
+    }
+}
