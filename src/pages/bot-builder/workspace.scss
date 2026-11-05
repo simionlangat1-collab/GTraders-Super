@@ -32,3 +32,7 @@
     touch-action: none;
     overflow: hidden;
 }
+/* Visibility test: force Blockly SVG text to a dark color. */
+.blocklyText {
+    fill: #1f2937 !important;
+}
