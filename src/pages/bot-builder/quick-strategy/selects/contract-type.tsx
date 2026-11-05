@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { Field, FieldProps, useFormikContext } from 'formik';
@@ -36,36 +35,43 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
     const { quick_strategy, client } = useStore();
     const { setValue } = quick_strategy;
 
-    const {
-        setFieldValue,
-        values,
-        setFieldError,
-    } = useFormikContext<TFormData>();
+    const { setFieldValue, values, setFieldError } =
+        useFormikContext<TFormData>();
 
     const { symbol, tradetype } = values;
 
-    const requestSequence = useRef(0);
     const mounted = useRef(true);
+    const contractRequestSequence = useRef(0);
+    const proposalRequestSequence = useRef(0);
 
     useEffect(() => {
         mounted.current = true;
 
         return () => {
             mounted.current = false;
-            requestSequence.current += 1;
+            contractRequestSequence.current += 1;
+            proposalRequestSequence.current += 1;
             quick_strategy.setOptionsLoading(false);
         };
     }, [quick_strategy]);
 
-    // Load contract types whenever the symbol or trade type changes.
+    // Load only contract types belonging to the current trade type.
     useEffect(() => {
-        let isActive = true;
+        const sequence = ++contractRequestSequence.current;
+        let active = true;
 
         const loadContractTypes = async () => {
+            setList([]);
+
             if (!tradetype || !symbol) {
-                setList([]);
+                setFieldValue(name, '', false);
+                setValue(name, '');
                 return;
             }
+
+            // Never retain a contract selected for the previous market.
+            setFieldValue(name, '', false);
+            setValue(name, '');
 
             try {
                 const helpers = ApiHelpers?.instance as unknown as
@@ -77,7 +83,13 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                         tradetype
                     );
 
-                if (!isActive || !mounted.current) return;
+                if (
+                    !active ||
+                    !mounted.current ||
+                    sequence !== contractRequestSequence.current
+                ) {
+                    return;
+                }
 
                 const available_categories = Array.isArray(categories)
                     ? categories
@@ -85,21 +97,19 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
 
                 setList(available_categories);
 
-                const selected = String(values?.type ?? '');
+                const first_value =
+                    available_categories[0]?.value ?? '';
 
-                const has_selected = available_categories.some(
-                    item => item.value === selected
-                );
-
-                if (!has_selected) {
-                    const first_value =
-                        available_categories[0]?.value ?? '';
-
-                    setFieldValue(name, first_value);
-                    setValue(name, first_value);
-                }
+                setFieldValue(name, first_value);
+                setValue(name, first_value);
             } catch (error) {
-                if (!isActive || !mounted.current) return;
+                if (
+                    !active ||
+                    !mounted.current ||
+                    sequence !== contractRequestSequence.current
+                ) {
+                    return;
+                }
 
                 console.error(
                     'GTraders Super: Failed to load contract types:',
@@ -107,24 +117,19 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                 );
 
                 setList([]);
+                setFieldValue(name, '', false);
+                setValue(name, '');
             }
         };
 
         void loadContractTypes();
 
         return () => {
-            isActive = false;
+            active = false;
         };
-    }, [
-        symbol,
-        tradetype,
-        name,
-        setFieldValue,
-        setValue,
-        values?.type,
-    ]);
+    }, [symbol, tradetype, name, setFieldValue, setValue]);
 
-    // Validate stake and contract options with protection against stale requests.
+    // Validate the proposal after the user stops changing parameters.
     useEffect(() => {
         const {
             type,
@@ -134,20 +139,20 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
             stake,
         } = values;
 
-        if (
-            !type ||
-            !selected_symbol ||
-            !durationtype ||
-            !duration
-        ) {
+        if (!type || !selected_symbol || !durationtype || !duration) {
+            proposalRequestSequence.current += 1;
             quick_strategy.setOptionsLoading(false);
+            setIsLoading(false);
             return;
         }
 
-        const sequence = ++requestSequence.current;
+        const sequence = ++proposalRequestSequence.current;
 
         const timer = setTimeout(async () => {
-            if (!mounted.current || sequence !== requestSequence.current) {
+            if (
+                !mounted.current ||
+                sequence !== proposalRequestSequence.current
+            ) {
                 return;
             }
 
@@ -172,7 +177,7 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
 
                 if (
                     !mounted.current ||
-                    sequence !== requestSequence.current
+                    sequence !== proposalRequestSequence.current
                 ) {
                     return;
                 }
@@ -181,19 +186,15 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
             } catch (error_response: any) {
                 if (
                     !mounted.current ||
-                    sequence !== requestSequence.current
+                    sequence !== proposalRequestSequence.current
                 ) {
                     return;
                 }
 
-                let error_message =
+                const error_message =
+                    error_response?.message ??
+                    error_response?.error?.message ??
                     'An error occurred while validating your input';
-
-                if (error_response?.message) {
-                    error_message = error_response.message;
-                } else if (error_response?.error?.message) {
-                    error_message = error_response.error.message;
-                }
 
                 const error_code =
                     error_response?.code ??
@@ -219,7 +220,6 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                 } else if (
                     /connection|network|timeout/i.test(error_message)
                 ) {
-                    should_show_error = false;
                     console.warn(
                         'GTraders Super: Temporary network issue during proposal validation:',
                         error_message
@@ -240,9 +240,7 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                         "Please enter a stake amount that's at least"
                     )
                 ) {
-                    const match = error_message.match(
-                        /at least (\d+\.?\d*)/
-                    );
+                    const match = error_message.match(/at least (\d+\.?\d*)/);
 
                     translated_error_message = match?.[1]
                         ? localize(
@@ -280,9 +278,7 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                         "Please enter a stake amount that's at most"
                     )
                 ) {
-                    const match = error_message.match(
-                        /at most (\d+\.?\d*)/
-                    );
+                    const match = error_message.match(/at most (\d+\.?\d*)/);
 
                     translated_error_message = match?.[1]
                         ? localize(
@@ -298,7 +294,7 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
             } finally {
                 if (
                     mounted.current &&
-                    sequence === requestSequence.current
+                    sequence === proposalRequestSequence.current
                 ) {
                     setIsLoading(false);
                     quick_strategy.setOptionsLoading(false);
@@ -309,8 +305,8 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
         return () => {
             clearTimeout(timer);
 
-            if (sequence === requestSequence.current) {
-                requestSequence.current += 1;
+            if (sequence === proposalRequestSequence.current) {
+                proposalRequestSequence.current += 1;
                 setIsLoading(false);
                 quick_strategy.setOptionsLoading(false);
             }
@@ -373,9 +369,7 @@ const ContractTypes: React.FC<TContractTypes> = observer(({ name }) => {
                                                 size='xs'
                                                 color='prominent'
                                                 weight={
-                                                    is_active
-                                                        ? 'bold'
-                                                        : 'normal'
+                                                    is_active ? 'bold' : 'normal'
                                                 }
                                             >
                                                 {item.text}
