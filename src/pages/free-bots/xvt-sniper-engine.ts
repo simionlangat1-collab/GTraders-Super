@@ -50,6 +50,7 @@ export default class XvtSniperEngine {
     private lossesInCycle = 0;
     private currentStake = 0;
     private sessionProfit = 0;
+    private latestBalance = 0;
     private settledContractIds = new Set<string>();
     private latestAnalysis: DigitAnalysis = {
         ticks: 0,
@@ -80,11 +81,16 @@ export default class XvtSniperEngine {
         this.lossesInCycle = 0;
         this.currentStake = this.config.stake;
         this.sessionProfit = 0;
+        this.latestBalance = Number((api_base.account_info as any)?.balance ?? 0);
         this.digits = [];
         this.lastEpoch = 0;
         this.setStatus('Connecting to live ticks…');
 
         this.messageSubscription = this.api.onMessage().subscribe(({ data }: { data: any }) => {
+            if (data?.msg_type === 'balance' && data.balance) {
+                this.latestBalance = Number(data.balance.balance ?? this.latestBalance);
+            }
+
             if (data?.msg_type === 'tick' && data.tick?.symbol === this.config.symbol) {
                 this.handleTick(data.tick);
             }
@@ -213,7 +219,7 @@ export default class XvtSniperEngine {
             ? (isRecovery ? 3 : 2)
             : (isRecovery ? 6 : 7);
         const contractType = this.config.direction === 'OVER' ? 'DIGITOVER' : 'DIGITUNDER';
-        const balance = Number((api_base.account_info as any)?.balance ?? 0);
+        const balance = this.latestBalance;
 
         if (balance > 0 && this.currentStake > balance) {
             this.busy = false;
@@ -340,7 +346,7 @@ export default class XvtSniperEngine {
             return;
         }
 
-        const balance = Number((api_base.account_info as any)?.balance ?? 0);
+        const balance = this.latestBalance;
         if (!won && balance > 0 && this.currentStake > balance) {
             this.running = false;
             this.forgetTickSubscription();
