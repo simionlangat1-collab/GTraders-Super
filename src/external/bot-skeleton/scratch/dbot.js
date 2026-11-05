@@ -25,14 +25,35 @@ class DBot {
      * Initialises the workspace and mounts it to a container element (app_contents).
      */
     async initWorkspace(public_path, store, api_helpers_store, is_mobile, is_dark_mode) {
+        const reportProgress = (progress, message) => {
+            if (typeof store?.setStartupProgress === 'function') {
+                store.setStartupProgress(progress, message);
+            }
+        };
+
+        reportProgress(79, 'Loading Blockly modules...');
+
         await loadBlockly(is_dark_mode);
+
+        reportProgress(80, 'Blockly modules loaded successfully...');
+
         const recent_files = await getSavedWorkspaces();
+
+        reportProgress(82, 'Checking saved trading strategies...');
+
         this.interpreter = Interpreter();
+
+        reportProgress(84, 'Preparing trading interpreter...');
 
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         var that = this;
+
         window.Blockly.Blocks.trade_definition_tradetype.onchange = function (event) {
-            if (!this.workspace || window.Blockly.derivWorkspace.isFlyoutVisible || this.workspace.isDragging()) {
+            if (
+                !this.workspace ||
+                window.Blockly.derivWorkspace.isFlyoutVisible ||
+                this.workspace.isDragging()
+            ) {
                 return;
             }
 
@@ -54,13 +75,17 @@ class DBot {
                     const category = this.getFieldValue('TRADETYPECAT_LIST');
                     const trade_type = this.getFieldValue('TRADETYPE_LIST');
                     const is_trade_type_accumulator = trade_type === 'accumulator';
-                    if (!is_trade_type_accumulator) forgetAccumulatorsProposalRequest(that);
+
+                    if (!is_trade_type_accumulator) {
+                        forgetAccumulatorsProposalRequest(that);
+                    }
 
                     if (is_symbol_list_change) {
                         contracts_for
                             ?.getTradeTypeCategories?.(market, submarket, symbol)
                             .then(categories => {
                                 const category_field = this.getField('TRADETYPECAT_LIST');
+
                                 if (category_field) {
                                     category_field.updateOptions(categories, {
                                         default_value: category,
@@ -70,10 +95,11 @@ class DBot {
                                 }
                             })
                             .catch(error => {
-                                // Error getting trade type categories
                                 console.error('Error fetching trade type categories:', error);
                             });
+
                         that.symbol = symbol;
+
                         if (
                             !that.is_bot_running &&
                             that.interpreter &&
@@ -81,6 +107,7 @@ class DBot {
                             symbol !== that.interpreter.bot.tradeEngine.symbol
                         ) {
                             const run_button = document.querySelector('#db-animation__run-button');
+
                             if (run_button) run_button.disabled = true;
 
                             that.interpreter.unsubscribeFromTicksService().then(async () => {
@@ -92,6 +119,7 @@ class DBot {
                             ?.getTradeTypes?.(market, submarket, symbol, category)
                             .then(trade_types => {
                                 const trade_type_field = this.getField('TRADETYPE_LIST');
+
                                 if (trade_type_field) {
                                     trade_type_field.updateOptions(trade_types, {
                                         default_value: trade_type,
@@ -101,7 +129,6 @@ class DBot {
                                 }
                             })
                             .catch(error => {
-                                // Error getting trade types
                                 console.error('Error fetching trade types:', error);
                             });
                     }
@@ -110,48 +137,74 @@ class DBot {
         };
 
         return new Promise((resolve, reject) => {
-            __webpack_public_path__ = public_path; // eslint-disable-line no-global-assign
-            ApiHelpers.setInstance(api_helpers_store);
-            DBotStore.setInstance(store);
-            const window_width = window.innerWidth;
             try {
+                __webpack_public_path__ = public_path; // eslint-disable-line no-global-assign
+
+                ApiHelpers.setInstance(api_helpers_store);
+                DBotStore.setInstance(store);
+
+                const el_scratch_div = document.getElementById('scratch_div');
+
+                if (!el_scratch_div) {
+                    throw new Error(
+                        'Blockly startup failed: #scratch_div container was not found.'
+                    );
+                }
+
+                const window_width = window.innerWidth;
                 let workspaceScale = 0.7;
 
                 const { handleFileChange } = DBotStore.instance;
+
                 if (window_width < 1640) {
                     if (is_mobile) {
                         workspaceScale = 0.6;
                     } else {
-                        const scratch_div_width = document.getElementById('scratch_div')?.offsetWidth;
+                        const scratch_div_width = el_scratch_div.offsetWidth;
                         const zoom_scale = scratch_div_width / window_width / 1.5;
                         workspaceScale = zoom_scale;
                     }
                 }
-                const el_scratch_div = document.getElementById('scratch_div');
-                if (!el_scratch_div) {
-                    return;
-                }
+
+                reportProgress(85, 'Creating Blockly workspace...');
 
                 this.workspace = window.Blockly.inject(el_scratch_div, {
                     media: 'assets/media/',
                     renderer: 'zelos',
                     trashcan: !is_mobile,
-                    zoom: { wheel: true, startScale: workspaceScale },
+                    zoom: {
+                        wheel: true,
+                        startScale: workspaceScale,
+                    },
                     scrollbars: true,
                     theme: window.Blockly.Themes.zelos_renderer,
                 });
 
-                this.workspace.RTL = isDbotRTL();
+                reportProgress(87, 'Blockly workspace created...');
 
+                this.workspace.RTL = isDbotRTL();
                 this.workspace.cached_xml = { main: main_xml };
 
-                this.workspace.addChangeListener(this.valueInputLimitationsListener.bind(this));
-                this.workspace.addChangeListener(event => updateDisabledBlocks(this.workspace, event));
-                this.workspace.addChangeListener(event => this.workspace.dispatchBlockEventEffects(event));
+                this.workspace.addChangeListener(
+                    this.valueInputLimitationsListener.bind(this)
+                );
+
+                this.workspace.addChangeListener(event =>
+                    updateDisabledBlocks(this.workspace, event)
+                );
+
+                this.workspace.addChangeListener(event =>
+                    this.workspace.dispatchBlockEventEffects(event)
+                );
+
                 this.workspace.addChangeListener(event => {
-                    if (event.type === 'drag' && !event.isStart && !is_mobile) validateErrorOnBlockDelete();
+                    if (event.type === 'drag' && !event.isStart && !is_mobile) {
+                        validateErrorOnBlockDelete();
+                    }
+
                     if (event.type == window.Blockly.Events.BLOCK_CHANGE) {
                         const block = this.workspace.getBlockById(event.blockId);
+
                         if (is_mobile && block && event.element == 'collapsed') {
                             block.contextMenu = false;
                         }
@@ -170,45 +223,67 @@ class DBot {
                 this.addBeforeRunFunction(this.checkForErroredBlocks.bind(this));
                 this.addBeforeRunFunction(this.checkForRequiredBlocks.bind(this));
 
-                // Push main.xml to workspace and reset the undo stack.
-                this.workspace.current_strategy_id = window.Blockly.utils.idGenerator.genUid();
+                this.workspace.current_strategy_id =
+                    window.Blockly.utils.idGenerator.genUid();
 
                 window.Blockly.derivWorkspace.strategy_to_load = main_xml;
                 window.Blockly.getMainWorkspace().strategy_to_load = main_xml;
                 window.Blockly.getMainWorkspace().RTL = isDbotRTL();
 
                 let file_name = config().default_file_name;
+
                 if (recent_files && recent_files.length) {
                     const latest_file = recent_files[0];
+
                     window.Blockly.derivWorkspace.strategy_to_load = latest_file.xml;
                     window.Blockly.getMainWorkspace().strategy_to_load = latest_file.xml;
+
                     file_name = latest_file.name;
+
                     window.Blockly.derivWorkspace.current_strategy_id = latest_file.id;
                     window.Blockly.getMainWorkspace().current_strategy_id = latest_file.id;
                 }
 
+                reportProgress(88, 'Restoring saved trading strategy...');
+
                 const event_group = `dbot-load${Date.now()}`;
+
                 window.Blockly.Events.setGroup(event_group);
+
                 window.Blockly.Xml.domToWorkspace(
-                    window.Blockly.utils.xml.textToDom(window.Blockly.derivWorkspace.strategy_to_load),
+                    window.Blockly.utils.xml.textToDom(
+                        window.Blockly.derivWorkspace.strategy_to_load
+                    ),
                     this.workspace
                 );
+
+                reportProgress(89, 'Saved strategy loaded successfully...');
+
                 const { save_modal } = DBotStore.instance;
 
                 save_modal.updateBotName(file_name);
+
                 this.workspace.cleanUp(0, is_mobile ? 60 : 56);
                 this.workspace.clearUndo();
 
                 window.dispatchEvent(new Event('resize'));
+
                 window.addEventListener('dragover', DBot.handleDragOver);
-                window.addEventListener('drop', e => DBot.handleDropOver(e, handleFileChange));
-                // disable overflow
-                el_scratch_div.parentNode.style.overflow = 'hidden';
+
+                window.addEventListener('drop', e =>
+                    DBot.handleDropOver(e, handleFileChange)
+                );
+
+                if (el_scratch_div.parentNode) {
+                    el_scratch_div.parentNode.style.overflow = 'hidden';
+                }
+
+                reportProgress(90, 'Blockly workspace initialization complete...');
+
                 resolve();
             } catch (error) {
-                // TODO: Handle error.
+                console.error('DBot.initWorkspace error:', error);
                 reject(error);
-                throw error;
             }
         });
     }
