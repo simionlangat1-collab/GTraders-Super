@@ -233,7 +233,17 @@ export default class XvtSniperEngine {
         const contractType = this.config.direction === 'OVER' ? 'DIGITOVER' : 'DIGITUNDER';
         const balance = this.latestBalance;
 
-        if (balance > 0 && this.currentStake > balance) {
+        if (!Number.isFinite(balance) || balance <= 0) {
+            this.busy = false;
+            this.running = false;
+            this.forgetTickSubscription();
+            this.cleanup();
+            this.setStatus('Safety stop: account balance could not be verified or is zero.');
+            this.callbacks.onStopped?.();
+            return;
+        }
+
+        if (this.currentStake > balance) {
             this.busy = false;
             this.running = false;
             this.forgetTickSubscription();
@@ -323,7 +333,11 @@ export default class XvtSniperEngine {
                 }
             } else {
                 this.busy = false;
-                this.setStatus(`Trade not completed: ${message}`);
+                this.running = false;
+                this.forgetTickSubscription();
+                this.cleanup();
+                this.setStatus(`Trade not completed; bot stopped for safety: ${message}`);
+                this.callbacks.onStopped?.();
             }
         }
     }
