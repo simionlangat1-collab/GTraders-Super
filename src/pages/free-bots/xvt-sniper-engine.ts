@@ -37,7 +37,7 @@ const ANALYSIS_WINDOW = 100;
 const MIN_FAVOURABLE_PERCENT = 75;
 
 export default class XvtSniperEngine {
-    private api: any;
+    private api: any = null;
     private config: XvtConfig;
     private callbacks: XvtCallbacks;
     private digits: number[] = [];
