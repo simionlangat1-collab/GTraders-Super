@@ -1,5 +1,5 @@
-/* eslint-disable no-unsafe-optional-chaining */
-/* eslint-disable simple-import-sort/imports */
+/* eslint-disable no-unsafe-optional-chaining /
+/ eslint-disable simple-import-sort/imports */
 import React from 'react';
 import { useStore } from '@/hooks/useStore';
 import { observer } from 'mobx-react-lite';
@@ -19,235 +19,323 @@ import GrowthRateSelect from './selects/growth-rate-type';
 import SellConditions from './selects/sell-conditions';
 
 const QuickStrategyForm = observer(() => {
-    const { quick_strategy } = useStore();
-    const { selected_strategy, setValue, form_data } = quick_strategy;
-    const config: TConfigItem[][] = STRATEGIES()[selected_strategy]?.fields;
-    const { isDesktop } = useDevice();
-    const { values, setFieldTouched, setFieldValue } = useFormikContext<TFormData>();
-    const { current_duration_min_max, additional_data } = quick_strategy;
+const { quick_strategy } = useStore();
+const { selected_strategy, setValue, form_data } = quick_strategy;
+const config: TConfigItem[][] =
+STRATEGIES()[selected_strategy]?.fields ?? [];
 
-    const [isEnabledToggleSwitch, setIsEnabledToggleSwitch] = React.useState(values?.boolean_max_stake ?? false);
+const { isDesktop } = useDevice();
+const { values, setFieldTouched, setFieldValue } =
+    useFormikContext<TFormData>();
 
-    React.useEffect(() => {
-        window.addEventListener('keydown', handleEnter);
-        let data: TFormData | null = null;
-        try {
-            data = JSON.parse(localStorage.getItem('qs-fields') ?? '{}');
-        } catch {
-            data = null;
-        }
-        setIsEnabledToggleSwitch(!!data?.boolean_max_stake);
+const { current_duration_min_max, additional_data } = quick_strategy;
 
-        return () => {
-            window.removeEventListener('keydown', handleEnter);
-        };
-    }, []);
+const [isEnabledToggleSwitch, setIsEnabledToggleSwitch] =
+    React.useState(values?.boolean_max_stake ?? false);
 
-    // Ensure toggle switch state is synchronized with form values
-    React.useEffect(() => {
-        if (values?.boolean_max_stake !== undefined) {
-            setIsEnabledToggleSwitch(!!values.boolean_max_stake);
-        }
-    }, [values?.boolean_max_stake]);
+const handleEnter = React.useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}, []);
 
-    React.useEffect(() => {
-        if (!isEnabledToggleSwitch && values?.max_stake) {
-            setFieldValue('max_stake', 0);
-        }
-    }, [isEnabledToggleSwitch, values?.max_stake]);
+React.useEffect(() => {
+    window.addEventListener('keydown', handleEnter);
 
-    const onChange = async (key: string, value: string | number | boolean) => {
-        setValue(key, value);
-        await setFieldTouched(key, true, true);
-        await setFieldValue(key, value, true);
+    let data: TFormData | null = null;
 
-        // Cross-validate stake and max_stake when either value changes
-        if (key === 'stake' || key === 'max_stake') {
-            // Always re-validate both fields when either changes
-            // This ensures error messages are cleared when values are corrected
-            setFieldTouched('stake', true, true);
-            setFieldTouched('max_stake', true, true);
+    try {
+        data = JSON.parse(localStorage.getItem('qs-fields') ?? '{}');
+    } catch {
+        data = null;
+    }
 
-            // Force immediate validation
-            if (key === 'stake') {
-                // When stake changes, we need to validate max_stake as well
-                const input_elements = document.querySelectorAll('input[name="max_stake"]');
-                if (input_elements.length > 0) {
-                    const event = new Event('keyup', { bubbles: true });
-                    input_elements[0].dispatchEvent(event);
-                }
-            } else if (key === 'max_stake') {
-                // When max_stake changes, we need to validate stake as well
-                const input_elements = document.querySelectorAll('input[name="stake"]');
-                if (input_elements.length > 0) {
-                    const event = new Event('keyup', { bubbles: true });
-                    input_elements[0].dispatchEvent(event);
-                }
-            }
-        }
+    setIsEnabledToggleSwitch(!!data?.boolean_max_stake);
+
+    return () => {
+        window.removeEventListener('keydown', handleEnter);
     };
+}, [handleEnter]);
 
-    const handleEnter = (event: KeyboardEvent) => {
-        if (event?.key && event.key == 'Enter') {
-            event.preventDefault();
-            event.stopPropagation();
+React.useEffect(() => {
+    if (values?.boolean_max_stake !== undefined) {
+        setIsEnabledToggleSwitch(!!values.boolean_max_stake);
+    }
+}, [values?.boolean_max_stake]);
+
+React.useEffect(() => {
+    if (!isEnabledToggleSwitch && values?.max_stake) {
+        setFieldValue('max_stake', 0);
+    }
+}, [isEnabledToggleSwitch, values?.max_stake, setFieldValue]);
+
+const onChange = async (
+    key: string,
+    value: string | number | boolean
+) => {
+    setValue(key, value);
+
+    await setFieldTouched(key, true, true);
+    await setFieldValue(key, value, true);
+
+    if (key === 'stake' || key === 'max_stake') {
+        void setFieldTouched('stake', true, true);
+        void setFieldTouched('max_stake', true, true);
+
+        const target_name =
+            key === 'stake' ? 'max_stake' : 'stake';
+
+        const input_element = document.querySelector(
+            `input[name="${target_name}"]`
+        );
+
+        if (input_element) {
+            input_element.dispatchEvent(
+                new Event('keyup', { bubbles: true })
+            );
         }
-    };
+    }
+};
 
-    const shouldEnable = (should_have: TShouldHave[]) =>
-        should_have.every(item => {
-            const item_value = values?.[item.key]?.toString();
-            if (item.multiple) return item.multiple.includes(item_value);
-            return values[item.key as keyof TFormData] === item.value;
-        });
+const shouldEnable = (should_have: TShouldHave[]) =>
+    should_have.every(item => {
+        const item_value = values?.[item.key]?.toString();
 
-    const toggleSwitch = () => {
-        setIsEnabledToggleSwitch(prev => !prev);
-    };
+        if (item.multiple) {
+            return item.multiple.includes(item_value ?? '');
+        }
 
-    const renderForm = () => {
-        return config.map((group, group_index) => {
-            if (!group?.length) return null;
-            return (
-                <div className='qs__body__content__form__group' key={group_index}>
-                    {group.map((field, field_index) => {
-                        const key = `${field.name || field.type} + ${field_index}`;
+        return values[item.key as keyof TFormData] === item.value;
+    });
 
-                        if (
-                            (!isDesktop && field.hide?.includes('mobile')) ||
-                            (isDesktop && field.hide?.includes('desktop'))
-                        ) {
-                            return null;
-                        }
+const toggleSwitch = () => {
+    setIsEnabledToggleSwitch(previous => !previous);
+};
 
-                        switch (field.type) {
-                            // Generic or common fields
-                            case 'number': {
-                                if (!field.name) return null;
-                                const {
-                                    should_have = [],
-                                    hide_without_should_have = false,
-                                    has_currency_unit = false,
-                                } = field;
-                                const should_enable = shouldEnable(should_have);
-                                const initial_stake = 1;
-                                let min = 1;
-                                let max;
-                                if (field.name === 'duration' && current_duration_min_max) {
-                                    min = current_duration_min_max.min;
-                                    max = current_duration_min_max.max;
+const renderForm = () =>
+    config.map((group, group_index) => {
+        if (!group?.length) return null;
+
+        return (
+            <div
+                className='qs__body__content__form__group'
+                key={group_index}
+            >
+                {group.map((field, field_index) => {
+                    const key = `${field.name || field.type} + ${field_index}`;
+
+                    if (
+                        (!isDesktop && field.hide?.includes('mobile')) ||
+                        (isDesktop && field.hide?.includes('desktop'))
+                    ) {
+                        return null;
+                    }
+
+                    switch (field.type) {
+                        case 'number': {
+                            if (!field.name) return null;
+
+                            const {
+                                should_have = [],
+                                hide_without_should_have = false,
+                                has_currency_unit = false,
+                            } = field;
+
+                            const should_enable =
+                                shouldEnable(should_have);
+
+                            const initial_stake = 1;
+                            let min = 1;
+                            let max: number | undefined;
+
+                            if (
+                                field.name === 'duration' &&
+                                current_duration_min_max
+                            ) {
+                                min = current_duration_min_max.min;
+                                max = current_duration_min_max.max;
+                            }
+
+                            if (
+                                field.should_have &&
+                                field.name === 'max_stake'
+                            ) {
+                                min = Number(form_data?.stake);
+
+                                if (isNaN(min)) {
+                                    min = initial_stake;
                                 }
-                                const should_validate = field.should_have;
-                                if (should_validate && field.name === 'max_stake') {
-                                    min = +form_data?.stake;
-                                    if (isNaN(min)) {
-                                        min = +initial_stake;
-                                    }
+                            }
+
+                            if (
+                                field.should_have &&
+                                field.name === 'last_digit_prediction'
+                            ) {
+                                const prediction = Number(
+                                    form_data?.last_digit_prediction
+                                );
+
+                                if (
+                                    isNaN(prediction) ||
+                                    prediction === 1
+                                ) {
+                                    min = 0;
                                 }
-                                if (should_validate && field.name === 'last_digit_prediction') {
-                                    if (
-                                        isNaN(+form_data?.last_digit_prediction) ||
-                                        +form_data?.last_digit_prediction === 1
-                                    ) {
-                                        min = 0;
-                                    }
-                                    if (+form_data?.last_digit_prediction > 0) {
-                                        min = +form_data?.last_digit_prediction - 1;
-                                    }
-                                    max = 9;
+
+                                if (prediction > 0) {
+                                    min = prediction - 1;
                                 }
-                                if (should_have?.length) {
-                                    if (!should_enable && (!isDesktop || hide_without_should_have)) {
-                                        return null;
-                                    }
-                                    return (
-                                        <QSInput
-                                            {...field}
-                                            key={key}
-                                            name={field.name as string}
-                                            disabled={!should_enable}
-                                            onChange={onChange}
-                                            min={min}
-                                            max={max}
-                                            has_currency_unit={has_currency_unit}
-                                        />
-                                    );
+
+                                max = 9;
+                            }
+
+                            if (should_have.length) {
+                                if (
+                                    !should_enable &&
+                                    (!isDesktop || hide_without_should_have)
+                                ) {
+                                    return null;
                                 }
+
                                 return (
                                     <QSInput
                                         {...field}
-                                        onChange={onChange}
                                         key={key}
-                                        name={field.name as string}
+                                        name={field.name}
+                                        disabled={!should_enable}
+                                        onChange={onChange}
                                         min={min}
                                         max={max}
                                         has_currency_unit={has_currency_unit}
                                     />
                                 );
                             }
-                            case 'label': {
-                                if (!field.label) return null;
-                                const { should_have = [], hide_without_should_have = false } = field;
-                                const should_enable = shouldEnable(should_have);
-                                if (!should_enable && hide_without_should_have) {
-                                    return null;
-                                }
-                                return (
-                                    <QSInputLabel
-                                        key={key}
-                                        label={field.label}
-                                        description={
-                                            field.description
-                                                ? typeof field.description === 'function'
-                                                    ? () => {
-                                                          // Create a wrapper function that doesn't expect parameters
-                                                          // but internally calls the original function
-                                                          const descriptionFn = field.description as (
-                                                              additional_data?: Record<string, unknown>
-                                                          ) => React.ReactNode;
-                                                          return descriptionFn(additional_data);
-                                                      }
-                                                    : String(field.description || '')
-                                                : ''
-                                        }
-                                        additional_data={additional_data}
-                                    />
-                                );
-                            }
-                            case 'checkbox':
-                                return (
-                                    <QSCheckbox
-                                        key={key}
-                                        name={field.name as string}
-                                        label={field.label as string}
-                                        description={field.description ? String(field.description) : undefined}
-                                        isEnabledToggleSwitch={!!isEnabledToggleSwitch}
-                                        setIsEnabledToggleSwitch={toggleSwitch}
-                                    />
-                                );
-                            // Dedicated components only for Quick-Strategy
-                            case 'symbol':
-                                return <SymbolSelect {...field} key={key} />;
-                            case 'tradetype':
-                                return <TradeTypeSelect {...field} key={key} />;
-                            case 'durationtype':
-                                return <DurationTypeSelect {...field} key={key} />;
-                            case 'contract_type':
-                                return <ContractTypeSelect {...field} key={key} name={field.name as string} />;
-                            case 'growth_rate':
-                                return <GrowthRateSelect {...field} key={key} name={field.name as string} />;
-                            case 'sell_conditions':
-                                return <SellConditions {...field} key={key} />;
-                            default:
-                                return null;
-                        }
-                    })}
-                </div>
-            );
-        });
-    };
 
-    return <div>{renderForm()}</div>;
+                            return (
+                                <QSInput
+                                    {...field}
+                                    key={key}
+                                    name={field.name}
+                                    onChange={onChange}
+                                    min={min}
+                                    max={max}
+                                    has_currency_unit={has_currency_unit}
+                                />
+                            );
+                        }
+
+                        case 'label': {
+                            if (!field.label) return null;
+
+                            const {
+                                should_have = [],
+                                hide_without_should_have = false,
+                            } = field;
+
+                            const should_enable =
+                                shouldEnable(should_have);
+
+                            if (
+                                !should_enable &&
+                                hide_without_should_have
+                            ) {
+                                return null;
+                            }
+
+                            return (
+                                <QSInputLabel
+                                    key={key}
+                                    label={field.label}
+                                    description={
+                                        field.description
+                                            ? typeof field.description ===
+                                              'function'
+                                                ? () => {
+                                                      const descriptionFn =
+                                                          field.description as (
+                                                              additional_data?: Record<
+                                                                  string,
+                                                                  unknown
+                                                              >
+                                                          ) => React.ReactNode;
+
+                                                      return descriptionFn(
+                                                          additional_data
+                                                      );
+                                                  }
+                                                : String(
+                                                      field.description || ''
+                                                  )
+                                            : ''
+                                    }
+                                    additional_data={additional_data}
+                                />
+                            );
+                        }
+
+                        case 'checkbox':
+                            return (
+                                <QSCheckbox
+                                    key={key}
+                                    name={field.name as string}
+                                    label={field.label as string}
+                                    description={
+                                        field.description
+                                            ? String(field.description)
+                                            : undefined
+                                    }
+                                    isEnabledToggleSwitch={
+                                        !!isEnabledToggleSwitch
+                                    }
+                                    setIsEnabledToggleSwitch={toggleSwitch}
+                                />
+                            );
+
+                        case 'symbol':
+                            return <SymbolSelect {...field} key={key} />;
+
+                        case 'tradetype':
+                            return (
+                                <TradeTypeSelect {...field} key={key} />
+                            );
+
+                        case 'durationtype':
+                            return (
+                                <DurationTypeSelect {...field} key={key} />
+                            );
+
+                        case 'contract_type':
+                            return (
+                                <ContractTypeSelect
+                                    {...field}
+                                    key={key}
+                                    name={field.name as string}
+                                />
+                            );
+
+                        case 'growth_rate':
+                            return (
+                                <GrowthRateSelect
+                                    {...field}
+                                    key={key}
+                                    name={field.name as string}
+                                />
+                            );
+
+                        case 'sell_conditions':
+                            return <SellConditions {...field} key={key} />;
+
+                        default:
+                            return null;
+                    }
+                })}
+            </div>
+        );
+    });
+
+return <div>{renderForm()}</div>;
+
 });
 
 export default QuickStrategyForm;
