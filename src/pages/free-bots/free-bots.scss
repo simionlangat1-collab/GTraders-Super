@@ -413,6 +413,11 @@
         font-size: 1.05rem;
     }
 
+    &--top {
+        border-color: rgba(0, 217, 255, 0.55);
+        background: rgba(0, 217, 255, 0.1);
+    }
+
     &--selected {
         border-color: #ff4fcb;
         background: rgba(255, 79, 203, 0.12);
