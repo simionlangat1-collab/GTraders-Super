@@ -30,6 +30,7 @@ type XvtCallbacks = {
     onResult?: (result: Record<string, unknown>) => void;
     onProfit?: (profit: number) => void;
     onError?: (message: string) => void;
+    onStopped?: () => void;
 };
 
 const ANALYSIS_WINDOW = 100;
@@ -81,6 +82,7 @@ export default class XvtSniperEngine {
         this.lossesInCycle = 0;
         this.currentStake = this.config.stake;
         this.sessionProfit = 0;
+        this.settledContractIds.clear();
         this.latestBalance = Number((api_base.account_info as any)?.balance ?? 0);
         this.digits = [];
         this.lastEpoch = 0;
@@ -128,6 +130,7 @@ export default class XvtSniperEngine {
         } catch (error) {
             this.running = false;
             this.cleanup();
+            this.callbacks.onStopped?.();
             throw error;
         }
     }
@@ -140,7 +143,16 @@ export default class XvtSniperEngine {
         } else {
             this.cleanup();
             this.setStatus('Bot stopped.');
+            this.callbacks.onStopped?.();
         }
+    }
+
+    dispose() {
+        this.running = false;
+        this.currentContractId = '';
+        this.busy = false;
+        this.cleanup();
+        this.callbacks.onStopped?.();
     }
 
     getSessionProfit() {
@@ -227,6 +239,7 @@ export default class XvtSniperEngine {
             this.forgetTickSubscription();
             this.cleanup();
             this.setStatus('Safety stop: next stake is greater than the available account balance.');
+            this.callbacks.onStopped?.();
             return;
         }
 
@@ -285,11 +298,30 @@ export default class XvtSniperEngine {
                 this.handleContractUpdate(openResponse.proposal_open_contract);
             }
         } catch (error) {
-            this.busy = false;
-            this.currentContractId = '';
             const message = error instanceof Error ? error.message : 'Trade request failed.';
             this.callbacks.onError?.(message);
-            this.setStatus(`Trade not completed: ${message}`);
+
+            if (this.currentContractId) {
+                this.setStatus('A contract was purchased; reconnecting its result monitor…');
+                try {
+                    const recoveryResponse = await this.api.send({
+                        proposal_open_contract: 1,
+                        contract_id: this.currentContractId,
+                        subscribe: 1,
+                    });
+                    if (recoveryResponse?.subscription?.id) {
+                        this.openContractSubscriptionId = recoveryResponse.subscription.id;
+                    }
+                    if (recoveryResponse?.proposal_open_contract) {
+                        this.handleContractUpdate(recoveryResponse.proposal_open_contract);
+                    }
+                } catch {
+                    this.setStatus('A contract was purchased but its live monitor could not be restored. Check the Deriv Portfolio before restarting.');
+                }
+            } else {
+                this.busy = false;
+                this.setStatus(`Trade not completed: ${message}`);
+            }
         }
     }
 
@@ -335,6 +367,7 @@ export default class XvtSniperEngine {
             this.forgetTickSubscription();
             this.cleanup();
             this.setStatus('Take Profit reached. Bot stopped.');
+            this.callbacks.onStopped?.();
             return;
         }
 
@@ -343,6 +376,7 @@ export default class XvtSniperEngine {
             this.forgetTickSubscription();
             this.cleanup();
             this.setStatus('Stop Loss reached. Bot stopped.');
+            this.callbacks.onStopped?.();
             return;
         }
 
@@ -352,12 +386,14 @@ export default class XvtSniperEngine {
             this.forgetTickSubscription();
             this.cleanup();
             this.setStatus('Safety stop: the next Martingale stake exceeds the available balance.');
+            this.callbacks.onStopped?.();
             return;
         }
 
         if (!this.running) {
             this.cleanup();
             this.setStatus('Open contract settled. Bot stopped.');
+            this.callbacks.onStopped?.();
             return;
         }
 
