@@ -243,7 +243,6 @@ const AppContent = observer(({
         };
     }, [
         is_api_initialized,
-        client.loginid,
         onStartupProgress,
         onStartupMessage,
     ]);
