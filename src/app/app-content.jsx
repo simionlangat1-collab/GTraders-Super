@@ -186,8 +186,12 @@ const AppContent = observer(() => {
     if (common?.error) return null;
 
     return is_loading ? (
-        <ChunkLoader message={localize('Initializing Deriv Bot account...')} />
-    ) : (
+    <ChunkLoader
+        progress={50}
+        isConnected={connectionStatus === CONNECTION_STATUS.OPENED}
+        message={localize('Loading live market data...')}
+    />
+) : (
         <AuthLoadingWrapper>
             <ThemeProvider theme={is_dark_mode_on ? 'dark' : 'light'}>
                 <BlocklyLoading />
