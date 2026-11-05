@@ -17,6 +17,7 @@ type DigitAnalysis = {
     ticks: number;
     counts: number[];
     topDigits: number[];
+    predictionDigit: number | null;
     favourableCount: number;
     favourablePercent: number;
     momentumReady: boolean;
@@ -57,6 +58,7 @@ export default class XvtSniperEngine {
         ticks: 0,
         counts: Array(10).fill(0),
         topDigits: [],
+        predictionDigit: null,
         favourableCount: 0,
         favourablePercent: 0,
         momentumReady: false,
@@ -215,6 +217,7 @@ export default class XvtSniperEngine {
             ticks: this.digits.length,
             counts,
             topDigits,
+            predictionDigit: this.digits.length ? topDigits[0] : null,
             favourableCount,
             favourablePercent,
             momentumReady: this.digits.length === ANALYSIS_WINDOW && favourablePercent >= MIN_FAVOURABLE_PERCENT,
