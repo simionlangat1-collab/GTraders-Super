@@ -1,3 +1,4 @@
+
 import { action, makeObservable, observable, reaction } from 'mobx';
 import { ApiHelpers, config as qs_config, load } from '@/external/bot-skeleton';
 import { save_types } from '@/external/bot-skeleton/constants/save-type';
@@ -53,22 +54,27 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
     is_open = false;
     selected_strategy = 'MARTINGALE';
     selected_strategy_for_notofy = '';
+
     form_data: TFormData = {
         symbol: qs_config().QUICK_STRATEGY.DEFAULT.symbol,
         tradetype: qs_config().QUICK_STRATEGY.DEFAULT.tradetype,
         durationtype: qs_config().QUICK_STRATEGY.DEFAULT.durationtype,
         action: 'RUN',
     };
+
     is_contract_dialog_open = false;
     is_stop_bot_dialog_open = false;
     is_options_loading = false;
+
     current_duration_min_max = {
         min: 0,
         max: 10,
     };
+
     loss_threshold_warning_data: TLossThresholdWarningData = {
         show: false,
     };
+
     additional_data = {};
 
     constructor(root_store: RootStore) {
@@ -94,13 +100,15 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             toggleStopBotDialog: action,
             setOptionsLoading: action,
         });
+
         this.root_store = root_store;
 
-        // Initialize selected_strategy_for_notofy from localStorage if available
         const savedStrategy = getSetting('selected_strategy_for_notofy');
+
         if (savedStrategy) {
             this.selected_strategy_for_notofy = savedStrategy;
         }
+
         reaction(
             () => this.is_open,
             () => {
@@ -154,86 +162,160 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
 
     onSubmit = async (data: TFormData) => {
         const { contracts_for } = ApiHelpers?.instance ?? {};
-        if (!contracts_for) return;
-        const market = await contracts_for.getMarketBySymbol(data.symbol);
-        const submarket = await contracts_for.getSubmarketBySymbol(data.symbol);
-        const trade_type_cat = await contracts_for.getTradeTypeCategoryByTradeType(data.tradetype);
-        const selected_strategy = STRATEGIES()[this.selected_strategy];
-        this.selected_strategy_for_notofy = this.selected_strategy;
-        // Persist the selected strategy for notifications in localStorage
-        storeSetting('selected_strategy_for_notofy', this.selected_strategy);
-        const strategy_xml = await import(/* webpackChunkName: `[request]` */ `../xml/${selected_strategy.name}.xml`);
-        const strategy_dom = window.Blockly.utils.xml.textToDom(strategy_xml.default);
-        addDynamicBlockToDOM('PREDICTION', 'last_digit_prediction', trade_type_cat, strategy_dom);
 
-        const modifyValueInputs = (key: string, value: number) => {
-            const el_value_inputs = strategy_dom?.querySelectorAll(`value[strategy_value="${key}"]`);
-            el_value_inputs?.forEach((el_value_input: HTMLElement) => {
-                if (key.includes('boolean'))
-                    if (value)
-                        el_value_input.innerHTML = `<block type="logic_boolean"><field name="BOOL">TRUE</field></block>`;
-                    else
-                        el_value_input.innerHTML = `<block type="logic_boolean"><field name="BOOL">FALSE</field></block>`;
-                else
-                    el_value_input.innerHTML = `<shadow type="math_number"><field name="NUM">${value}</field></shadow>`;
-            });
-        };
-
-        const modifyFieldDropdownValues = (name: string, value: string) => {
-            const name_list = `${name.toUpperCase()}_LIST`;
-            const el_blocks = strategy_dom?.querySelectorAll(`field[name="${name_list}"]`);
-            el_blocks?.forEach((el_block: HTMLElement) => {
-                el_block.innerHTML = value;
-            });
-        };
-        const { unit, action, type, growth_rate, ...rest_data } = data;
-        const fields_to_update = {
-            market,
-            submarket,
-            tradetypecat: trade_type_cat,
-            dalembert_unit: unit,
-            oscar_unit: unit,
-            type: 'both',
-            ...rest_data,
-            purchase: type,
-            growthrate: growth_rate ? growth_rate.toString() : undefined,
-        };
-
-        Object.keys(fields_to_update).forEach(key => {
-            const value = fields_to_update[key as keyof typeof fields_to_update];
-
-            if (!isNaN(value as number) && key !== 'growthrate') {
-                modifyValueInputs(key, value as number);
-            } else if (typeof value === 'string') {
-                modifyFieldDropdownValues(key, value);
-            }
-        });
-
-        const { derivWorkspace: workspace } = Blockly;
-
-        if (action === 'RUN') {
-            workspace
-                ?.waitForBlockEvent({
-                    block_type: 'trade_definition',
-                    event_type: window.Blockly.Events.BLOCK_CREATE,
-                    timeout: 5000,
-                })
-                .then(() => {
-                    this.root_store.run_panel.onRunButtonClick();
-                });
+        if (!contracts_for) {
+            console.error(
+                'GTraders Super: Contract information is not ready.'
+            );
+            return;
         }
 
-        this.setFormVisibility(false);
+        const workspace = window.Blockly?.derivWorkspace;
 
-        await load({
-            block_string: window.Blockly.Xml.domToText(strategy_dom),
-            file_name: selected_strategy.label,
-            workspace,
-            from: save_types.UNSAVED,
-            drop_event: null,
-            strategy_id: null,
-            showIncompatibleStrategyDialog: null,
-        });
+        if (!workspace) {
+            console.error(
+                'GTraders Super: Blockly workspace is not ready.'
+            );
+            return;
+        }
+
+        try {
+            const market = await contracts_for.getMarketBySymbol(data.symbol);
+            const submarket = await contracts_for.getSubmarketBySymbol(data.symbol);
+            const trade_type_cat =
+                await contracts_for.getTradeTypeCategoryByTradeType(data.tradetype);
+
+            const selected_strategy = STRATEGIES()[this.selected_strategy];
+
+            if (!selected_strategy) {
+                throw new Error('Selected strategy configuration was not found.');
+            }
+
+            this.selected_strategy_for_notofy = this.selected_strategy;
+
+            storeSetting(
+                'selected_strategy_for_notofy',
+                this.selected_strategy
+            );
+
+            const strategy_xml = await import(
+                /* webpackChunkName: `[request]` */
+                `../xml/${selected_strategy.name}.xml`
+            );
+
+            const strategy_dom = window.Blockly.utils.xml.textToDom(
+                strategy_xml.default
+            );
+
+            addDynamicBlockToDOM(
+                'PREDICTION',
+                'last_digit_prediction',
+                trade_type_cat,
+                strategy_dom
+            );
+
+            const modifyValueInputs = (
+                key: string,
+                value: number
+            ) => {
+                const inputs = strategy_dom.querySelectorAll(
+                    `value[strategy_value="${key}"]`
+                );
+
+                inputs.forEach((input: HTMLElement) => {
+                    if (key.includes('boolean')) {
+                        input.innerHTML = value
+                            ? '<block type="logic_boolean"><field name="BOOL">TRUE</field></block>'
+                            : '<block type="logic_boolean"><field name="BOOL">FALSE</field></block>';
+                    } else {
+                        input.innerHTML =
+                            `<shadow type="math_number"><field name="NUM">${value}</field></shadow>`;
+                    }
+                });
+            };
+
+            const modifyFieldDropdownValues = (
+                name: string,
+                value: string
+            ) => {
+                const field_name = `${name.toUpperCase()}_LIST`;
+
+                const fields = strategy_dom.querySelectorAll(
+                    `field[name="${field_name}"]`
+                );
+
+                fields.forEach((field: HTMLElement) => {
+                    field.innerHTML = value;
+                });
+            };
+
+            const {
+                unit,
+                action,
+                type,
+                growth_rate,
+                ...rest_data
+            } = data;
+
+            const fields_to_update = {
+                market,
+                submarket,
+                tradetypecat: trade_type_cat,
+                dalembert_unit: unit,
+                oscar_unit: unit,
+                type: 'both',
+                ...rest_data,
+                purchase: type,
+                growthrate: growth_rate
+                    ? growth_rate.toString()
+                    : undefined,
+            };
+
+            Object.entries(fields_to_update).forEach(([key, value]) => {
+                if (value === undefined || value === null) {
+                    return;
+                }
+
+                if (!isNaN(value as number) && key !== 'growthrate') {
+                    modifyValueInputs(key, Number(value));
+                } else if (typeof value === 'string') {
+                    modifyFieldDropdownValues(key, value);
+                }
+            });
+
+            const blockCreated =
+                action === 'RUN'
+                    ? workspace.waitForBlockEvent({
+                          block_type: 'trade_definition',
+                          event_type: window.Blockly.Events.BLOCK_CREATE,
+                          timeout: 10000,
+                      })
+                    : Promise.resolve();
+
+            this.setFormVisibility(false);
+
+            await load({
+                block_string: window.Blockly.Xml.domToText(strategy_dom),
+                file_name: selected_strategy.label,
+                workspace,
+                from: save_types.UNSAVED,
+                drop_event: null,
+                strategy_id: null,
+                showIncompatibleStrategyDialog: null,
+            });
+
+            if (action === 'RUN') {
+                await blockCreated;
+                this.root_store.run_panel.onRunButtonClick();
+            }
+        } catch (error) {
+            console.error(
+                'GTraders Super Quick Strategy initialization failed:',
+                error
+            );
+
+            this.setFormVisibility(false);
+        }
     };
 
     toggleStopBotDialog = (): void => {
