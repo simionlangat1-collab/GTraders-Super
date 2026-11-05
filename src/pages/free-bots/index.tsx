@@ -399,7 +399,7 @@ const FreeBots = () => {
                         <h3>Recent Trades</h3>
                         {recentTrades.length ? recentTrades.map((trade, index) => (
                             <div className='xvt-history__row' key={String(trade.contractId || index)}>
-                                <span>{String(trade.contractType || 'Contract')} {String(trade.barrier || '')}</span>
+                                <span>{String(trade.contractType || 'Contract')} {String(trade.barrier || '')} · Est. digit {String(trade.estimatedDigit ?? '—')}</span>
                                 <span>{String(trade.stake || '')} {currency}</span>
                                 <strong className={trade.outcome === 'WIN' ? 'is-positive' : trade.outcome === 'LOSS' ? 'is-negative' : ''}>
                                     {String(trade.outcome || (trade.recovery ? 'RECOVERY' : 'OPEN'))}
