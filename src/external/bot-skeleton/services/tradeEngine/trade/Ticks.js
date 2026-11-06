@@ -87,8 +87,11 @@ export default Engine =>
             return new Promise(resolve => this.getLastTick(false, true).then(tick => resolve(getLastDigit(tick))));
         }
 
-        getLastDigitList() {
-            return new Promise(resolve => this.getTicks().then(ticks => resolve(this.getLastDigitsFromList(ticks))));
+        getLastDigitList(count = 1000) {
+            const limit = Number.isFinite(Number(count)) ? Math.max(1, Math.min(1000, Math.floor(Number(count)))) : 1000;
+            return new Promise(resolve =>
+                this.getTicks().then(ticks => resolve(this.getLastDigitsFromList(ticks.slice(-limit))))
+            );
         }
         getLastDigitsFromList(ticks) {
             const digits = ticks.map(tick => {
