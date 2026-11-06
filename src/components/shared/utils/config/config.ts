@@ -40,16 +40,19 @@ export const isProduction = () => {
 export const isLocal = () => /localhost(:\d+)?$/i.test(window.location.hostname);
 
 const getDefaultServerURL = () => {
-    const isProductionEnv = isProduction();
+    // Cloudflare Pages preview URLs are unique subdomains of this project.
+    // Use Deriv's production public market-data socket for these previews;
+    // keep local and other staging environments on the staging socket.
+    const isCloudflarePagesPreview = window.location.hostname.endsWith('.gtraders-super.pages.dev');
+    const useProductionSocket = isProduction() || isCloudflarePagesPreview();
 
     try {
-        return isProductionEnv ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
+        return useProductionSocket ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
     } catch (error) {
         console.error('Error in getDefaultServerURL:', error);
     }
 
-    // Production defaults to demov2, staging/preview defaults to qa194 (demo)
-    return isProductionEnv ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
+    return useProductionSocket ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
 };
 
 /**
