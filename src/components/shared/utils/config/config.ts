@@ -28,9 +28,17 @@ export const WS_SERVERS = {
 
 // Helper to check if we're on production domains
 export const isProduction = () => {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     const productionDomains = Object.values(PRODUCTION_DOMAINS) as string[];
-    return productionDomains.includes(hostname);
+
+    // Cloudflare Pages preview deployments use unique subdomains such as
+    // <deployment-id>.gtraders-super.pages.dev. Treat those previews as
+    // production-auth environments so they use the same Deriv OAuth/API
+    // endpoints as the registered GTraders Super site.
+    return productionDomains.some(domain => {
+        const productionDomain = domain.toLowerCase();
+        return hostname === productionDomain || hostname.endsWith('.' + productionDomain);
+    });
 };
 
 export const isLocal = () => /localhost(:\d+)?$/i.test(window.location.hostname);
