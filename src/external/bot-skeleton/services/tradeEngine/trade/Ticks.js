@@ -93,6 +93,21 @@ export default Engine =>
                 this.getTicks().then(ticks => resolve(this.getLastDigitsFromList(ticks.slice(-limit))))
             );
         }
+        async getXvtMomentumReady(direction = 'OVER', recovery = false) {
+            const digits = await this.getLastDigitList(100);
+            if (!Array.isArray(digits) || digits.length < 100) return false;
+
+            const isOver = String(direction).toUpperCase() === 'OVER';
+            const barrier = isOver
+                ? (recovery ? 4 : 3)
+                : (recovery ? 5 : 6);
+            const favourable = digits.filter(digit =>
+                isOver ? Number(digit) >= barrier : Number(digit) <= barrier
+            ).length;
+
+            return (favourable / digits.length) * 100 >= 75;
+        }
+
         getLastDigitsFromList(ticks) {
             const digits = ticks.map(tick => {
                 return getLastDigit(tick.toFixed(this.getPipSize()));
