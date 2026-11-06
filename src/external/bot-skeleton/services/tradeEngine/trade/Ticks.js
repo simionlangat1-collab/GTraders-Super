@@ -228,8 +228,8 @@ export default Engine =>
 
             const isOver = String(direction).toUpperCase() === 'OVER';
             const barrier = isOver
-                ? (recovery ? 4 : 3)
-                : (recovery ? 5 : 6);
+                ? (recovery ? 3 : 2)
+                : (recovery ? 6 : 7);
             const favourable = digits.filter(digit =>
                 isOver ? Number(digit) > barrier : Number(digit) < barrier
             ).length;
