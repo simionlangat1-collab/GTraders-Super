@@ -16,10 +16,14 @@ export const STAGING_DOMAINS = {
     COM: brandConfig.platform.hostname.staging.com,
 } as const;
 
-// WebSocket server URLs
+// Convert the HTTPS REST base URL to the WSS protocol required by WebSocket.
+const toWebSocketURL = (url: string) =>
+    url.replace(/^https:/i, 'wss:').replace(/^http:/i, 'ws:');
+
+// Public market-data WebSocket endpoints
 export const WS_SERVERS = {
-    STAGING: `${brandConfig.platform.derivws.url.staging}options/ws/public`,
-    PRODUCTION: `${brandConfig.platform.derivws.url.production}options/ws/public`,
+    STAGING: `${toWebSocketURL(brandConfig.platform.derivws.url.staging)}options/ws/public`,
+    PRODUCTION: `${toWebSocketURL(brandConfig.platform.derivws.url.production)}options/ws/public`,
 } as const;
 
 // =============================================================================
