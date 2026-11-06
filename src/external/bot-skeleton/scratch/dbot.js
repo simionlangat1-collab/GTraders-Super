@@ -422,6 +422,9 @@ class DBot {
             while (true) {
                 BinaryBotPrivateTickAnalysis();
                 BinaryBotPrivateRun(BinaryBotPrivateStart);
+                if (Bot.getXvtStopRequested && Bot.getXvtStopRequested()) {
+                    break;
+                }
                 if (!BinaryBotPrivateHasCalledTradeOptions) {
                     sleep(1);
                     continue;
