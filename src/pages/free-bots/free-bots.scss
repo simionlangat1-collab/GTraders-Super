@@ -576,3 +576,321 @@
         margin-left: 1.6rem;
     }
 }
+
+
+/* GTRADERS SUPER — premium XVT trading terminal */
+.free-bots-page {
+    min-height: 100%;
+    padding: clamp(1.6rem, 2.4vw, 3.2rem);
+    background:
+        radial-gradient(ellipse at 8% 0%, rgba(37, 131, 255, 0.12), transparent 34rem),
+        radial-gradient(ellipse at 92% 12%, rgba(139, 92, 246, 0.1), transparent 30rem),
+        #10182b;
+    color: #e8efff;
+
+    &__header {
+        max-width: 144rem;
+        margin: 0 auto 2.4rem;
+
+        h1 {
+            margin: 0.6rem 0;
+            color: #f7f9ff;
+            font-size: clamp(2.6rem, 3vw, 3.6rem);
+            font-weight: 800;
+            letter-spacing: -0.045em;
+        }
+
+        p {
+            color: #9aaccb;
+        }
+    }
+
+    &__eyebrow {
+        color: #55c8ff;
+        letter-spacing: 0.16rem;
+    }
+}
+
+.free-bots-card,
+.xvt-panel {
+    max-width: 144rem;
+    margin-inline: auto;
+    border: 1px solid rgba(111, 151, 220, 0.2);
+    border-radius: 1.8rem;
+    background: linear-gradient(145deg, rgba(24, 36, 58, 0.98), rgba(17, 28, 49, 0.98));
+    box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.free-bots-card {
+    padding: 2.4rem;
+
+    &__label {
+        color: #62d5ff;
+    }
+
+    h2 {
+        font-size: 2.2rem;
+        letter-spacing: -0.025em;
+    }
+
+    p {
+        color: #a6b7d3;
+    }
+}
+
+.xvt-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    grid-template-areas:
+        "heading heading"
+        "account account"
+        "warning warning"
+        "config analysis"
+        "strategy analysis"
+        "error analysis"
+        "actions analysis"
+        "stats analysis"
+        "history history"
+        "disclaimer disclaimer";
+    align-items: start;
+    gap: 1.5rem;
+    padding: clamp(1.6rem, 2.2vw, 2.8rem);
+    overflow: hidden;
+
+    &__heading {
+        grid-area: heading;
+        align-items: center;
+        margin: 0 0 0.4rem;
+        padding-bottom: 1.8rem;
+        border-bottom: 1px solid rgba(145, 169, 202, 0.15);
+
+        h2 {
+            color: #f7f9ff;
+            font-size: clamp(2.2rem, 2.5vw, 3rem);
+            letter-spacing: -0.04em;
+        }
+
+        p {
+            color: #9aaccb;
+        }
+    }
+}
+
+.xvt-account-strip {
+    grid-area: account;
+    margin: 0;
+    min-height: 4.8rem;
+    border-color: rgba(34, 211, 238, 0.2);
+    background: linear-gradient(90deg, rgba(34, 211, 238, 0.08), rgba(37, 131, 255, 0.045));
+}
+
+.xvt-warning { grid-area: warning; }
+.xvt-config-grid {
+    grid-area: config;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-content: start;
+    padding: 1.8rem;
+    border: 1px solid rgba(115, 145, 195, 0.17);
+    border-radius: 1.4rem;
+    background: rgba(10, 20, 39, 0.55);
+}
+.xvt-strategy-strip { grid-area: strategy; }
+.xvt-error { grid-area: error; margin: 0; }
+.xvt-actions {
+    grid-area: actions;
+    align-items: flex-start;
+    padding: 1.6rem;
+    border: 1px solid rgba(37, 131, 255, 0.2);
+    border-radius: 1.3rem;
+    background: rgba(37, 131, 255, 0.055);
+}
+.xvt-stats-grid { grid-area: stats; }
+.xvt-analysis {
+    grid-area: analysis;
+    margin: 0;
+    height: 100%;
+    padding: 1.8rem;
+    border-color: rgba(139, 92, 246, 0.25);
+    background: linear-gradient(160deg, rgba(24, 29, 61, 0.78), rgba(10, 20, 39, 0.78));
+}
+.xvt-history { grid-area: history; }
+.xvt-disclaimer { grid-area: disclaimer; }
+
+.xvt-field {
+    > span {
+        color: #dce7fb;
+        font-size: 1.25rem;
+    }
+
+    input,
+    select {
+        min-height: 4.8rem;
+        border-color: rgba(133, 158, 201, 0.25);
+        border-radius: 1rem;
+        background: #0d172b;
+        color: #f7f9ff;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+
+        &:focus {
+            border-color: #398cff;
+            box-shadow: 0 0 0 3px rgba(37, 131, 255, 0.16);
+        }
+    }
+
+    small { color: #91a5c5; }
+}
+
+.xvt-strategy-strip {
+    gap: 0.9rem;
+    margin: 0;
+
+    > div {
+        border-color: rgba(139, 92, 246, 0.2);
+        border-radius: 1.1rem;
+        background: rgba(139, 92, 246, 0.075);
+    }
+
+    strong { color: #d9caff; }
+}
+
+.xvt-button {
+    min-height: 4.8rem;
+    border-radius: 1rem;
+
+    &--primary {
+        background: linear-gradient(105deg, #2583ff, #6655e8 62%, #8b5cf6);
+        box-shadow: 0 0.8rem 2rem rgba(57, 112, 255, 0.24);
+    }
+
+    &--quiet {
+        border-color: rgba(139, 92, 246, 0.32);
+        background: rgba(139, 92, 246, 0.1);
+        color: #d9caff;
+    }
+}
+
+.xvt-stat {
+    border-color: rgba(113, 145, 198, 0.17);
+    border-radius: 1.1rem;
+    background: linear-gradient(145deg, rgba(13, 25, 46, 0.95), rgba(19, 31, 54, 0.95));
+
+    span { color: #93a8c9; }
+    strong { font-size: 1.8rem; }
+}
+
+.xvt-analysis,
+.xvt-history {
+    border-radius: 1.3rem;
+
+    h3 { font-size: 1.7rem; }
+}
+
+.xvt-prediction {
+    border-color: rgba(255, 79, 203, 0.28);
+    background: linear-gradient(110deg, rgba(165, 35, 131, 0.17), rgba(139, 92, 246, 0.1));
+
+    strong {
+        color: #ff83d7;
+        text-shadow: 0 0 2rem rgba(255, 79, 203, 0.22);
+    }
+}
+
+.xvt-digit {
+    min-height: 6.2rem;
+    justify-content: center;
+    border-color: rgba(125, 153, 198, 0.18);
+    border-radius: 0.9rem;
+    background: rgba(17, 34, 61, 0.88);
+
+    &--top {
+        border-color: rgba(34, 211, 238, 0.55);
+        background: rgba(34, 211, 238, 0.1);
+    }
+
+    &--selected {
+        border-color: #ff4fcb;
+        background: rgba(165, 35, 131, 0.2);
+    }
+}
+
+.xvt-history {
+    padding: 1.8rem;
+    background: rgba(10, 20, 39, 0.58);
+
+    &__row {
+        border-color: rgba(125, 153, 198, 0.12);
+        color: #d4e0f5;
+    }
+}
+
+@media (max-width: 1050px) {
+    .xvt-panel {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "heading"
+            "account"
+            "warning"
+            "config"
+            "strategy"
+            "error"
+            "actions"
+            "stats"
+            "analysis"
+            "history"
+            "disclaimer";
+    }
+
+    .xvt-analysis { height: auto; }
+}
+
+@media (max-width: 700px) {
+    .free-bots-page {
+        padding: 1.2rem;
+    }
+
+    .free-bots-card { padding: 1.8rem; }
+
+    .xvt-panel {
+        gap: 1.2rem;
+        padding: 1.2rem;
+        border-radius: 1.3rem;
+    }
+
+    .xvt-panel__heading {
+        align-items: stretch;
+
+        .xvt-button { width: 100%; }
+    }
+
+    .xvt-config-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.2rem;
+        padding: 1.3rem;
+    }
+
+    .xvt-field--wide { grid-column: auto; }
+
+    .xvt-strategy-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+
+        > div { padding: 0.9rem 0.7rem; }
+        strong { font-size: 1.15rem; }
+    }
+
+    .xvt-actions {
+        align-items: stretch;
+        padding: 1.2rem;
+
+        .xvt-button { width: 100%; }
+    }
+
+    .xvt-stats-grid { gap: 0.8rem; }
+    .xvt-stat { padding: 1rem; }
+    .xvt-analysis { padding: 1.2rem; }
+    .xvt-digit-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .xvt-digit { min-height: 5.6rem; }
+    .xvt-prediction { flex-wrap: wrap; }
+    .xvt-prediction > div { flex-basis: calc(100% - 6rem); }
+    .xvt-history { padding: 1.2rem; }
+}
