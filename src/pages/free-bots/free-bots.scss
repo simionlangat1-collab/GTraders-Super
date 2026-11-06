@@ -662,9 +662,9 @@
         grid-column: 2;
     }
 
-    > .xvt-stats-grid { grid-row: 4; margin-top: 0; }
-    > .xvt-analysis { grid-row: 5 / span 2; margin-top: 0; }
-    > .xvt-history { grid-row: 7; margin-top: 0; }
+    > .xvt-stats-grid { grid-row: 3; margin-top: 0; }
+    > .xvt-analysis { grid-row: 4 / span 2; margin-top: 0; }
+    > .xvt-history { grid-row: 6; margin-top: 0; }
 }
 
 .xvt-account-strip {
@@ -834,7 +834,7 @@
     border-top-color: rgba(112, 166, 255, 0.14);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 700px) {
     .xvt-panel {
         display: flex;
         flex-direction: column;
