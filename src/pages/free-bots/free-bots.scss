@@ -990,3 +990,143 @@
         touch-action: pan-y;
     }
 }
+
+
+/* INSTANT TICK CLASSIFICATION — informational only, never contract settlement */
+.xvt-live-evaluation {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid rgba(37, 131, 255, 0.2);
+    border-radius: 1.15rem;
+    background: linear-gradient(125deg, rgba(37, 131, 255, 0.055), rgba(34, 211, 238, 0.055), rgba(139, 92, 246, 0.055));
+
+    &__heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+
+        h3 {
+            margin: 0;
+            color: #17244a;
+            font-size: 1.5rem;
+            font-weight: 850;
+        }
+
+        p {
+            margin: 0.35rem 0 0;
+            color: #7885a3;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        > span {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid rgba(37, 131, 255, 0.2);
+            border-radius: 2rem;
+            background: #edf6ff;
+            color: #2468b5;
+            font-size: 0.88rem;
+            font-weight: 850;
+            letter-spacing: 0.025em;
+        }
+    }
+
+    &__latest {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid #dce5f4;
+        border-radius: 1rem;
+        background: #ffffff;
+
+        > div {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        span,
+        small {
+            color: #7885a3;
+            font-size: 0.98rem;
+        }
+
+        strong {
+            font-size: 2.3rem;
+            line-height: 1;
+        }
+
+        b {
+            font-size: 1.35rem;
+            font-weight: 900;
+        }
+
+        &.is-win {
+            border-color: rgba(10, 175, 112, 0.35);
+            background: linear-gradient(100deg, #effcf6, #ffffff);
+            strong,
+            b { color: #07945e; }
+        }
+
+        &.is-loss {
+            border-color: rgba(227, 61, 98, 0.32);
+            background: linear-gradient(100deg, #fff2f5, #ffffff);
+            strong,
+            b { color: #d52f58; }
+        }
+    }
+
+    &__trail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.8rem;
+
+        span {
+            padding: 0.45rem 0.65rem;
+            border: 1px solid transparent;
+            border-radius: 0.65rem;
+            font-size: 0.95rem;
+            font-weight: 850;
+
+            &.is-win {
+                border-color: rgba(10, 175, 112, 0.2);
+                background: #eafaf3;
+                color: #078a5b;
+            }
+
+            &.is-loss {
+                border-color: rgba(227, 61, 98, 0.2);
+                background: #fff0f3;
+                color: #d52f58;
+            }
+        }
+    }
+
+    &__empty {
+        margin: 0;
+        color: #7885a3;
+        font-size: 1.05rem;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .xvt-live-evaluation {
+        padding: 0.9rem;
+
+        &__latest {
+            gap: 0.6rem;
+            padding: 0.8rem;
+
+            > div { gap: 0.5rem; }
+            strong { font-size: 1.9rem; }
+            b { font-size: 1.15rem; }
+            small { font-size: 0.85rem; }
+        }
+    }
+}
