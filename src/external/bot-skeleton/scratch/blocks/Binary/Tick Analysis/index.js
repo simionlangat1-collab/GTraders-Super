@@ -8,5 +8,7 @@ import './check_direction';
 import './tick_analysis';
 import './last_digit';
 import './lastDigitList';
+import './last100DigitList';
+import './xvtMomentum';
 import './stat';
 import './stat_list';

@@ -87,9 +87,156 @@ export default Engine =>
             return new Promise(resolve => this.getLastTick(false, true).then(tick => resolve(getLastDigit(tick))));
         }
 
-        getLastDigitList() {
-            return new Promise(resolve => this.getTicks().then(ticks => resolve(this.getLastDigitsFromList(ticks))));
+        getLastDigitList(count = 1000) {
+            const limit = Number.isFinite(Number(count)) ? Math.max(1, Math.min(1000, Math.floor(Number(count)))) : 1000;
+            return new Promise(resolve =>
+                this.getTicks().then(ticks => resolve(this.getLastDigitsFromList(ticks.slice(-limit))))
+            );
         }
+
+
+        async startXvtTrade({
+            direction = 'OVER',
+            searchNumber = 0,
+            initialStake = 1,
+            martingaleMultiplier = 2,
+            targetProfit = 0,
+            targetLoss = 0,
+            duration = 1,
+            durationUnit = 't',
+        } = {}) {
+            const normalizedDirection = String(direction).toUpperCase() === 'UNDER' ? 'UNDER' : 'OVER';
+            const searchDigit = Math.max(0, Math.min(9, Math.floor(Number(searchNumber))));
+            const baseStake = Number(initialStake);
+            const multiplier = Number(martingaleMultiplier);
+
+            if (!Number.isFinite(baseStake) || baseStake <= 0) {
+                throw new Error('XVT initial stake must be greater than 0.');
+            }
+            if (!Number.isFinite(multiplier) || multiplier < 1) {
+                throw new Error('XVT Martingale multiplier must be at least 1.');
+            }
+
+            if (!this.xvtState || this.xvtState.direction !== normalizedDirection) {
+                this.xvtState = {
+                    direction: normalizedDirection,
+                    initialStake: baseStake,
+                    multiplier,
+                    currentStake: baseStake,
+                    recovery: false,
+                    lastProcessedContractId: null,
+                    stopped: false,
+                    targetProfit: Math.max(0, Number(targetProfit) || 0),
+                    targetLoss: Math.max(0, Number(targetLoss) || 0),
+                };
+            } else {
+                this.xvtState.initialStake = baseStake;
+                this.xvtState.multiplier = multiplier;
+                this.xvtState.targetProfit = Math.max(0, Number(targetProfit) || 0);
+                this.xvtState.targetLoss = Math.max(0, Number(targetLoss) || 0);
+            }
+
+            const state = this.xvtState;
+            const previousContract = this.data?.contract;
+            const previousContractId = previousContract?.contract_id;
+
+            if (
+                previousContractId &&
+                previousContractId !== state.lastProcessedContractId &&
+                previousContract?.status !== 'open' &&
+                previousContract?.is_sold
+            ) {
+                const profit = Number(previousContract.sell_price) - Number(previousContract.buy_price);
+                state.lastProcessedContractId = previousContractId;
+
+                if (profit > 0) {
+                    state.currentStake = state.initialStake;
+                    state.recovery = false;
+                } else if (profit < 0) {
+                    state.currentStake = Number(
+                        (state.currentStake * state.multiplier).toFixed(8)
+                    );
+                    state.recovery = true;
+                }
+            }
+
+            const sessionProfit = Number(this.sessionProfit || 0);
+            if (
+                (state.targetProfit > 0 && sessionProfit >= state.targetProfit) ||
+                (state.targetLoss > 0 && sessionProfit <= -state.targetLoss)
+            ) {
+                state.stopped = true;
+                return false;
+            }
+
+            if (state.stopped) return false;
+
+            const lastDigit = Number(await this.getLastDigit());
+            if (lastDigit !== searchDigit) return false;
+
+            const barrier = normalizedDirection === 'OVER'
+                ? (state.recovery ? 3 : 2)
+                : (state.recovery ? 6 : 7);
+
+            const digits = await this.getLastDigitList(100);
+            if (!Array.isArray(digits) || digits.length < 100) return false;
+
+            const favourable = digits.filter(digit =>
+                normalizedDirection === 'OVER'
+                    ? Number(digit) > barrier
+                    : Number(digit) < barrier
+            ).length;
+
+            if ((favourable / digits.length) * 100 < 75) return false;
+
+            state.prediction = barrier;
+            state.searchNumber = searchDigit;
+            state.lastPrediction = barrier;
+            globalObserver.emit('xvt.prediction', {
+                direction: normalizedDirection,
+                barrier,
+                searchNumber: searchDigit,
+                recovery: state.recovery,
+                stake: state.currentStake,
+                sessionProfit,
+            });
+
+            this.start({
+                duration: Number(duration),
+                duration_unit: String(durationUnit || 't'),
+                currency: this.options?.currency || this.accountInfo?.currency || 'USD',
+                amount: state.currentStake,
+                prediction: barrier,
+                basis: 'stake',
+                contractTypes: [normalizedDirection === 'OVER' ? 'DIGITOVER' : 'DIGITUNDER'],
+            });
+
+            return true;
+        }
+
+        getXvtPrediction() {
+            return this.xvtState?.lastPrediction ?? null;
+        }
+
+        getXvtStopRequested() {
+            return Boolean(this.xvtState?.stopped);
+        }
+
+        async getXvtMomentumReady(direction = 'OVER', recovery = false) {
+            const digits = await this.getLastDigitList(100);
+            if (!Array.isArray(digits) || digits.length < 100) return false;
+
+            const isOver = String(direction).toUpperCase() === 'OVER';
+            const barrier = isOver
+                ? (recovery ? 3 : 2)
+                : (recovery ? 6 : 7);
+            const favourable = digits.filter(digit =>
+                isOver ? Number(digit) > barrier : Number(digit) < barrier
+            ).length;
+
+            return (favourable / digits.length) * 100 >= 75;
+        }
+
         getLastDigitsFromList(ticks) {
             const digits = ticks.map(tick => {
                 return getLastDigit(tick.toFixed(this.getPipSize()));

@@ -128,6 +128,11 @@ const Interpreter = () => {
 
         js_interpreter.setProperty(
             pseudo_bot_interface,
+            'startXvtTrade',
+            createAsync(js_interpreter, bot_interface.startXvtTrade)
+        );
+        js_interpreter.setProperty(
+            pseudo_bot_interface,
             'purchase',
             createAsync(js_interpreter, bot_interface.purchase)
         );
