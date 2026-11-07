@@ -179,7 +179,7 @@ const FormWrapper = observer(
                                         : localize('Choose a template below and set your trade parameters.')}
                                 </Text>
                             </div>
-                            <QSStepper current_step={current_step} />
+                            {!quick_strategy.is_gk_pioneer_mode && <QSStepper current_step={current_step} />}
                         </div>
                         <div className='qs__body__content'>
                             <ThemedScrollbars
