@@ -10,6 +10,14 @@ type TMarketOption = {
     display_name: string;
 };
 
+type TLiveEvaluation = {
+    digit: number;
+    outcome: 'WIN' | 'LOSS';
+    contractType: string;
+    barrier: number;
+    epoch: number;
+};
+
 type TAnalysis = {
     ticks: number;
     counts: number[];
@@ -47,6 +55,7 @@ const FreeBots = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [status, setStatus] = useState('Ready. Configure your bot and connect your Deriv account.');
     const [analysis, setAnalysis] = useState<TAnalysis>(emptyAnalysis);
+    const [liveEvaluations, setLiveEvaluations] = useState<TLiveEvaluation[]>([]);
     const [sessionProfit, setSessionProfit] = useState(0);
     const [tradeCount, setTradeCount] = useState(0);
     const [wins, setWins] = useState(0);
@@ -164,6 +173,7 @@ const FreeBots = () => {
         }
 
         setAnalysis(emptyAnalysis);
+        setLiveEvaluations([]);
         setSessionProfit(0);
         setTradeCount(0);
         setWins(0);
@@ -186,6 +196,9 @@ const FreeBots = () => {
             {
                 onStatus: setStatus,
                 onAnalysis: setAnalysis,
+                onLiveDigit: evaluation => {
+                    setLiveEvaluations(items => [...items.slice(-7), evaluation]);
+                },
                 onTrade: trade => {
                     setTradeCount(count => count + 1);
                     setRecentTrades(items => [trade, ...items].slice(0, 8));
@@ -359,6 +372,33 @@ const FreeBots = () => {
                     </div>
 
                     <div className='xvt-analysis'>
+                        <div className='xvt-live-evaluation' aria-live='polite'>
+                            <div className='xvt-live-evaluation__heading'>
+                                <div>
+                                    <h3>Instant Tick Result</h3>
+                                    <p>Every incoming tick is classified immediately using the current contract barrier.</p>
+                                </div>
+                                <span>LIVE SIGNAL · NOT SETTLEMENT</span>
+                            </div>
+                            {liveEvaluations.length ? (
+                                <>
+                                    <div className={`xvt-live-evaluation__latest ${liveEvaluations[liveEvaluations.length - 1].outcome === 'WIN' ? 'is-win' : 'is-loss'}`}>
+                                        <div><span>Latest digit</span><strong>{liveEvaluations[liveEvaluations.length - 1].digit}</strong></div>
+                                        <b>{liveEvaluations[liveEvaluations.length - 1].outcome}</b>
+                                        <small>{liveEvaluations[liveEvaluations.length - 1].contractType} {liveEvaluations[liveEvaluations.length - 1].barrier}</small>
+                                    </div>
+                                    <div className='xvt-live-evaluation__trail'>
+                                        {[...liveEvaluations].reverse().map((evaluation, index) => (
+                                            <span className={evaluation.outcome === 'WIN' ? 'is-win' : 'is-loss'} key={`${evaluation.epoch}-${index}`}>
+                                                {evaluation.digit} · {evaluation.outcome}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <p className='xvt-live-evaluation__empty'>Waiting for the first live market tick…</p>
+                            )}
+                        </div>
                         <div className='xvt-section-heading'>
                             <div><h3>Live Digit Analysis</h3><p>Latest {analysis.ticks} of 100 ticks</p></div>
                             <span className={analysis.momentumReady ? 'xvt-momentum xvt-momentum--ready' : 'xvt-momentum'}>
