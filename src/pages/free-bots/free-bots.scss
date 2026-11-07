@@ -938,44 +938,55 @@
 
 
 /*
- * G-T SNIPER XVT — MOBILE PAGE SCROLL FIX
- * The app shell uses a fixed-height, overflow-hidden mobile viewport.
- * When Free Bots is mounted, allow the document to grow and scroll vertically.
- * Keep the change scoped to this page so other tabs retain their existing layout.
+ * G-T SNIPER XVT — MOBILE TOUCH-SCROLL FIX
+ * The Deriv app shell is viewport-locked on mobile. Make the main viewport
+ * itself the vertical scroll container while Free Bots is mounted.
+ * Keep the override scoped to this page; other tabs retain their layout.
  */
 @media screen and (max-width: 768px) {
     .main:has(.free-bots-page) {
-        height: auto !important;
-        min-height: calc(100dvh - 6rem);
-        overflow: visible !important;
+        height: calc(100dvh - 6rem) !important;
+        min-height: 0 !important;
+        max-height: calc(100dvh - 6rem);
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        touch-action: pan-y;
         padding: 0;
+        align-items: flex-start;
     }
 
     .main:has(.free-bots-page) .main__container {
         height: auto !important;
-        min-height: 0;
+        min-height: 0 !important;
         overflow: visible !important;
+        flex: 0 0 100%;
     }
 
     .main:has(.free-bots-page) .dc-tabs {
+        display: grid;
         height: auto !important;
-        min-height: 0;
+        min-height: 0 !important;
+        grid-template-rows: auto auto !important;
+        overflow: visible !important;
     }
 
     .main:has(.free-bots-page) .dc-tabs__content {
         height: auto !important;
-        min-height: 0;
+        min-height: 0 !important;
         overflow: visible !important;
     }
 
     .main:has(.free-bots-page) .dc-tabs__content--main__tabs {
         height: auto !important;
-        min-height: 0;
+        min-height: 0 !important;
     }
 
     .free-bots-page {
         min-height: 0;
         overflow-x: clip;
         overflow-y: visible;
+        touch-action: pan-y;
     }
 }
