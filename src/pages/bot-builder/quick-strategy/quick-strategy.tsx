@@ -207,10 +207,19 @@ const FormikWrapper: React.FC<TFormikWrapper> = observer(({ children }) => {
 const QuickStrategy = observer(() => {
     const { quick_strategy } = useStore();
     const { isDesktop } = useDevice();
-    const { is_open, setFormVisibility } = quick_strategy;
+    const { is_open, is_gk_pioneer_mode, setFormVisibility } = quick_strategy;
 
     const [current_step, setCurrentStep] = React.useState(QsSteps.StrategySelect);
     const [selected_trade_type, setSelectedTradeType] = React.useState('');
+
+    // GK Pioneer opens directly on the Martingale parameter screen.
+    // Normal Bot Builder users retain the standard template-selection step.
+    React.useEffect(() => {
+        if (is_open) {
+            setCurrentStep(is_gk_pioneer_mode ? QsSteps.StrategyVerified : QsSteps.StrategySelect);
+            setSelectedTradeType(is_gk_pioneer_mode ? localize('Options') : '');
+        }
+    }, [is_open, is_gk_pioneer_mode]);
 
     // Prevent body scrolling when modal is open
     React.useEffect(() => {
