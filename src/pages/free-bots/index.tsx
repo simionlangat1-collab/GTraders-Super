@@ -244,6 +244,7 @@ const FreeBots = () => {
         // Open the existing Bot Builder parameter interface. The Martingale
         // multiplier is configured there with the other trading controls.
         quick_strategy.setSelectedStrategy('MARTINGALE');
+        quick_strategy.setGKPioneerMode(true);
         quick_strategy.setFormVisibility(true);
         dashboard.setActiveTab(1);
     };
