@@ -238,11 +238,16 @@ const FreeBots = () => {
         engineRef.current?.stop();
     };
 
-    // G-K Pioneer reuses the existing Bot Builder Martingale strategy and trade engine.
+    // Open G-K Pioneer directly in the Bot Builder workspace with Martingale loaded.
+    // LOAD inserts the strategy without starting a trade or showing the strategy wizard.
     const openGKPioneer = () => {
         quick_strategy.setSelectedStrategy('MARTINGALE');
+        quick_strategy.setFormVisibility(false);
         dashboard.setActiveTab(1);
-        quick_strategy.setFormVisibility(true);
+        void quick_strategy.onSubmit({
+            ...quick_strategy.form_data,
+            action: 'LOAD',
+        });
     };
 
     const selectedBarrier = direction === 'OVER'
