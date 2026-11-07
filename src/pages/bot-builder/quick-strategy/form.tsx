@@ -250,8 +250,14 @@ const renderForm = () =>
                                 <QSInputLabel
                                     key={key}
                                     label={
-                                        is_gk_pioneer_mode && selected_strategy === 'MARTINGALE' && field.label === localize('Size')
-                                            ? localize('Martingale Multiplier')
+                                        is_gk_pioneer_mode && selected_strategy === 'MARTINGALE'
+                                            ? field.label === localize('Size')
+                                                ? localize('Martingale Multiplier')
+                                                : field.label === localize('Profit threshold')
+                                                    ? localize('Target Profit')
+                                                    : field.label === localize('Loss threshold')
+                                                        ? localize('Target Loss')
+                                                        : field.label
                                             : field.label
                                     }
                                     description={
