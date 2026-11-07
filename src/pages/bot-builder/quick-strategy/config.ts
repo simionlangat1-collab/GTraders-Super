@@ -248,7 +248,7 @@ const SIZE = (allowDecimal = false): TConfigItem => ({
         ...(allowDecimal ? [] : ['floor' as const]),
         {
             type: 'min',
-            value: String(qs_config().QUICK_STRATEGY.DEFAULT.size),
+            value: allowDecimal ? '1' : String(qs_config().QUICK_STRATEGY.DEFAULT.size),
             getMessage: (min: string | number) =>
                 localize('The value must be equal or greater than {{ min }}', { min }),
         },
