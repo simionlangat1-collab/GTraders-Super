@@ -149,7 +149,11 @@ const FormWrapper = observer(
                 <div className='qs'>
                     <div className='qs__head'>
                         <div className='qs__head__title'>
-                            <Text weight='bold'>{localize('Quick Strategy')}</Text>
+                            <Text weight='bold'>
+                                    {quick_strategy.is_gk_pioneer_mode
+                                        ? localize('G-K Pioneer Bot · Trading Interface')
+                                        : localize('Quick Strategy')}
+                                </Text>
                         </div>
                         <div className='qs__head__action'>
                             <span
@@ -170,7 +174,9 @@ const FormWrapper = observer(
                         <div className='qs__body__sidebar'>
                             <div className='qs__body__sidebar__subtitle'>
                                 <Text size='xs'>
-                                    {localize('Choose a template below and set your trade parameters.')}
+                                    {quick_strategy.is_gk_pioneer_mode
+                                        ? localize('Configure your G-K Pioneer trading parameters below.')
+                                        : localize('Choose a template below and set your trade parameters.')}
                                 </Text>
                             </div>
                             <QSStepper current_step={current_step} />
