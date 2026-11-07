@@ -358,7 +358,11 @@ export default class XvtSniperEngine {
 
     private handleContractUpdate(contract: any) {
         if (!contract || !this.currentContractId || String(contract.contract_id) !== this.currentContractId) return;
-        if (!contract.is_sold && !['won', 'lost', 'sold'].includes(String(contract.status))) return;
+        const contractStatus = String(contract.status || '').toLowerCase();
+        const isSold = contract.is_sold === true || Number(contract.is_sold) === 1;
+        const isExpired = contract.is_expired === true || Number(contract.is_expired) === 1;
+        const hasFinalStatus = ['won', 'lost', 'sold', 'expired'].includes(contractStatus);
+        if (!isSold && !isExpired && !hasFinalStatus) return;
         if (this.settledContractIds.has(this.currentContractId)) return;
 
         const settledId = this.currentContractId;
