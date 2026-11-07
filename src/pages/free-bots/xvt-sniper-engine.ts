@@ -175,7 +175,8 @@ export default class XvtSniperEngine {
     private handleTick(tick: any) {
         if (!this.running || !tick) return;
         const epoch = Number(tick.epoch || 0);
-        if (epoch && epoch <= this.lastEpoch) return;
+        // Deriv timestamps are in whole seconds; allow multiple genuine ticks within the same second.
+        if (epoch && epoch < this.lastEpoch) return;
         if (epoch) this.lastEpoch = epoch;
 
         const digit = this.lastDigit(tick.quote, this.getPipSize());
