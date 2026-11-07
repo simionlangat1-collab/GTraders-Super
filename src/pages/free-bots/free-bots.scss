@@ -735,3 +735,203 @@
 @media (prefers-reduced-motion: reduce) {
     .xvt-button { transition: none; }
 }
+
+/* MOBILE-FIRST SAFETY OVERRIDES — keep every XVT control inside phone width */
+@media screen and (max-width: 768px) {
+    .free-bots-page,
+    .free-bots-page *,
+    .free-bots-page *::before,
+    .free-bots-page *::after {
+        box-sizing: border-box;
+    }
+
+    .free-bots-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 0.8rem;
+        overflow-x: clip;
+    }
+
+    .free-bots-page__header,
+    .free-bots-card,
+    .xvt-panel {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .xvt-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "heading"
+            "account"
+            "warning"
+            "config"
+            "strategy"
+            "error"
+            "actions"
+            "stats"
+            "analysis"
+            "history"
+            "disclaimer";
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .xvt-panel > *,
+    .xvt-config-grid > *,
+    .xvt-analysis > *,
+    .xvt-history > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .xvt-config-grid {
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+    }
+
+    .xvt-field input,
+    .xvt-field select {
+        min-width: 0;
+        max-width: 100%;
+        font-size: 1.6rem;
+    }
+
+    .xvt-strategy-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .xvt-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .xvt-stat,
+    .xvt-digit {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .xvt-analysis,
+    .xvt-history {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        overflow-wrap: anywhere;
+    }
+
+    .xvt-section-heading,
+    .xvt-prediction,
+    .xvt-analysis-footer,
+    .xvt-history__row {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .xvt-history__row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    }
+
+    .xvt-button {
+        min-width: 0;
+        max-width: 100%;
+        min-height: 4.8rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .free-bots-page {
+        padding: 0.6rem;
+    }
+
+    .free-bots-page__header {
+        min-height: 11rem;
+        padding: 1.4rem 1.2rem;
+    }
+
+    .free-bots-page__header h1 {
+        font-size: 2.6rem;
+    }
+
+    .xvt-panel {
+        padding: 0.8rem;
+        gap: 0.9rem;
+    }
+
+    .xvt-panel__heading {
+        gap: 0.9rem;
+    }
+
+    .xvt-panel__heading h2 {
+        font-size: 2rem;
+        overflow-wrap: anywhere;
+    }
+
+    .xvt-strategy-strip {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .xvt-strategy-strip > div {
+        min-height: 5.5rem;
+    }
+
+    .xvt-account-strip {
+        align-items: flex-start;
+        overflow-wrap: anywhere;
+    }
+
+    .xvt-account-strip strong {
+        margin-left: 1.6rem;
+    }
+
+    .xvt-analysis,
+    .xvt-history {
+        padding: 1rem;
+    }
+
+    .xvt-prediction {
+        gap: 0.8rem;
+        padding: 1rem;
+    }
+
+    .xvt-prediction > div {
+        flex-basis: calc(100% - 5rem);
+    }
+
+    .xvt-prediction strong {
+        min-width: 3.5rem;
+        font-size: 2.8rem;
+    }
+
+    .xvt-digit-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.4rem;
+    }
+
+    .xvt-digit {
+        min-height: 5rem;
+        padding: 0.5rem 0.1rem;
+    }
+
+    .xvt-analysis-footer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .xvt-history__row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.35rem;
+    }
+
+    .xvt-history__row strong {
+        grid-column: auto;
+        text-align: left;
+    }
+}
