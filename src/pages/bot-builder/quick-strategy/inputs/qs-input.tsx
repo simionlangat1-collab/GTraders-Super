@@ -16,6 +16,7 @@ type TQSInput = {
     min?: number;
     max?: number;
     has_currency_unit?: boolean;
+    step?: number;
 };
 
 type TFormValues = {
@@ -34,6 +35,7 @@ const QSInput: React.FC<TQSInput> = observer(
         min,
         max,
         has_currency_unit = false,
+        step,
     }) => {
         const {
             client: { currency },
@@ -184,9 +186,10 @@ const QSInput: React.FC<TQSInput> = observer(
 
                         if (current_value <= field_min) return;
 
+                        const decrement = step ?? 1;
                         const next_value =
-                            current_value > 1
-                                ? current_value - 1
+                            current_value - decrement >= field_min
+                                ? current_value - decrement
                                 : field_min;
 
                         handleButtonInputChange(
@@ -204,7 +207,8 @@ const QSInput: React.FC<TQSInput> = observer(
                     ) => {
                         if (!Number.isFinite(current_value)) return;
 
-                        let next_value = current_value + 1;
+                        const increment = step ?? 1;
+                        let next_value = current_value + increment;
 
                         if (name === 'stake') {
                             next_value = Math.min(next_value, max_stake);
@@ -262,6 +266,7 @@ const QSInput: React.FC<TQSInput> = observer(
                                                 ),
                                         })}
                                         type={type}
+                                        step={step}
                                         disabled={disabled}
                                         onChange={handleOnChange}
                                         onWheel={event => {
