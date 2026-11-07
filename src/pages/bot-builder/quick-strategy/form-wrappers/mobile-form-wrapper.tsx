@@ -54,12 +54,14 @@ const MobileFormWrapper = observer(
                             })}
                             autohide={false}
                         >
-                            <QSStepper
-                                setCurrentStep={setCurrentStep}
-                                current_step={current_step}
-                                isValid={isValid}
-                                is_mobile
-                            />
+                            {!quick_strategy.is_gk_pioneer_mode && (
+                                <QSStepper
+                                    setCurrentStep={setCurrentStep}
+                                    current_step={current_step}
+                                    isValid={isValid}
+                                    is_mobile
+                                />
+                            )}
                             {is_selected_strategy_step && (
                                 <StrategyTemplatePicker
                                     setSelectedTradeType={setSelectedTradeType}
@@ -69,6 +71,14 @@ const MobileFormWrapper = observer(
                             {is_verified_or_completed_step && (
                                 <>
                                     <div className='qs__selected-options'>
+                                        {quick_strategy.is_gk_pioneer_mode && (
+                                            <div className='qs__selected-options__item'>
+                                                <Text size='xs'>{localize('Bot')}</Text>
+                                                <Text size='xs' weight='bold'>
+                                                    {localize('G-K Pioneer Bot')}
+                                                </Text>
+                                            </div>
+                                        )}
                                         <div className='qs__selected-options__item'>
                                             <Text size='xs'>{localize('Trade type')}</Text>
                                             <Text size='xs' weight='bold'>
