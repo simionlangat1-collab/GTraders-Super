@@ -48,6 +48,7 @@ export type TConfigItem = Partial<{
     }[];
     hide_without_should_have: boolean;
     has_currency_unit: boolean;
+    step: number;
 }>;
 
 export type TDescriptionItem = Partial<{
