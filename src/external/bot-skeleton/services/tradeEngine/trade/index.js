@@ -1,4 +1,5 @@
 import { applyMiddleware, createStore } from 'redux';
+import { getDecimalPlaces } from '@/components/shared';
 import { thunk } from 'redux-thunk';
 import { getLocalizedErrorMessage } from '@/constants/backend-error-messages';
 import { createError } from '../../../utils/error';
@@ -114,7 +115,10 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
             throw new Error('Trade options are not initialized.');
         }
 
-        this.tradeOptions = { ...this.tradeOptions, amount: next_amount };
+        const currency = this.tradeOptions.currency || 'USD';
+        const decimal_places = getDecimalPlaces(currency);
+        const rounded_amount = Number(next_amount.toFixed(decimal_places));
+        this.tradeOptions = { ...this.tradeOptions, amount: rounded_amount };
 
         if (this.is_proposal_subscription_required) {
             this.makeProposals({ ...this.options, ...this.tradeOptions });
