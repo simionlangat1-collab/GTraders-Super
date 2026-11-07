@@ -408,7 +408,8 @@
           </block>
         </next>
       </block>
-      </block>
+      </next>
+    </block>
     </statement>
     <value name="RETURN">
       <block type="math_arithmetic" id="MR,#W3HBlh/CZGh.TF:m">
