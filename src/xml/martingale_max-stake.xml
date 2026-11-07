@@ -325,7 +325,7 @@
       </block>
     </statement>
   </block>
-  <block type="procedures_defreturn" id="x3TA)`V~gtD7?rqNj[.9" collapsed="true" x="0" y="928">
+  <block type="procedures_defreturn" id="x3TA)`V~gtD7?rqNj[.9" collapsed="true" x="1100" y="1024">
     <field name="NAME">Martingale Trade Amount</field>
     <statement name="STACK">
       <block type="controls_if" id="m|NvCXT=!Z{`Uz`r:m|$">
