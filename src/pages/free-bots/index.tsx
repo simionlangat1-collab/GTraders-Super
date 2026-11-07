@@ -43,7 +43,7 @@ const emptyAnalysis: TAnalysis = {
 
 const FreeBots = () => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
-    const { quick_strategy } = useStore();
+    const { quick_strategy, dashboard } = useStore();
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
@@ -238,12 +238,30 @@ const FreeBots = () => {
         engineRef.current?.stop();
     };
 
-    // Open G-K Pioneer directly from Free Bots using the existing Bot Builder
-    // Martingale parameter interface. Keep the user on the Free Bots tab.
-    const openGKPioneer = () => {
+    // Open G-K Pioneer in the actual Blockly Bot Builder workspace.
+    // Do not open the Quick Strategy / Martingale configuration modal.
+    const openGKPioneer = async () => {
+        if (isRunning) return;
+
         quick_strategy.setSelectedStrategy('MARTINGALE');
-        quick_strategy.setGKPioneerMode(true);
-        quick_strategy.setFormVisibility(true);
+        quick_strategy.setGKPioneerMode(false);
+        dashboard.setActiveTab(1);
+
+        await quick_strategy.onSubmit({
+            symbol: '1HZ10V',
+            tradetype: 'overunder',
+            type: 'both',
+            last_digit_prediction: 2,
+            size: 2,
+            stake: 1,
+            durationtype: 't',
+            duration: 1,
+            profit: 10,
+            loss: 10,
+            boolean_max_stake: false,
+            max_stake: 10,
+            action: 'EDIT',
+        });
     };
 
     const selectedBarrier = direction === 'OVER'
