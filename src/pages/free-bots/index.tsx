@@ -46,7 +46,6 @@ const FreeBots = () => {
     const { dashboard, quick_strategy } = useStore();
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
-    const [gkMultiplier, setGkMultiplier] = useState('2.0');
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
     const [symbol, setSymbol] = useState('');
     const [direction, setDirection] = useState<'OVER' | 'UNDER'>('OVER');
@@ -242,17 +241,11 @@ const FreeBots = () => {
     // Open G-K Pioneer directly in the Bot Builder workspace with Martingale loaded.
     // LOAD inserts the strategy without starting a trade or showing the strategy wizard.
     const openGKPioneer = () => {
-        const multiplier = Number(gkMultiplier);
-        if (!Number.isFinite(multiplier) || multiplier < 1) return;
-
+        // Open the existing Bot Builder parameter interface. The Martingale
+        // multiplier is configured there with the other trading controls.
         quick_strategy.setSelectedStrategy('MARTINGALE');
-        quick_strategy.setFormVisibility(false);
+        quick_strategy.setFormVisibility(true);
         dashboard.setActiveTab(1);
-        void quick_strategy.onSubmit({
-            ...quick_strategy.form_data,
-            size: multiplier,
-            action: 'LOAD',
-        });
     };
 
     const selectedBarrier = direction === 'OVER'
@@ -284,23 +277,10 @@ const FreeBots = () => {
                             <span className='free-bots-card__label'>FREE BOT</span>
                             <h2>G-K Pioneer</h2>
                             <p>Bot Builder engine · Custom Martingale recovery</p>
-                            <label className='xvt-field'>
-                                <span>Martingale Multiplier</span>
-                                <input
-                                    type='number'
-                                    min='1'
-                                    step='0.1'
-                                    inputMode='decimal'
-                                    value={gkMultiplier}
-                                    onChange={event => setGkMultiplier(event.target.value)}
-                                />
-                                <small>After each loss, multiply the previous stake. A win resets to the initial stake.</small>
-                            </label>
                         </div>
                         <button
                             className='xvt-button xvt-button--primary'
                             onClick={openGKPioneer}
-                            disabled={!Number.isFinite(Number(gkMultiplier)) || Number(gkMultiplier) < 1}
                         >
                             Open G-K Pioneer
                         </button>
