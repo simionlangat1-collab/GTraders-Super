@@ -199,58 +199,10 @@ export class OAuthTokenExchangeService {
                 // Store as JSON string
                 sessionStorage.setItem('auth_info', JSON.stringify(authInfo));
 
-                // Immediately fetch accounts and initialize WebSocket after token exchange
-                try {
-                    const { DerivWSAccountsService } = await import('./derivws-accounts.service');
-
-                    // Fetch accounts and store in sessionStorage
-                    const accounts = await DerivWSAccountsService.fetchAccountsList(data.access_token);
-
-                    if (accounts && accounts.length > 0) {
-                        // Store accounts
-                        DerivWSAccountsService.storeAccounts(accounts);
-
-                        // Set the first account as active in localStorage
-                        const firstAccount = accounts[0];
-                        localStorage.setItem('active_loginid', firstAccount.account_id);
-
-                        // Set account type
-                        const isDemo =
-                            firstAccount.account_id.startsWith('VRT') || firstAccount.account_id.startsWith('VRTC');
-                        localStorage.setItem('account_type', isDemo ? 'demo' : 'real');
-
-                        ErrorLogger.info('OAuth', 'Accounts fetched and stored', {
-                            loginid: firstAccount.account_id,
-                        });
-
-                        // Trigger WebSocket initialization by reloading or reinitializing api_base
-                        // The api_base will pick up the active_loginid and authorize
-                        const { api_base } = await import('@/external/bot-skeleton');
-                        await api_base.init(true); // Force new connection with the account
-                    } else {
-                        // No accounts returned - this is an error condition
-                        ErrorLogger.error('OAuth', 'No accounts returned after token exchange');
-                        // Clear auth info when no accounts are available to prevent invalid state
-                        this.clearAuthInfo();
-                        return {
-                            error: 'no_accounts',
-                            error_description: 'No accounts available after successful authentication',
-                        };
-                    }
-                } catch (error) {
-                    ErrorLogger.error('OAuth', 'Error fetching accounts after token exchange', error);
-                    // Clear stored auth info to prevent user from being stuck in invalid auth state
-                    // This allows retry without manual sessionStorage clearing
-                    this.clearAuthInfo();
-                    // Return error status to caller for UI feedback
-                    return {
-                        error: 'account_fetch_failed',
-                        error_description:
-                            error instanceof Error ? error.message : 'Failed to fetch accounts after authentication',
-                    };
-                }
-            }
-
+                // Do not initialize the WebSocket or fetch accounts from the OAuth
+                // callback page. AppRoot will initialize the authenticated connection
+                // once after the callback is completed. This avoids a callback-page
+                // race where the login state can fall back to the logged-out UI.
             return data;
         } catch (error: unknown) {
             ErrorLogger.error('OAuth', 'Token exchange network or parsing error', error);
