@@ -20,6 +20,7 @@
     <variable type="" id="3^~61:59m?#VJ(:SG^^[" islocal="false" iscloud="false">setMaxStake?</variable>
     <variable type="" id="]6T=O624:eVRioXro1kh" islocal="false" iscloud="false">Notification:currentStake</variable>
     <variable type="" id="lES4b_A$jwUMq,9_z2,I" islocal="false" iscloud="false">Notification:maxStakeExceeds</variable>
+    <variable type="" id="gk-payout-rate-var" islocal="false" iscloud="false">martingale:payoutRate</variable>
   </variables>
   <block type="trade_definition" id="i]`fLRZ]?mshi{9kS+fg" deletable="false" x="0" y="0">
     <statement name="TRADE_OPTIONS">
@@ -232,91 +233,10 @@
                   </block>
                 </value>
                 <statement name="DO0">
-                  <block type="variables_set" id="o`/I0!/s^K{7$xZtceYh">
-                    <field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field>
-                    <value name="VALUE">
-                      <shadow type="math_number" id="#{5k!r3Zgo@m8VSv[fPn">
-                        <field name="NUM">1</field>
-                      </shadow>
-                    </value>
-                  </block>
+                  <block type="variables_set" id="o`/I0!/s^K{7$xZtceYh"><field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field><value name="VALUE"><shadow type="math_number"><field name="NUM">1</field></shadow></value><next><block type="controls_if" id="gk-update-payout-after-win"><value name="IF0"><block type="logic_compare"><field name="OP">GT</field><value name="A"><block type="variables_get"><field name="VAR" id="[M$5RsD`g|8-P;C+mbf4" variabletype="">martingale:profit</field></block></value><value name="B"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block></value><statement name="DO0"><block type="variables_set"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field><value name="VALUE"><block type="math_arithmetic"><field name="OP">DIVIDE</field><value name="A"><block type="variables_get"><field name="VAR" id="[M$5RsD`g|8-P;C+mbf4" variabletype="">martingale:profit</field></block></value><value name="B"><block type="procedures_callreturn"><mutation name="Martingale Trade Amount"></mutation><data>x3TA)`V~gtD7?rqNj[.9</data></block></value></block></value></block></statement></block></next></block>
                 </statement>
                 <statement name="ELSE">
-                  <block type="variables_set" id="DA78AxndLk]Q@dIBt7O|">
-                    <field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field>
-                    <value name="VALUE">
-                      <block type="math_arithmetic" id="YzC3]lEc(!m8!NK/T/^0">
-                        <field name="OP">MULTIPLY</field>
-                        <value name="A">
-                          <shadow type="math_number">
-                            <field name="NUM">1</field>
-                          </shadow>
-                          <block type="variables_get" id="1q-nik8DE5Q2,h$gg}f6">
-                            <field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field>
-                          </block>
-                        </value>
-                        <value name="B">
-                          <shadow type="math_number" id="#Om$-j0C[l$EXD$2JdKl">
-                            <field name="NUM">2</field>
-                          </shadow>
-                          <block type="variables_get" id="OIfB4l~Tv5_$I;ILt79^">
-                            <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Multiplier</field>
-                          </block>
-                        </value>
-                      </block>
-                    </value>
-                    <next>
-                      <block type="controls_if" id="yq2aWWPfZo9BqwmM^gp,">
-                        <value name="IF0">
-                          <block type="logic_operation" id="P:vAy5mETFAlR6416JW@">
-                            <field name="OP">AND</field>
-                            <value name="A">
-                              <block type="variables_get" id="UTgA6uy4MgDFQ[tbq=v2">
-                                <field name="VAR" id="3^~61:59m?#VJ(:SG^^[" variabletype="">setMaxStake?</field>
-                              </block>
-                            </value>
-                            <value name="B">
-                              <block type="logic_compare" id="WI3(qR{d}7zdoDevLGVx">
-                                <field name="OP">GT</field>
-                                <value name="A">
-                                  <block type="procedures_callreturn" id="Zt-ad5[w(|?#4g,A*Ze,">
-                                    <mutation name="Martingale Trade Amount"></mutation>
-                                    <data>x3TA)`V~gtD7?rqNj[.9</data>
-                                  </block>
-                                </value>
-                                <value name="B">
-                                  <block type="variables_get" id="z;Utrvg*JkBzz{cf)SYV">
-                                    <field name="VAR" id="4vh+dtelQS#?}@cNPcN!" variabletype="">maxStake</field>
-                                  </block>
-                                </value>
-                              </block>
-                            </value>
-                          </block>
-                        </value>
-                        <statement name="DO0">
-                          <block type="variables_set" id="ca;U5I#KW?1eJ;^[H2Ji">
-                            <field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field>
-                            <value name="VALUE">
-                              <shadow type="math_number" id="p1`qUx`N_;V{kY*mLXW$">
-                                <field name="NUM">1</field>
-                              </shadow>
-                            </value>
-                            <next>
-                              <block type="notify" id="xBU}6LWyNZWbGStkUOKw">
-                                <field name="NOTIFICATION_TYPE">error</field>
-                                <field name="NOTIFICATION_SOUND">silent</field>
-                                <value name="MESSAGE">
-                                  <shadow type="text" id="Du/t4#rzavkWBAW.z#oN">
-                                    <field name="TEXT">Stake resets for the next trade (reason: exceeds max stake amount)</field>
-                                  </shadow>
-                                </value>
-                              </block>
-                            </next>
-                          </block>
-                        </statement>
-                      </block>
-                    </next>
-                  </block>
+                  <block type="variables_set" id="DA78AxndLk]Q@dIBt7O|"><field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field><value name="VALUE"><block type="math_arithmetic" id="gk-cumulative-recovery"><field name="OP">ADD</field><value name="A"><block type="math_arithmetic"><field name="OP">DIVIDE</field><value name="A"><block type="math_single"><field name="OP">ABS</field><value name="NUM"><shadow type="math_number"><field name="NUM">0</field></shadow><block type="variables_get"><field name="VAR" id="Kb@{Vb{+5IqV=d~y*dcr" variabletype="">martingale:totalProfit</field></block></value></block><value name="B"><block type="math_arithmetic"><field name="OP">MULTIPLY</field><value name="A"><shadow type="math_number"><field name="NUM">1</field></shadow><block type="variables_get"><field name="VAR" id="[$B]vBH,~wrN`PUt5m/f" variabletype="">martingale:initialStake</field></block><value name="B"><shadow type="math_number"><field name="NUM">1</field></shadow><block type="variables_get"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field></block></value></block></value></block><value name="B"><block type="variables_get"><field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Multiplier</field></block></value></block></value></block>
                 </statement>
               </block>
             </next>
@@ -328,7 +248,7 @@
   <block type="procedures_defreturn" id="x3TA)`V~gtD7?rqNj[.9" collapsed="true" x="1100" y="1024">
     <field name="NAME">Martingale Trade Amount</field>
     <statement name="STACK">
-      <block type="controls_if" id="m|NvCXT=!Z{`Uz`r:m|$">
+      <block type="controls_if" id="gk-payout-init"><value name="IF0"><block type="logic_compare"><field name="OP">EQ</field><value name="A"><block type="variables_get"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field></block></value><value name="B"><block type="logic_null"></block></value></block></value><statement name="DO0"><block type="variables_set"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field><value name="VALUE"><shadow type="math_number"><field name="NUM">0.43</field></shadow></value></block></statement><next><block type="controls_if" id="m|NvCXT=!Z{`Uz`r:m|$">
         <value name="IF0">
           <block type="logic_compare" id="PeeDP94E)V=#S~69%:Hk">
             <field name="OP">EQ</field>
