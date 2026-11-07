@@ -203,6 +203,8 @@ export class OAuthTokenExchangeService {
                 // callback page. AppRoot will initialize the authenticated connection
                 // once after the callback is completed. This avoids a callback-page
                 // race where the login state can fall back to the logged-out UI.
+            }
+
             return data;
         } catch (error: unknown) {
             ErrorLogger.error('OAuth', 'Token exchange network or parsing error', error);
