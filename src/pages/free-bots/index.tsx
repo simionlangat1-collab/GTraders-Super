@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { useApiBase } from '@/hooks/useApiBase';
+import { useStore } from '@/hooks/useStore';
 import XvtSniperEngine from './xvt-sniper-engine';
 import './free-bots.scss';
 
@@ -42,6 +43,7 @@ const emptyAnalysis: TAnalysis = {
 
 const FreeBots = () => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
+    const { dashboard, quick_strategy } = useStore();
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
@@ -236,6 +238,13 @@ const FreeBots = () => {
         engineRef.current?.stop();
     };
 
+    // G-K Pioneer reuses the existing Bot Builder Martingale strategy and trade engine.
+    const openGKPioneer = () => {
+        quick_strategy.setSelectedStrategy('MARTINGALE');
+        dashboard.setActiveTab(1);
+        quick_strategy.setFormVisibility(true);
+    };
+
     const selectedBarrier = direction === 'OVER'
         ? (recoveryStep > 0 ? 'OVER 3' : 'OVER 2')
         : (recoveryStep > 0 ? 'UNDER 6' : 'UNDER 7');
@@ -249,16 +258,28 @@ const FreeBots = () => {
             </header>
 
             {!isBotOpen ? (
-                <article className='free-bots-card'>
-                    <div className='free-bots-card__details'>
-                        <span className='free-bots-card__label'>FREE BOT</span>
-                        <h2>G - T Sniper XVT Bot</h2>
-                        <p>XVT Precision Sniper · Digit Over / Under strategy</p>
-                    </div>
-                    <button className='xvt-button xvt-button--primary' onClick={() => setIsBotOpen(true)}>
-                        Open Bot
-                    </button>
-                </article>
+                <>
+                    <article className='free-bots-card'>
+                        <div className='free-bots-card__details'>
+                            <span className='free-bots-card__label'>FREE BOT</span>
+                            <h2>G - T Sniper XVT Bot</h2>
+                            <p>XVT Precision Sniper · Digit Over / Under strategy</p>
+                        </div>
+                        <button className='xvt-button xvt-button--primary' onClick={() => setIsBotOpen(true)}>
+                            Open Bot
+                        </button>
+                    </article>
+                    <article className='free-bots-card'>
+                        <div className='free-bots-card__details'>
+                            <span className='free-bots-card__label'>FREE BOT</span>
+                            <h2>G-K Pioneer</h2>
+                            <p>Bot Builder engine · Standard Martingale recovery</p>
+                        </div>
+                        <button className='xvt-button xvt-button--primary' onClick={openGKPioneer}>
+                            Open G-K Pioneer
+                        </button>
+                    </article>
+                </>
             ) : (
                 <div className='xvt-panel'>
                     <div className='xvt-panel__heading'>
