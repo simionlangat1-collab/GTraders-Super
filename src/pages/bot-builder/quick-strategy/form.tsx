@@ -208,6 +208,7 @@ const renderForm = () =>
                                         min={min}
                                         max={max}
                                         has_currency_unit={has_currency_unit}
+                                        step={field.step}
                                     />
                                 );
                             }
@@ -221,6 +222,7 @@ const renderForm = () =>
                                     min={min}
                                     max={max}
                                     has_currency_unit={has_currency_unit}
+                                    step={field.step}
                                 />
                             );
                         }
