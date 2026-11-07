@@ -20,5 +20,5 @@ window.Blockly.JavaScript.javascriptGenerator.forBlock.set_trade_amount = block 
             window.Blockly.JavaScript.javascriptGenerator.ORDER_ATOMIC
         ) || '0';
 
-    return `Bot.setTradeAmount(${amount});\\n`;
+    return `Bot.setTradeAmount(${amount});\n`;
 };
