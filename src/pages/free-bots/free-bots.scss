@@ -935,3 +935,47 @@
         text-align: left;
     }
 }
+
+
+/*
+ * G-T SNIPER XVT — MOBILE PAGE SCROLL FIX
+ * The app shell uses a fixed-height, overflow-hidden mobile viewport.
+ * When Free Bots is mounted, allow the document to grow and scroll vertically.
+ * Keep the change scoped to this page so other tabs retain their existing layout.
+ */
+@media screen and (max-width: 768px) {
+    .main:has(.free-bots-page) {
+        height: auto !important;
+        min-height: calc(100dvh - 6rem);
+        overflow: visible !important;
+        padding: 0;
+    }
+
+    .main:has(.free-bots-page) .main__container {
+        height: auto !important;
+        min-height: 0;
+        overflow: visible !important;
+    }
+
+    .main:has(.free-bots-page) .dc-tabs {
+        height: auto !important;
+        min-height: 0;
+    }
+
+    .main:has(.free-bots-page) .dc-tabs__content {
+        height: auto !important;
+        min-height: 0;
+        overflow: visible !important;
+    }
+
+    .main:has(.free-bots-page) .dc-tabs__content--main__tabs {
+        height: auto !important;
+        min-height: 0;
+    }
+
+    .free-bots-page {
+        min-height: 0;
+        overflow-x: clip;
+        overflow-y: visible;
+    }
+}
