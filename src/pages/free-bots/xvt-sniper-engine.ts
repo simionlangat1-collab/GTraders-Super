@@ -27,6 +27,7 @@ type DigitAnalysis = {
 type XvtCallbacks = {
     onStatus?: (message: string) => void;
     onAnalysis?: (analysis: DigitAnalysis) => void;
+    onLiveDigit?: (evaluation: { digit: number; outcome: 'WIN' | 'LOSS'; contractType: string; barrier: number; epoch: number }) => void;
     onTrade?: (trade: Record<string, unknown>) => void;
     onResult?: (result: Record<string, unknown>) => void;
     onProfit?: (profit: number) => void;
@@ -180,6 +181,7 @@ export default class XvtSniperEngine {
         if (epoch) this.lastEpoch = epoch;
 
         const digit = this.lastDigit(tick.quote, this.getPipSize());
+        this.publishLiveDigit(digit, epoch);
         this.digits = [...this.digits.slice(-(ANALYSIS_WINDOW - 1)), digit];
         this.publishAnalysis();
 
@@ -192,6 +194,24 @@ export default class XvtSniperEngine {
         ) {
             void this.placeTrade();
         }
+    }
+
+    private publishLiveDigit(digit: number, epoch: number) {
+        // This is an informational classification of each incoming market tick.
+        // It never settles a contract or changes stake, recovery, or P/L state.
+        const isRecovery = this.lossesInCycle > 0;
+        const barrier = this.config.direction === 'OVER'
+            ? (isRecovery ? 3 : 2)
+            : (isRecovery ? 6 : 7);
+        const contractType = this.config.direction === 'OVER' ? 'DIGITOVER' : 'DIGITUNDER';
+        const isWin = this.config.direction === 'OVER' ? digit > barrier : digit < barrier;
+        this.callbacks.onLiveDigit?.({
+            digit,
+            outcome: isWin ? 'WIN' : 'LOSS',
+            contractType,
+            barrier,
+            epoch,
+        });
     }
 
     private publishAnalysis() {
