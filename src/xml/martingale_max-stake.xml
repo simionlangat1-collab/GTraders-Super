@@ -504,7 +504,15 @@
                   </block>
                 </value>
                 <next>
-                  <block type="text_join" id="jW!]JTxnzDnsTxu^+gT!">
+                  <block type="set_trade_amount" id="gk-apply-next-stake">
+                    <value name="AMOUNT">
+                      <block type="procedures_callreturn" id="gk-calculate-next-stake">
+                        <mutation name="Martingale Trade Amount"></mutation>
+                        <data>x3TA)`V~gtD7?rqNj[.9</data>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="text_join" id="jW!]JTxnzDnsTxu^+gT!">
                     <field name="VARIABLE" id="p#@Pr/Y.sKueWX#oRSPl" variabletype="">Notification:totalProfit</field>
                     <statement name="STACK">
                       <block type="text_statement" id="Y3$$Wh@Fr:}*_(hMrtvA">
