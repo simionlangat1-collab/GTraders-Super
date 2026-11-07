@@ -306,13 +306,28 @@ class APIBase {
                       ? [currentAccount]
                       : [];
 
-            setAccountList(accountList); // Observable stream
+            // The stored OAuth account list may contain old balances. Always replace
+            // the account currently authorized with the fresh balance returned by Deriv.
+            const synchronizedAccountList =
+                typeof balance?.balance === 'number' && balance?.loginid
+                    ? accountList.map(account =>
+                          account.loginid === balance.loginid
+                              ? {
+                                    ...account,
+                                    balance: balance.balance,
+                                    currency: balance.currency || account.currency,
+                                }
+                              : account
+                      )
+                    : accountList;
+
+            setAccountList(synchronizedAccountList); // Observable stream
             setAuthData({
                 balance: balance?.balance,
                 currency: balance?.currency,
                 loginid: balance?.loginid,
                 is_virtual: account_type === 'real' ? 0 : 1,
-                account_list: accountList,
+                account_list: synchronizedAccountList,
             });
 
             // // Set account_type in localStorage based on loginid prefix using centralized utility
@@ -326,7 +341,7 @@ class APIBase {
             }
 
             globalObserver.emit('api.authorize', {
-                account_list: accountList,
+                account_list: synchronizedAccountList,
                 current_account: {
                     loginid: balance?.loginid,
                     currency: balance?.currency || 'USD',
@@ -343,7 +358,7 @@ class APIBase {
 
             setIsAuthorized(true);
             this.is_authorized = true;
-            localStorage.setItem('client_account_details', JSON.stringify(accountList));
+            localStorage.setItem('client_account_details', JSON.stringify(synchronizedAccountList));
             localStorage.setItem('client.country', balance?.country);
 
             if (balance?.loginid) {
