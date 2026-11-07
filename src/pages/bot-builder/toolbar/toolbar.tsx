@@ -14,14 +14,25 @@ const Toolbar = observer(() => {
     const { isDesktop } = useDevice();
     const { is_dialog_open, closeResetDialog, onResetOkButtonClick: onOkButtonClick } = toolbar;
     const { is_running } = run_panel;
-    const { setFormVisibility } = quick_strategy;
+    const { setFormVisibility, setGKPioneerMode, setSelectedStrategy } = quick_strategy;
     const confirm_button_text = is_running ? localize('Yes') : localize('OK');
     const cancel_button_text = is_running ? localize('No') : localize('Cancel');
+
     const handleQuickStrategyOpen = () => {
+        setGKPioneerMode(false);
         setFormVisibility(true);
         /* [AI] - Analytics event tracking removed - see migrate-docs/MONITORING_PACKAGES.md for re-implementation guide */
         /* [/AI] */
     };
+
+    // GK Pioneer uses the existing Martingale strategy engine and its editable
+    // decimal multiplier field. Its dedicated entry point skips the template picker.
+    const handleGKPioneerOpen = () => {
+        setSelectedStrategy('MARTINGALE');
+        setGKPioneerMode(true);
+        setFormVisibility(true);
+    };
+
     return (
         <React.Fragment>
             <div className='toolbar dashboard__toolbar' data-testid='dt_dashboard_toolbar'>
@@ -36,6 +47,14 @@ const Toolbar = observer(() => {
                             is_bot_running={is_running}
                         />
                     )}
+                    <ToolbarButton
+                        popover_message={localize('Open G-K Pioneer settings and choose your Martingale multiplier.')}
+                        button_id='gk-pioneer-settings-button'
+                        button_classname='toolbar__btn toolbar__btn--icon toolbar__btn--start'
+                        buttonOnClick={handleGKPioneerOpen}
+                        button_text='G-K Pioneer'
+                        is_bot_running={is_running}
+                    />
                     {isDesktop && <WorkspaceGroup />}
                 </div>
             </div>
