@@ -386,7 +386,7 @@ export default class XvtSniperEngine {
         this.callbacks.onProfit?.(this.sessionProfit);
         this.callbacks.onResult?.({
             contractId: settledId,
-            result: won ? 'WIN' : 'LOSS',
+            result: won ? 'WON' : 'LOST',
             profit,
             sessionProfit: this.sessionProfit,
             lossesInCycle: this.lossesInCycle,
