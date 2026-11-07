@@ -15,12 +15,13 @@ import { STRATEGIES } from './config';
 import { TConfigItem, TFormData, TShouldHave } from './types';
 import { useFormikContext } from 'formik';
 import { useDevice } from '@deriv-com/ui';
+import { localize } from '@deriv-com/translations';
 import GrowthRateSelect from './selects/growth-rate-type';
 import SellConditions from './selects/sell-conditions';
 
 const QuickStrategyForm = observer(() => {
 const { quick_strategy } = useStore();
-const { selected_strategy, setValue, form_data } = quick_strategy;
+const { selected_strategy, setValue, form_data, is_gk_pioneer_mode } = quick_strategy;
 const config: TConfigItem[][] =
 STRATEGIES()[selected_strategy]?.fields ?? [];
 
@@ -248,7 +249,11 @@ const renderForm = () =>
                             return (
                                 <QSInputLabel
                                     key={key}
-                                    label={field.label}
+                                    label={
+                                        is_gk_pioneer_mode && selected_strategy === 'MARTINGALE' && field.label === 'Size'
+                                            ? localize('Martingale Multiplier')
+                                            : field.label
+                                    }
                                     description={
                                         field.description
                                             ? typeof field.description ===
