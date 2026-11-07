@@ -105,6 +105,22 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         this.makeDirectPurchaseDecision();
     }
 
+    setTradeAmount(amount) {
+        const next_amount = Number(amount);
+        if (!Number.isFinite(next_amount) || next_amount <= 0) {
+            throw new Error('Next trade stake must be a positive number.');
+        }
+        if (!this.tradeOptions) {
+            throw new Error('Trade options are not initialized.');
+        }
+
+        this.tradeOptions = { ...this.tradeOptions, amount: next_amount };
+
+        if (this.is_proposal_subscription_required) {
+            this.makeProposals({ ...this.options, ...this.tradeOptions });
+        }
+    }
+
     loginAndGetBalance(token) {
         if (this.token === token) {
             return Promise.resolve();
