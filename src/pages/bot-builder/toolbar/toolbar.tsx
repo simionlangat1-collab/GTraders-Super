@@ -14,7 +14,7 @@ const Toolbar = observer(() => {
     const { isDesktop } = useDevice();
     const { is_dialog_open, closeResetDialog, onResetOkButtonClick: onOkButtonClick } = toolbar;
     const { is_running } = run_panel;
-    const { setFormVisibility } = quick_strategy;
+    const { setFormVisibility, setGKPioneerMode } = quick_strategy;
     const confirm_button_text = is_running ? localize('Yes') : localize('OK');
     const cancel_button_text = is_running ? localize('No') : localize('Cancel');
 
