@@ -238,13 +238,14 @@ const LABEL_REVERSE_MARTINGALE_SIZE = (): TConfigItem => ({
     description: localize('The size used to multiply the stake after a successful trade for the next trade.'),
 });
 
-const SIZE = (): TConfigItem => ({
+const SIZE = (allowDecimal = false): TConfigItem => ({
     type: 'number',
     name: 'size',
+    step: allowDecimal ? 0.1 : undefined,
     validation: [
         'number',
         'required',
-        'floor',
+        ...(allowDecimal ? [] : ['floor' as const]),
         {
             type: 'min',
             value: String(qs_config().QUICK_STRATEGY.DEFAULT.size),
@@ -339,7 +340,7 @@ export const STRATEGIES = (): TStrategies => ({
                 LABEL_LOSS(),
                 LOSS(),
                 LABEL_MARTINGALE_SIZE(),
-                SIZE(),
+                SIZE(true),
                 CHECKBOX_MAX_STAKE(),
                 MAX_STAKE(),
             ],
