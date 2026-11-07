@@ -209,8 +209,15 @@ const QuickStrategy = observer(() => {
     const { isDesktop } = useDevice();
     const { is_open, is_gk_pioneer_mode, setFormVisibility } = quick_strategy;
 
-    const [current_step, setCurrentStep] = React.useState(QsSteps.StrategySelect);
-    const [selected_trade_type, setSelectedTradeType] = React.useState('');
+    // Initialize from the mode before the modal's first render. GK Pioneer mounts
+    // this component only after its mode is enabled, so it must never flash the
+    // strategy picker as its opening screen.
+    const [current_step, setCurrentStep] = React.useState(
+        is_gk_pioneer_mode ? QsSteps.StrategyVerified : QsSteps.StrategySelect
+    );
+    const [selected_trade_type, setSelectedTradeType] = React.useState(
+        is_gk_pioneer_mode ? localize('Options') : ''
+    );
 
     // GK Pioneer opens directly on the Martingale parameter screen.
     // Normal Bot Builder users retain the standard template-selection step.
