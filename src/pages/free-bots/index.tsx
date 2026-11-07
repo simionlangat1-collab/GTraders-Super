@@ -273,14 +273,14 @@ const FreeBots = () => {
                     <article className='free-bots-card'>
                         <div className='free-bots-card__details'>
                             <span className='free-bots-card__label'>FREE BOT</span>
-                            <h2>G-K Pioneer</h2>
+                            <h2>G-K Pioneer Bot</h2>
                             <p>Bot Builder engine · Custom Martingale recovery</p>
                         </div>
                         <button
                             className='xvt-button xvt-button--primary'
                             onClick={openGKPioneer}
                         >
-                            Open G-K Pioneer
+                            Open G-K Pioneer Bot
                         </button>
                     </article>
                 </>
