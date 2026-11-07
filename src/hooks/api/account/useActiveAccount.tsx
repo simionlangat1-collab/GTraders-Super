@@ -29,14 +29,25 @@ const useActiveAccount = ({
 
         // Use centralized utility to determine if demo account
         const isVirtual = isVirtualAccount(activeAccount.loginid);
+        const directBalanceValue = directBalance === undefined || directBalance.trim() === '' ? NaN : Number(directBalance);
+        const balanceValue =
+            typeof currentBalanceData?.balance === 'number'
+                ? currentBalanceData.balance
+                : Number.isFinite(directBalanceValue)
+                  ? directBalanceValue
+                  : activeAccount.balance;
+        const formattedBalance =
+            typeof balanceValue === 'number' && Number.isFinite(balanceValue)
+                ? addComma(balanceValue.toFixed(getDecimalPlaces(activeAccount.currency)))
+                : typeof balanceValue === 'string' &&
+                    balanceValue.trim() !== '' &&
+                    Number.isFinite(Number(balanceValue))
+                  ? addComma(Number(balanceValue).toFixed(getDecimalPlaces(activeAccount.currency)))
+                  : undefined;
 
         return {
             ...activeAccount,
-            balance: currentBalanceData?.balance
-                ? addComma(currentBalanceData.balance.toFixed(getDecimalPlaces(currentBalanceData.currency)))
-                : directBalance
-                  ? addComma(parseFloat(directBalance).toFixed(getDecimalPlaces(activeAccount.currency)))
-                  : addComma(parseFloat('0').toFixed(getDecimalPlaces(activeAccount.currency))),
+            balance: formattedBalance,
             currencyLabel: isVirtual ? 'Demo' : activeAccount?.currency,
             icon: <CurrencyIcon currency={activeAccount?.currency?.toLowerCase()} isVirtual={isVirtual} />,
             isVirtual: isVirtual,
