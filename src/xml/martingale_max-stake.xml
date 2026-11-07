@@ -54,6 +54,14 @@
       </block>
     </statement>
     <statement name="INITIALIZATION">
+      <block type="variables_set" id="gk-martingale-multiplier-control">
+        <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Multiplier</field>
+        <value name="VALUE" strategy_value="size">
+          <shadow type="math_number" id="gk-martingale-multiplier-default">
+            <field name="NUM">2</field>
+          </shadow>
+        </value>
+        <next>
       <block type="variables_set" id="qKO~.`hPZgl;YZp+5Gov">
         <field name="VAR" id="3^~61:59m?#VJ(:SG^^[" variabletype="">setMaxStake?</field>
         <value name="VALUE" strategy_value="boolean_max_stake">
@@ -70,6 +78,8 @@
               </shadow>
             </value>
           </block>
+        </next>
+      </block>
         </next>
       </block>
     </statement>
@@ -208,7 +218,7 @@
                             <field name="NUM">2</field>
                           </shadow>
                           <block type="variables_get" id="OIfB4l~Tv5_$I;ILt79^">
-                            <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">martingale:size</field>
+                            <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Multiplier</field>
                           </block>
                         </value>
                       </block>
@@ -357,7 +367,7 @@
                         <field name="OP">EQ</field>
                         <value name="A">
                           <block type="variables_get" id="?:}:mXzQgsbYRfm~0C*H">
-                            <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">martingale:size</field>
+                            <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Multiplier</field>
                           </block>
                         </value>
                         <value name="B">
@@ -367,7 +377,7 @@
                     </value>
                     <statement name="DO0">
                       <block type="variables_set" id="-93lGY=!6I#8sh)~z`3Z">
-                        <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">martingale:size</field>
+                        <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Multiplier</field>
                         <value name="VALUE" strategy_value="size">
                           <shadow type="math_number" id="V_wKk,@wB*OF9ev0RrZx">
                             <field name="NUM">3</field>
