@@ -43,7 +43,7 @@ const emptyAnalysis: TAnalysis = {
 
 const FreeBots = () => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
-    const { dashboard } = useStore();
+    const { quick_strategy } = useStore();
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
@@ -238,10 +238,12 @@ const FreeBots = () => {
         engineRef.current?.stop();
     };
 
-    // Open G-K Pioneer in the existing Bot Builder workspace.
-    // Do not launch Quick Strategy: that modal is the setup wizard, not the trading workspace.
+    // Open G-K Pioneer directly from Free Bots using the existing Bot Builder
+    // Martingale parameter interface. Keep the user on the Free Bots tab.
     const openGKPioneer = () => {
-        dashboard.setActiveTab(1);
+        quick_strategy.setSelectedStrategy('MARTINGALE');
+        quick_strategy.setGKPioneerMode(true);
+        quick_strategy.setFormVisibility(true);
     };
 
     const selectedBarrier = direction === 'OVER'
