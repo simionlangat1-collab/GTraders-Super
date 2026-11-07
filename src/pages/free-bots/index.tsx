@@ -193,7 +193,7 @@ const FreeBots = () => {
                 onResult: result => {
                     setSessionProfit(Number(result.sessionProfit || 0));
                     setRecoveryStep(Number(result.lossesInCycle || 0));
-                    if (result.result === 'WIN') setWins(count => count + 1);
+                    if (result.result === 'WON') setWins(count => count + 1);
                     else setLosses(count => count + 1);
                     setRecentTrades(items => {
                         const [latest, ...rest] = items;
@@ -401,7 +401,7 @@ const FreeBots = () => {
                             <div className='xvt-history__row' key={String(trade.contractId || index)}>
                                 <span>{String(trade.contractType || 'Contract')} {String(trade.barrier || '')} · Est. digit {String(trade.estimatedDigit ?? '—')}</span>
                                 <span>{String(trade.stake || '')} {currency}</span>
-                                <strong className={trade.outcome === 'WIN' ? 'is-positive' : trade.outcome === 'LOSS' ? 'is-negative' : ''}>
+                                <strong className={trade.outcome === 'WON' ? 'is-positive' : trade.outcome === 'LOST' ? 'is-negative' : ''}>
                                     {String(trade.outcome || (trade.recovery ? 'RECOVERY' : 'OPEN'))}
                                     {trade.profit !== undefined ? ` · ${Number(trade.profit).toFixed(2)}` : ''}
                                 </strong>
