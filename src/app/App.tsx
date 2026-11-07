@@ -82,7 +82,11 @@ function App() {
             OAuthTokenExchangeService.exchangeCodeForToken(params.code)
                 .then(response => {
                     if (response.access_token) {
+                        // The token is now stored in sessionStorage. Start the app cleanly
+                        // so AppRoot/api_base initializes exactly once with the authenticated
+                        // WebSocket flow instead of racing the callback page initialization.
                         cleanupURL();
+                        window.location.replace(window.location.pathname + window.location.hash);
                     } else if (response.error) {
                         console.error('❌ Token exchange failed:', response.error);
                         console.error('Error description:', response.error_description);
