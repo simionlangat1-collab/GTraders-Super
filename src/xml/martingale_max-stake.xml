@@ -4,10 +4,12 @@
     <variable type="" id="[M$5RsD`g|8-P;C+mbf4" islocal="false" iscloud="false">martingale:profit</variable>
     <variable type="" id="Kb@{Vb{+5IqV=d~y*dcr" islocal="false" iscloud="false">martingale:totalProfit</variable>
     <variable type="" id="6G^6o^Ic@rjF|sHv*m.6" islocal="false" iscloud="false">martingale:tradeAgain</variable>
-    <variable type="" id="*p5|Lkk9Q^ZuPBQ-48g2" islocal="false" iscloud="false">martingale:profitThreshold</variable>
+    <variable type="" id="*p5|Lkk9Q^ZuPBQ-48g2" islocal="false" iscloud="false">Target Profit</variable>
     <variable type="" id="ipD5?_dQ1Zkvf%v|[?DQ" islocal="false" iscloud="false">Martingale Multiplier</variable>
+    <variable type="" id="gk-target-profit-enabled-var" islocal="false" iscloud="false">Target Profit Enabled</variable>
+    <variable type="" id="gk-target-loss-enabled-var" islocal="false" iscloud="false">Target Loss Enabled</variable>
     <variable type="" id="[$B]vBH,~wrN`PUt5m/f" islocal="false" iscloud="false">martingale:initialStake</variable>
-    <variable type="" id="a1BTYNHC?_yR4sfvNJ7N" islocal="false" iscloud="false">martingale:lossThreshold</variable>
+    <variable type="" id="a1BTYNHC?_yR4sfvNJ7N" islocal="false" iscloud="false">Target Loss</variable>
     <variable type="" id="_(;)ob:l.sc|#L7kv7Z6" islocal="false" iscloud="false">won</variable>
     <variable type="" id="p#@Pr/Y.sKueWX#oRSPl" islocal="false" iscloud="false">Notification:totalProfit</variable>
     <variable type="" id="5SwcMzq.f)VNUzjbKfrw" islocal="false" iscloud="false">Notification:lossThresholdReached</variable>
@@ -62,24 +64,64 @@
           </shadow>
         </value>
         <next>
-      <block type="variables_set" id="qKO~.`hPZgl;YZp+5Gov">
-        <field name="VAR" id="3^~61:59m?#VJ(:SG^^[" variabletype="">setMaxStake?</field>
-        <value name="VALUE" strategy_value="boolean_max_stake">
-          <block type="logic_boolean" id="%@4HYVeOB$jA`7.ljdbf">
-            <field name="BOOL">TRUE</field>
-          </block>
-        </value>
-        <next>
-          <block type="variables_set" id="-jDR^266z(Nid-G$WXhp">
-            <field name="VAR" id="4vh+dtelQS#?}@cNPcN!" variabletype="">maxStake</field>
-            <value name="VALUE" strategy_value="max_stake">
-              <shadow type="math_number" id="FF1sPs*ENIx4n#SmKe|9">
-                <field name="NUM">1000</field>
-              </shadow>
+          <block type="variables_set" id="gk-target-profit-enabled-control">
+            <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Target Profit Enabled</field>
+            <value name="VALUE">
+              <block type="logic_boolean" id="gk-target-profit-enabled-default">
+                <field name="BOOL">TRUE</field>
+              </block>
             </value>
+            <next>
+              <block type="variables_set" id="gk-target-profit-amount-control">
+                <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Target Profit</field>
+                <value name="VALUE" strategy_value="profit">
+                  <shadow type="math_number" id="gk-target-profit-amount-default">
+                    <field name="NUM">10</field>
+                  </shadow>
+                </value>
+                <next>
+                  <block type="variables_set" id="gk-target-loss-enabled-control">
+                    <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Target Loss Enabled</field>
+                    <value name="VALUE">
+                      <block type="logic_boolean" id="gk-target-loss-enabled-default">
+                        <field name="BOOL">TRUE</field>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="variables_set" id="gk-target-loss-amount-control">
+                        <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Target Loss</field>
+                        <value name="VALUE" strategy_value="loss">
+                          <shadow type="math_number" id="gk-target-loss-amount-default">
+                            <field name="NUM">10</field>
+                          </shadow>
+                        </value>
+                        <next>
+                          <block type="variables_set" id="qKO~.`hPZgl;YZp+5Gov">
+                            <field name="VAR" id="3^~61:59m?#VJ(:SG^^[" variabletype="">setMaxStake?</field>
+                            <value name="VALUE" strategy_value="boolean_max_stake">
+                              <block type="logic_boolean" id="%@4HYVeOB$jA`7.ljdbf">
+                                <field name="BOOL">TRUE</field>
+                              </block>
+                            </value>
+                            <next>
+                              <block type="variables_set" id="-jDR^266z(Nid-G$WXhp">
+                                <field name="VAR" id="4vh+dtelQS#?}@cNPcN!" variabletype="">maxStake</field>
+                                <value name="VALUE" strategy_value="max_stake">
+                                  <shadow type="math_number" id="FF1sPs*ENIx4n#SmKe|9">
+                                    <field name="NUM">1000</field>
+                                  </shadow>
+                                </value>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
           </block>
-        </next>
-      </block>
         </next>
       </block>
     </statement>
@@ -292,7 +334,7 @@
             <field name="OP">EQ</field>
             <value name="A">
               <block type="variables_get" id="f.km2[vh(%]*F2SuNU%G">
-                <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">martingale:profitThreshold</field>
+                <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Target Profit</field>
               </block>
             </value>
             <value name="B">
@@ -302,7 +344,7 @@
         </value>
         <statement name="DO0">
           <block type="variables_set" id="{}-XA:3=]2W.Aq|zIiP(">
-            <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">martingale:profitThreshold</field>
+            <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Target Profit</field>
             <value name="VALUE" strategy_value="profit">
               <block type="math_number" id="oey_#oK,W{kwyW]bH$Q0">
                 <field name="NUM">5000</field>
@@ -317,7 +359,7 @@
                 <field name="OP">EQ</field>
                 <value name="A">
                   <block type="variables_get" id="EzMg)v,zllQlN8mb?5{h">
-                    <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">martingale:lossThreshold</field>
+                    <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Target Loss</field>
                   </block>
                 </value>
                 <value name="B">
@@ -327,7 +369,7 @@
             </value>
             <statement name="DO0">
               <block type="variables_set" id=":OS%IuonU;AkRO!H-SEF">
-                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">martingale:lossThreshold</field>
+                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Target Loss</field>
                 <value name="VALUE" strategy_value="loss">
                   <block type="math_number" id="UdK4EIuuo|^~SBqy^_UN">
                     <field name="NUM">3000</field>
@@ -587,7 +629,19 @@
                               <block type="controls_if" id="KTuC8HMyaDp6Q3xId0@A">
                                 <mutation else="1"></mutation>
                                 <value name="IF0">
-                                  <block type="logic_compare" id="7[;$pQigi:R:T3}s(G6^">
+                                  <block type="logic_operation" id="gk-profit-enabled-bypass">
+  <field name="OP">OR</field>
+  <value name="A">
+    <block type="logic_negate" id="gk-profit-enabled-negate">
+      <value name="BOOL">
+        <block type="variables_get" id="gk-profit-enabled-get">
+          <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Target Profit Enabled</field>
+        </block>
+      </value>
+    </block>
+  </value>
+  <value name="B">
+    <block type="logic_compare" id="7[;$pQigi:R:T3}s(G6^">
                                     <field name="OP">LT</field>
                                     <value name="A">
                                       <block type="variables_get" id="{T)uCW@]IoOpTp7;JdSO">
@@ -596,16 +650,30 @@
                                     </value>
                                     <value name="B">
                                       <block type="variables_get" id="5m`a=f+P*-wT*3b-Acg=">
-                                        <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">martingale:profitThreshold</field>
+                                        <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Target Profit</field>
                                       </block>
                                     </value>
                                   </block>
+  </value>
+</block>
                                 </value>
                                 <statement name="DO0">
                                   <block type="controls_if" id=".O}[W@YXqN#zGd%ewXJ*">
                                     <mutation else="1"></mutation>
                                     <value name="IF0">
-                                      <block type="logic_compare" id="%XaSru*P96b@:s~*f6/b">
+                                      <block type="logic_operation" id="gk-loss-enabled-bypass">
+  <field name="OP">OR</field>
+  <value name="A">
+    <block type="logic_negate" id="gk-loss-enabled-negate">
+      <value name="BOOL">
+        <block type="variables_get" id="gk-loss-enabled-get">
+          <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Target Loss Enabled</field>
+        </block>
+      </value>
+    </block>
+  </value>
+  <value name="B">
+    <block type="logic_compare" id="%XaSru*P96b@:s~*f6/b">
                                         <field name="OP">GT</field>
                                         <value name="A">
                                           <block type="variables_get" id=".j^jS`B22${#0xP~J7;S">
@@ -620,12 +688,14 @@
                                                 <field name="NUM">9</field>
                                               </shadow>
                                               <block type="variables_get" id="`nfV$q=C}%gf{r$Jyt-#">
-                                                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">martingale:lossThreshold</field>
+                                                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Target Loss</field>
                                               </block>
                                             </value>
                                           </block>
                                         </value>
                                       </block>
+  </value>
+</block>
                                     </value>
                                     <statement name="DO0">
                                       <block type="variables_set" id="b_=Q.Dj-VBXKcWz33ioo">
