@@ -30,6 +30,7 @@ interface IQuickStrategyStore {
     };
     root_store: RootStore;
     is_open: boolean;
+    is_gk_pioneer_mode: boolean;
     selected_strategy: string;
     selected_strategy_for_notofy: string;
     form_data: TFormData;
@@ -41,6 +42,7 @@ interface IQuickStrategyStore {
     is_options_loading: boolean;
     setLossThresholdWarningData: (data: TLossThresholdWarningData) => void;
     setFormVisibility: (is_open: boolean) => void;
+    setGKPioneerMode: (enabled: boolean) => void;
     setSelectedStrategy: (strategy: string) => void;
     setValue: (name: string, value: string) => void;
     onSubmit: (data: TFormData) => void;
@@ -52,6 +54,7 @@ interface IQuickStrategyStore {
 export default class QuickStrategyStore implements IQuickStrategyStore {
     root_store: RootStore;
     is_open = false;
+    is_gk_pioneer_mode = false;
     selected_strategy = 'MARTINGALE';
     selected_strategy_for_notofy = '';
 
@@ -84,6 +87,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             form_data: observable,
             is_contract_dialog_open: observable,
             is_open: observable,
+            is_gk_pioneer_mode: observable,
             is_stop_bot_dialog_open: observable,
             is_options_loading: observable,
             initializeLossThresholdWarningData: action,
@@ -94,6 +98,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             setAdditionalData: action,
             setCurrentDurationMinMax: action,
             setFormVisibility: action,
+            setGKPioneerMode: action,
             setSelectedStrategy: action,
             setLossThresholdWarningData: action,
             setValue: action,
@@ -143,6 +148,11 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
 
     setFormVisibility = (is_open: boolean) => {
         this.is_open = is_open;
+        if (!is_open) this.is_gk_pioneer_mode = false;
+    };
+
+    setGKPioneerMode = (enabled: boolean) => {
+        this.is_gk_pioneer_mode = enabled;
     };
 
     setSelectedStrategy = (strategy: string) => {
