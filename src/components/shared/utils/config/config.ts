@@ -28,27 +28,32 @@ export const WS_SERVERS = {
 
 // Helper to check if we're on production domains
 export const isProduction = () => {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     const productionDomains = Object.values(PRODUCTION_DOMAINS) as string[];
-    return productionDomains.includes(hostname);
+
+    // Cloudflare Pages preview deployments use unique subdomains such as
+    // <deployment-id>.gtraders-super.pages.dev. Treat those previews as
+    // production-auth environments so they use the same Deriv OAuth/API
+    // endpoints as the registered GTraders Super site.
+    return productionDomains.some(domain => {
+        const productionDomain = domain.toLowerCase();
+        return hostname === productionDomain || hostname.endsWith('.' + productionDomain);
+    });
 };
 
 export const isLocal = () => /localhost(:\d+)?$/i.test(window.location.hostname);
 
 const getDefaultServerURL = () => {
-    // Cloudflare Pages preview URLs are unique subdomains of this project.
-    // Use Deriv's production public market-data socket for these previews;
-    // keep local and other staging environments on the staging socket.
-    const isCloudflarePagesPreview = window.location.hostname.endsWith('.gtraders-super.pages.dev');
-    const useProductionSocket = isProduction() || isCloudflarePagesPreview();
+    const isProductionEnv = isProduction();
 
     try {
-        return useProductionSocket ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
+        return isProductionEnv ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
     } catch (error) {
         console.error('Error in getDefaultServerURL:', error);
     }
 
-    return useProductionSocket ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
+    // Production defaults to demov2, staging/preview defaults to qa194 (demo)
+    return isProductionEnv ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
 };
 
 /**
