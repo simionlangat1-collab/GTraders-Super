@@ -86,7 +86,7 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
-        gap: 0.2rem;
+        gap: 0.05rem;
         border: 2px solid #2583ff;
         border-radius: 50%;
         background: rgba(37, 131, 255, 0.12);
@@ -95,11 +95,11 @@
         font-weight: 800;
         line-height: 1;
     }
-    &__digit-number { display: block; font-size: 2rem; line-height: 1; }
+    &__digit-number { display: block; font-size: 1.7rem; line-height: 1; }
     &__digit-percentage {
         display: block;
         color: inherit !important;
-        font-size: 1.05rem !important;
+        font-size: 0.82rem !important;
         font-weight: 700;
         line-height: 1;
         white-space: nowrap;
@@ -132,13 +132,13 @@
         &.is-leading { border-color: #22c55e; background: rgba(34, 197, 94, 0.08); }
         &.is-leading .analysis-tool__digit-circle { border-color: #22c55e; background: rgba(34, 197, 94, 0.16); color: #4ade80; }
         &.is-second { border-color: #2583ff; }
-        &.is-second .analysis-tool__digit-circle { border-color: #2583ff; background: rgba(37, 131, 255, 0.16); }
+        &.is-second .analysis-tool__digit-circle { border-color: #2583ff; background: rgba(37, 131, 255, 0.16); color: #60a5fa; }
         &.is-lowest { border-color: #ef4444; }
         &.is-lowest .analysis-tool__digit-circle { border-color: #ef4444; background: rgba(239, 68, 68, 0.14); color: #f87171; }
         &.is-second-lowest { border-color: #eab308; }
         &.is-second-lowest .analysis-tool__digit-circle { border-color: #eab308; background: rgba(234, 179, 8, 0.14); color: #facc15; }
         &.is-current .analysis-tool__digit-circle { animation: analysis-tick-pulse 850ms ease-out infinite; box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.24), 0 0 1.2rem rgba(34, 211, 238, 0.55); }
-        &.is-current .analysis-tool__tick-cursor { position: absolute; top: -0.35rem; right: -0.2rem; width: 1rem; height: 1rem; border: 2px solid var(--general-section-1); border-radius: 50%; background: #22d3ee; box-shadow: 0 0 0.8rem #22d3ee; }
+        &.is-current .analysis-tool__tick-cursor { position: absolute; left: 50%; bottom: 0.12rem; width: 0; height: 0; border-left: 0.42rem solid transparent; border-right: 0.42rem solid transparent; border-top: 0.72rem solid #22d3ee; transform: translateX(-50%); filter: drop-shadow(0 0 0.35rem #22d3ee); }
     }
     &__bar { width: 100%; height: 0.45rem; overflow: hidden; border-radius: 1rem; background: var(--border-normal); }
     &__bar i { display: block; height: 100%; border-radius: inherit; background: #2583ff; }
@@ -167,8 +167,8 @@
         &__digit-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.6rem; }
         &__digit-card { padding: 0.8rem 0.2rem; }
         &__digit-circle { width: 4.5rem; height: 4.5rem; flex-basis: 4.5rem; }
-        &__digit-number { font-size: 1.65rem; }
-        &__digit-percentage { font-size: 0.9rem !important; }
+        &__digit-number { font-size: 1.45rem; }
+        &__digit-percentage { font-size: 0.76rem !important; }
         &__digit-card strong { font-size: 1rem; }
         &__digit-card > span { font-size: 0.85rem; }
         &__metric-value { font-size: 2.3rem; }
