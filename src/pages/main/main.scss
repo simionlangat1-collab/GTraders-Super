@@ -754,31 +754,44 @@
     align-items: center;
     justify-content: center;
 }
-/* GTRADERS SUPER - HOT MAGENTA NAVIGATION */
+/* GTRADERS SUPER - LIVE MARKETS RED NAVIGATION */
 
 .main__container {
     .dc-tabs {
         &__list {
-            background: #A52383 !important;
-            border-radius: 12px 12px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            min-height: 5.6rem;
+            padding: 0.7rem 1.2rem;
+            background: linear-gradient(105deg, #c92332 0%, #e33440 55%, #c92332 100%) !important;
+            border-radius: 0;
         }
 
         &__item {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 4rem;
+            padding: 0.8rem 1.5rem;
+            border-radius: 3rem;
             color: #ffffff !important;
-            transition: background 0.25s ease;
+            white-space: nowrap;
+            transition: background 0.2s ease, color 0.2s ease;
 
             &:hover {
-                background: #861C6A !important;
+                background: rgba(120, 0, 12, 0.2) !important;
             }
         }
 
         &__active {
-            background: #861C6A !important;
-            color: #ffffff !important;
+            background: #ffffff !important;
+            color: #c92332 !important;
+            border-radius: 3rem !important;
         }
 
         &__active-line {
-            background: #FF4FCB !important;
+            display: none !important;
         }
     }
 }
