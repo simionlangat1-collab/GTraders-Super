@@ -238,17 +238,28 @@ const FreeBots = () => {
         engineRef.current?.stop();
     };
 
-    // Open G-K Pioneer in the actual Blockly Bot Builder workspace.
-    // Do not open the Quick Strategy / Martingale configuration modal.
-    const openGKPioneer = () => {
+    // Load G-K Pioneer directly into the Blockly trading workspace.
+    // Keep its editable Martingale inputs prefilled with the intended defaults.
+    const openGKPioneer = async () => {
         if (isRunning) return;
 
-        // Let the user choose the initial stake and decimal Martingale multiplier
-        // before the strategy is loaded into the Blockly workspace.
         quick_strategy.setSelectedStrategy('MARTINGALE');
-        quick_strategy.setGKPioneerMode(true);
+        await quick_strategy.onSubmit({
+            symbol: '1HZ10V',
+            tradetype: 'overunder',
+            type: 'both',
+            last_digit_prediction: 2,
+            size: 2.5,
+            stake: 10,
+            durationtype: 't',
+            duration: 1,
+            profit: 10,
+            loss: 10,
+            boolean_max_stake: false,
+            max_stake: 10,
+            action: 'EDIT',
+        });
         dashboard.setActiveTab(1);
-        quick_strategy.setFormVisibility(true);
     };
 
     const selectedBarrier = direction === 'OVER'
