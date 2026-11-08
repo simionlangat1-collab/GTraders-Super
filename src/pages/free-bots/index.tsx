@@ -243,6 +243,7 @@ const FreeBots = () => {
     const openGKPioneer = async () => {
         if (isRunning) return;
 
+        quick_strategy.setGKPioneerMode(true);
         quick_strategy.setSelectedStrategy('MARTINGALE');
         await quick_strategy.onSubmit({
             symbol: '1HZ10V',
