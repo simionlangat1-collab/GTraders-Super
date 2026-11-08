@@ -76,7 +76,8 @@ const AnalysisTool = observer(() => {
             // Request the full, unfiltered Deriv catalogue so every available
             // market and symbol can be selected in this independent analyzer.
             const response = await api.send({ active_symbols: 'full' });
-            const list = (response?.active_symbols || [])
+            const payload = typeof response === 'string' ? JSON.parse(response) : response;
+            const list = (payload?.active_symbols || [])
                 .filter((item: TMarket) => item.symbol)
                 .map((item: TMarket) => ({ ...item, display_name: item.display_name || item.symbol }))
                 .sort((a: TMarket, b: TMarket) => {
@@ -96,7 +97,7 @@ const AnalysisTool = observer(() => {
             setMarketPrecisions(precisions);
             setSelectedMarket(previous => list.some((item: TMarket) => item.symbol === previous)
                 ? previous
-                : list.find((item: TMarket) => item.symbol === 'R_100')?.symbol || list[0]?.symbol || previous);
+                : list[0]?.symbol || '');
             setConnection('connected');
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : 'Unable to load Deriv markets.');
@@ -182,7 +183,7 @@ const AnalysisTool = observer(() => {
     }, [selectedMarket, socketReady, marketPrecisions]);
 
     const handleMarketChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedMarket(event.target.value);
+        if (event.target.value) setSelectedMarket(event.target.value);
     };
 
     return (
@@ -204,12 +205,13 @@ const AnalysisTool = observer(() => {
                     <span>Market</span>
                     <select value={selectedMarket} onChange={handleMarketChange}>
                         {markets.length ? markets.map(market => {
-                            const group = market.market_display || market.market || market.submarket_display || market.submarket;
-                            const label = [group, market.submarket_display, market.display_name]
+                            const group = market.market_display || market.market || 'Other markets';
+                            const submarket = market.submarket_display || market.submarket;
+                            const label = [group, submarket, market.display_name]
                                 .filter((value, index, values) => value && values.indexOf(value) === index)
                                 .join(' · ');
                             return <option key={market.symbol} value={market.symbol}>{label} ({market.symbol})</option>;
-                        }) : <option value={selectedMarket}>{selectedMarket}</option>}
+                        }) : <option value='' disabled>Loading all Deriv markets…</option>}
                     </select>
                 </label>
                 <label>
