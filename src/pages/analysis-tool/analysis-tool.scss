@@ -145,14 +145,19 @@
         gap: 1rem;
         &__controls { grid-template-columns: 1fr 1fr; }
         &__window { grid-column: 1 / -1; }
-        }
+    }
+
     @media (max-width: 600px) {
         min-height: var(--tab-content-height-mobile);
         &__header { align-items: flex-start; flex-direction: column; }
         &__header h1 { font-size: 2.3rem; }
         &__controls, &__overview { grid-template-columns: 1fr; }
         &__window { grid-column: auto; }
-        &__digit-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        &__digit-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.6rem; }
+        &__digit-card { padding: 0.8rem 0.2rem; }
+        &__digit-circle { width: 3.5rem; height: 3.5rem; flex-basis: 3.5rem; font-size: 1.8rem; }
+        &__digit-card strong { font-size: 1rem; }
+        &__digit-card > span { font-size: 0.85rem; }
         &__metric-value { font-size: 2.3rem; }
     }
 }
