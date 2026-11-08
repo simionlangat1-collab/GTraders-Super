@@ -76,6 +76,9 @@ const AnalysisTool = observer(() => {
             eligibleCount,
             overPercentage: eligibleCount ? (overCount / eligibleCount) * 100 : 0,
             underPercentage: eligibleCount ? (underCount / eligibleCount) * 100 : 0,
+            // Make the rounded card labels add to exactly 100.0%.
+            overDisplayPercentage: eligibleCount ? Number(((overCount / eligibleCount) * 100).toFixed(1)) : 0,
+            underDisplayPercentage: eligibleCount ? 100 - Number(((overCount / eligibleCount) * 100).toFixed(1)) : 0,
         };
     }, [ticks, overUnderDigit]);
     const evenOddStats = useMemo(() => {
@@ -86,6 +89,8 @@ const AnalysisTool = observer(() => {
             oddCount,
             evenPercentage: ticks.length ? (evenCount / ticks.length) * 100 : 0,
             oddPercentage: ticks.length ? (oddCount / ticks.length) * 100 : 0,
+            evenDisplayPercentage: ticks.length ? Number(((evenCount / ticks.length) * 100).toFixed(1)) : 0,
+            oddDisplayPercentage: ticks.length ? 100 - Number(((evenCount / ticks.length) * 100).toFixed(1)) : 0,
         };
     }, [ticks]);
     const rankedDigits = useMemo(
@@ -334,7 +339,7 @@ const AnalysisTool = observer(() => {
                                 <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
                                 <h3>OVER {overUnderDigit}</h3>
                             </div>
-                            <strong>{ticks.length ? overUnderStats.overPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                            <strong>{ticks.length ? overUnderStats.overDisplayPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
                         </div>
                         <div className='analysis-tool__probability-track'>
                             <i style={{ width: `${overUnderStats.overPercentage}%` }} />
@@ -350,7 +355,7 @@ const AnalysisTool = observer(() => {
                                 <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
                                 <h3>UNDER {overUnderDigit}</h3>
                             </div>
-                            <strong>{ticks.length ? overUnderStats.underPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                            <strong>{ticks.length ? overUnderStats.underDisplayPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
                         </div>
                         <div className='analysis-tool__probability-track'>
                             <i style={{ width: `${overUnderStats.underPercentage}%` }} />
@@ -382,7 +387,7 @@ const AnalysisTool = observer(() => {
                                 <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
                                 <h3>EVEN</h3>
                             </div>
-                            <strong>{ticks.length ? evenOddStats.evenPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                            <strong>{ticks.length ? evenOddStats.evenDisplayPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
                         </div>
                         <div className='analysis-tool__probability-track'>
                             <i style={{ width: `${evenOddStats.evenPercentage}%` }} />
@@ -398,7 +403,7 @@ const AnalysisTool = observer(() => {
                                 <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
                                 <h3>ODD</h3>
                             </div>
-                            <strong>{ticks.length ? evenOddStats.oddPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                            <strong>{ticks.length ? evenOddStats.oddDisplayPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
                         </div>
                         <div className='analysis-tool__probability-track'>
                             <i style={{ width: `${evenOddStats.oddPercentage}%` }} />
