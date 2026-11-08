@@ -843,3 +843,153 @@
         color: #dcecff;
     }
 }
+
+
+/* GTRADERS SUPER - WHITE DASHBOARD / LIVE MARKETS CARD LAYOUT */
+.tab__dashboard {
+    --general-main-1: #ffffff;
+    --general-section-1: #f1f2f4;
+    --general-section-2: #e3e5e8;
+    --general-section-6: #f1f2f4;
+    --text-general: #34383f;
+    --text-prominent: #292d33;
+    --text-less-prominent: #858b94;
+    --border-normal: #d8dadd;
+    --button-primary-default: #d92e3b;
+    color: #34383f;
+    background: #ffffff;
+
+    .tab__dashboard__content {
+        background: #ffffff;
+        overflow-y: auto;
+    }
+
+    .tab__dashboard__header {
+        .title { color: #292d33; }
+        .subtitle { color: #777e87; }
+    }
+}
+
+.gtraders-welcome {
+    border: 0;
+    border-radius: 0;
+    background: #ffffff;
+    box-shadow: none;
+
+    &::after { display: none; }
+
+    &__eyebrow { color: #c92332; text-shadow: none; }
+    &__title { color: #292d33; }
+    &__description { color: #858b94; }
+}
+
+.tab__dashboard__table {
+    padding: 1.2rem 0;
+    background: #ffffff;
+    border-radius: 0;
+}
+
+.tab__dashboard__table__tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    padding: 0.8rem 0;
+}
+
+.tab__dashboard__table__block {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1.4rem;
+    min-height: 9rem;
+    padding: 1.2rem 1.6rem;
+    border: 1px solid #d8dadd;
+    border-radius: 1.6rem;
+    background: #f1f2f4;
+    box-shadow: none;
+    transition: background 0.2s ease, border-color 0.2s ease;
+
+    &:hover {
+        transform: none;
+        border-color: #c7cbd0;
+        background: #e9ebee;
+        box-shadow: none;
+    }
+
+    &:active {
+        transform: scale(0.99);
+        border-color: #d92e3b;
+        box-shadow: none;
+    }
+
+    .dc-text {
+        color: #34383f !important;
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    &::after {
+        content: '→';
+        margin-left: auto;
+        color: #a1a6ad;
+        font-size: 2rem;
+        font-weight: 400;
+    }
+}
+
+.tab__dashboard__table__images {
+    display: flex;
+    flex: 0 0 4.8rem;
+    align-items: center;
+    justify-content: center;
+    width: 4.8rem;
+    height: 4.8rem;
+    margin: 0;
+    padding: 0.5rem;
+    border: 0;
+    border-radius: 0.8rem;
+    background: transparent;
+    box-shadow: none;
+
+    svg {
+        width: 3.6rem;
+        height: 3.6rem;
+    }
+
+    &:hover {
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .tab__dashboard__table {
+        padding: 0.8rem 0;
+    }
+
+    .tab__dashboard__table__tiles {
+        gap: 1rem;
+        padding: 0.6rem 0;
+    }
+
+    .tab__dashboard__table__block {
+        min-height: 8.6rem;
+        padding: 1rem 1.2rem;
+        border-radius: 1.5rem;
+    }
+
+    .tab__dashboard__table__images {
+        width: 4.6rem;
+        height: 4.6rem;
+        flex-basis: 4.6rem;
+
+        svg {
+            width: 3.4rem;
+            height: 3.4rem;
+        }
+    }
+}
