@@ -1,13 +1,16 @@
 .analysis-tool {
     box-sizing: border-box;
     display: flex;
-    min-height: var(--tab-content-height);
+    min-height: 0;
+    height: var(--tab-content-height);
     flex-direction: column;
     gap: 1.4rem;
     padding: 2rem;
     color: var(--text-general);
     background: var(--general-main-1);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 
     &__header, &__section-heading {
         display: flex;
@@ -159,7 +162,8 @@
     }
 
     @media (max-width: 600px) {
-        min-height: var(--tab-content-height-mobile);
+        min-height: 0;
+        height: var(--tab-content-height-mobile);
         &__header { align-items: flex-start; flex-direction: column; }
         &__header h1 { font-size: 2.3rem; }
         &__controls, &__overview { grid-template-columns: 1fr; }
