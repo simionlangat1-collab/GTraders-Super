@@ -263,11 +263,11 @@ const AnalysisTool = observer(() => {
                             key={item.digit}
                         >
                             <div className='analysis-tool__digit-circle'>
-                                {item.digit}
+                                <span className='analysis-tool__digit-number'>{item.digit}</span>
+                                <strong className='analysis-tool__digit-percentage'>{item.percentage.toFixed(1)}%</strong>
                                 {latestDigit === item.digit && <span className='analysis-tool__tick-cursor' aria-label='Latest tick' />}
                             </div>
-                            <strong>{item.percentage.toFixed(1)}%</strong>
-                            <span>{item.count} ticks</span>
+                            <span>{item.count.toLocaleString()} ticks</span>
                             <div className='analysis-tool__bar'><i style={{ width: `${item.percentage}%` }} /></div>
                         </div>
                     ))}
