@@ -59,6 +59,22 @@
       </block>
     </statement>
     <statement name="INITIALIZATION">
+      <block type="variables_set" id="gk-initial-stake-init">
+        <field name="VAR" id="[$B]vBH,~wrN`PUt5m/f" variabletype="">martingale:initialStake</field>
+        <value name="VALUE" strategy_value="stake">
+          <shadow type="math_number" id="gk-initial-stake-default">
+            <field name="NUM">10</field>
+          </shadow>
+        </value>
+        <next>
+          <block type="variables_set" id="gk-payout-rate-init">
+            <field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field>
+            <value name="VALUE">
+              <shadow type="math_number" id="gk-payout-rate-default">
+                <field name="NUM">0.43</field>
+              </shadow>
+            </value>
+            <next>
       <block type="variables_set" id="gk-cycle-loss-init">
         <field name="VAR" id="gk-cycle-loss-var" variabletype="">martingale:cycleLoss</field>
         <value name="VALUE"><shadow type="math_number"><field name="NUM">0</field></shadow></value>
@@ -131,6 +147,10 @@
           </block>
         </next>
       </block>
+        </next>
+      </block>
+            </next>
+          </block>
         </next>
       </block>
     </statement>
