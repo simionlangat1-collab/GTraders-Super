@@ -317,11 +317,45 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             });
 
             // Keep GK Pioneer initialization active in Blockly, but hide the two
-            // internal setup blocks from the visible workspace.
+            // internal setup blocks from the visible workspace. The XML block IDs
+            // are not guaranteed to survive every Blockly import, so locate them
+            // by the variable they initialize and hide their rendered SVG roots.
             if (isGKPioneerMode) {
-                ['gk-initial-stake-init', 'gk-payout-rate-init'].forEach(blockId => {
-                    const internalBlock = workspace.getBlockById(blockId);
-                    internalBlock?.setVisible(false);
+                const hideGKPioneerInternalBlocks = () => {
+                    const internalVariableIds = [
+                        '[$B]vBH,~wrN`PUt5m/f',
+                        'gk-payout-rate-var',
+                    ];
+
+                    workspace.getAllBlocks(false).forEach(block => {
+                        if (block.type !== 'variables_set') return;
+
+                        const variableField = block.getField('VAR');
+                        const variableId = variableField?.getValue();
+
+                        if (!internalVariableIds.includes(String(variableId))) return;
+
+                        const blockWithVisibility = block as typeof block & {
+                            setVisible?: (visible: boolean) => void;
+                            getSvgRoot?: () => SVGElement | null;
+                        };
+
+                        blockWithVisibility.setVisible?.(false);
+
+                        const svgRoot = blockWithVisibility.getSvgRoot?.();
+                        if (svgRoot) {
+                            svgRoot.style.display = 'none';
+                        }
+                    });
+                };
+
+                hideGKPioneerInternalBlocks();
+
+                // Run again after Blockly's render/layout pass so the blocks
+                // remain invisible even if the imported workspace re-renders.
+                requestAnimationFrame(() => {
+                    hideGKPioneerInternalBlocks();
+                    requestAnimationFrame(hideGKPioneerInternalBlocks);
                 });
             }
 
