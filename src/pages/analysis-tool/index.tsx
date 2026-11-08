@@ -9,6 +9,8 @@ type TMarket = {
     display_name: string;
     market?: string;
     submarket?: string;
+    market_display?: string;
+    submarket_display?: string;
     exchange_is_open?: number;
     pip_size?: number;
     pip?: number;
@@ -59,6 +61,10 @@ const AnalysisTool = observer(() => {
         [frequencies]
     );
     const latestDigit = ticks.length ? ticks[ticks.length - 1].digit : null;
+    const rankedDigits = useMemo(
+        () => [...frequencies].sort((a, b) => a.count - b.count || a.digit - b.digit),
+        [frequencies]
+    );
 
     const loadMarkets = useCallback(async () => {
         const api = api_base.api as any;
@@ -67,10 +73,17 @@ const AnalysisTool = observer(() => {
             return;
         }
         try {
-            const response = await api.send({ active_symbols: 'brief' });
-            const list = (response?.active_symbols || [])
-                .filter((item: TMarket) => item.symbol && item.display_name)
-                .sort((a: TMarket, b: TMarket) => a.display_name.localeCompare(b.display_name));
+            // Reuse the app's shared active-symbol loader so the analyzer receives
+            // the complete Deriv symbol catalogue, not a hard-coded market list.
+            const response = await api_base.getActiveSymbols();
+            const list = (response || [])
+                .filter((item: TMarket) => item.symbol)
+                .map((item: TMarket) => ({ ...item, display_name: item.display_name || item.symbol }))
+                .sort((a: TMarket, b: TMarket) => {
+                    const groupA = a.market_display || a.market || a.submarket_display || a.submarket || '';
+                    const groupB = b.market_display || b.market || b.submarket_display || b.submarket || '';
+                    return groupA.localeCompare(groupB) || a.display_name.localeCompare(b.display_name);
+                });
             setMarkets(list);
             const precisions: Record<string, number> = {};
             list.forEach((item: TMarket) => {
@@ -190,9 +203,13 @@ const AnalysisTool = observer(() => {
                 <label>
                     <span>Market</span>
                     <select value={selectedMarket} onChange={handleMarketChange}>
-                        {markets.length ? markets.map(market => (
-                            <option key={market.symbol} value={market.symbol}>{market.display_name} ({market.symbol})</option>
-                        )) : <option value={selectedMarket}>{selectedMarket}</option>}
+                        {markets.length ? markets.map(market => {
+                            const group = market.market_display || market.market || market.submarket_display || market.submarket;
+                            const label = [group, market.submarket_display, market.display_name]
+                                .filter((value, index, values) => value && values.indexOf(value) === index)
+                                .join(' · ');
+                            return <option key={market.symbol} value={market.symbol}>{label} ({market.symbol})</option>;
+                        }) : <option value={selectedMarket}>{selectedMarket}</option>}
                     </select>
                 </label>
                 <label>
@@ -211,24 +228,16 @@ const AnalysisTool = observer(() => {
 
             <section className='analysis-tool__overview'>
                 <div className='analysis-tool__panel analysis-tool__latest'>
-                    <span className='analysis-tool__panel-label'>Latest digit</span>
-                    <div className='analysis-tool__digit-circle analysis-tool__digit-circle--latest'>
-                        {latestDigit === null ? '–' : latestDigit}
-                    </div>
-                    <span className='analysis-tool__muted'>{ticks.length.toLocaleString()} / {TICK_WINDOW.toLocaleString()} ticks collected</span>
+                    <span className='analysis-tool__panel-label'>Latest tick digit</span>
+                    <strong className='analysis-tool__metric-value'>{latestDigit === null ? '–' : latestDigit}</strong>
+                    <span className='analysis-tool__muted'>The glowing cursor follows this digit in the grid.</span>
                 </div>
                 <div className='analysis-tool__panel analysis-tool__leader'>
-                    <span className='analysis-tool__panel-label'>Most frequent digit</span>
-                    <div className='analysis-tool__leader-row'>
-                        <div className='analysis-tool__digit-circle analysis-tool__digit-circle--leader'>
-                            {ticks.length ? highestDigit.digit : '–'}
-                        </div>
-                        <div>
-                            <strong>{ticks.length ? highestDigit.percentage.toFixed(2) + '%' : '–'}</strong>
-                            <span className='analysis-tool__muted'>of observed ticks</span>
-                        </div>
-                    </div>
-                    <span className='analysis-tool__muted'>A statistical frequency leader, not a prediction guarantee.</span>
+                    <span className='analysis-tool__panel-label'>Frequency leader</span>
+                    <strong className='analysis-tool__metric-value analysis-tool__metric-value--leader'>
+                        {ticks.length ? highestDigit.digit + ' · ' + highestDigit.percentage.toFixed(2) + '%' : '–'}
+                    </strong>
+                    <span className='analysis-tool__muted'>Highest observed frequency in the current tick window.</span>
                 </div>
             </section>
 
@@ -242,8 +251,21 @@ const AnalysisTool = observer(() => {
                 </div>
                 <div className='analysis-tool__digit-grid'>
                     {frequencies.map(item => (
-                        <div className={`analysis-tool__digit-card${ticks.length && item.digit === highestDigit.digit ? ' is-leading' : ''}`} key={item.digit}>
-                            <div className='analysis-tool__digit-circle'>{item.digit}</div>
+                        <div
+                            className={[
+                                'analysis-tool__digit-card',
+                                ticks.length && item.digit === highestDigit.digit ? 'is-leading' : '',
+                                ticks.length > 1 && item.digit === rankedDigits[8].digit ? 'is-second' : '',
+                                ticks.length && item.digit === rankedDigits[0].digit ? 'is-lowest' : '',
+                                ticks.length > 1 && item.digit === rankedDigits[1].digit ? 'is-second-lowest' : '',
+                                latestDigit === item.digit ? 'is-current' : '',
+                            ].filter(Boolean).join(' ')}
+                            key={item.digit}
+                        >
+                            <div className='analysis-tool__digit-circle'>
+                                {item.digit}
+                                {latestDigit === item.digit && <span className='analysis-tool__tick-cursor' aria-label='Latest tick' />}
+                            </div>
                             <strong>{item.percentage.toFixed(1)}%</strong>
                             <span>{item.count} ticks</span>
                             <div className='analysis-tool__bar'><i style={{ width: `${item.percentage}%` }} /></div>
