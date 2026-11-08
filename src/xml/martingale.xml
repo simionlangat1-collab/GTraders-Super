@@ -592,7 +592,7 @@
                                         <mutation else="1"></mutation>
                                         <value name="IF0">
                                           <block type="logic_compare" id="%XaSru*P96b@:s~*f6/b">
-                                            <field name="OP">GT</field>
+                                            <field name="OP">GTE</field>
                                             <value name="A">
                                               <block type="variables_get" id=".j^jS`B22${#0xP~J7;S">
                                                 <field name="VAR" id="Kb@{Vb{+5IqV=d~y*dcr" variabletype="">martingale:totalProfit</field>
