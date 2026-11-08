@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { api_base } from '@/external/bot-skeleton';
+import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import './analysis-tool.scss';
 
 type TMarket = {
@@ -9,6 +10,8 @@ type TMarket = {
     market?: string;
     submarket?: string;
     exchange_is_open?: number;
+    pip_size?: number;
+    pip?: number;
 };
 
 type TTick = { quote: number; epoch: number; digit: number };
@@ -26,14 +29,17 @@ const CONTRACT_TYPES = [
     { value: 'PUT', label: 'Fall' },
 ];
 
-const getLastDigit = (quote: number) => {
-    const quoteText = String(quote);
+const getLastDigit = (quote: number | string, precision?: number) => {
+    const numericQuote = Number(quote);
+    const quoteText = Number.isFinite(precision) ? numericQuote.toFixed(precision) : String(quote);
     const decimals = quoteText.split('.')[1] || '';
     return Number((decimals || quoteText).slice(-1));
 };
 
 const AnalysisTool = observer(() => {
     const [markets, setMarkets] = useState<TMarket[]>([]);
+    const [marketPrecisions, setMarketPrecisions] = useState<Record<string, number>>({});
+    const [socketReady, setSocketReady] = useState(false);
     const [selectedMarket, setSelectedMarket] = useState('R_100');
     const [contractType, setContractType] = useState('all');
     const [ticks, setTicks] = useState<TTick[]>([]);
@@ -66,23 +72,42 @@ const AnalysisTool = observer(() => {
                 .filter((item: TMarket) => item.symbol && item.display_name)
                 .sort((a: TMarket, b: TMarket) => a.display_name.localeCompare(b.display_name));
             setMarkets(list);
-            if (list.length && !list.some((item: TMarket) => item.symbol === selectedMarket)) {
-                setSelectedMarket(list.find((item: TMarket) => item.symbol === 'R_100')?.symbol || list[0].symbol);
-            }
+            const precisions: Record<string, number> = {};
+            list.forEach((item: TMarket) => {
+                const pip = item.pip_size || item.pip;
+                if (pip && Number(pip) > 0) {
+                    const exponent = Number(Number(pip).toExponential().split('e')[1]);
+                    precisions[item.symbol] = Math.abs(exponent);
+                }
+            });
+            setMarketPrecisions(precisions);
+            setSelectedMarket(previous => list.some((item: TMarket) => item.symbol === previous)
+                ? previous
+                : list.find((item: TMarket) => item.symbol === 'R_100')?.symbol || list[0]?.symbol || previous);
             setConnection('connected');
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : 'Unable to load Deriv markets.');
             setConnection('disconnected');
         }
-    }, [selectedMarket]);
+    }, []);
 
     useEffect(() => {
-        loadMarkets();
+        const subscription = connectionStatus$.subscribe(status => {
+            const isOpen = status === CONNECTION_STATUS.OPENED;
+            setSocketReady(isOpen);
+            if (isOpen) loadMarkets();
+            else setConnection('disconnected');
+        });
+        if (api_base.api?.connection?.readyState === 1) {
+            setSocketReady(true);
+            loadMarkets();
+        }
+        return () => subscription.unsubscribe();
     }, [loadMarkets]);
 
     useEffect(() => {
         const api = api_base.api as any;
-        if (!api || api.connection?.readyState !== 1 || !selectedMarket) {
+        if (!socketReady || !api || api.connection?.readyState !== 1 || !selectedMarket) {
             setConnection('disconnected');
             return undefined;
         }
@@ -117,12 +142,12 @@ const AnalysisTool = observer(() => {
                     return;
                 }
                 const history = response?.history;
-                const prices: number[] = history?.prices || [];
+                const prices: (number | string)[] = history?.prices || [];
                 const times: number[] = history?.times || [];
                 setTicks(prices.map((price, index) => ({
                     quote: Number(price),
                     epoch: Number(times[index] || 0),
-                    digit: getLastDigit(Number(price)),
+                    digit: getLastDigit(price, marketPrecisions[selectedMarket] ?? api_base.pip_sizes?.[selectedMarket]),
                 })).slice(-TICK_WINDOW));
                 subscriptionId = response?.subscription?.id || '';
                 setConnection('connected');
@@ -140,7 +165,7 @@ const AnalysisTool = observer(() => {
             messageSubscription?.unsubscribe?.();
             if (subscriptionId) api.send({ forget: subscriptionId });
         };
-    }, [selectedMarket]);
+    }, [selectedMarket, socketReady, marketPrecisions]);
 
     const handleMarketChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedMarket(event.target.value);
