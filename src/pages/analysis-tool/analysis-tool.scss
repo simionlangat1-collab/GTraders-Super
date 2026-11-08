@@ -78,6 +78,7 @@
     }
     &__panel-label { display: block; margin-bottom: 1rem; color: var(--text-less-prominent); font-size: 1.15rem; font-weight: 600; }
     &__digit-circle {
+        position: relative;
         display: flex;
         width: 5.2rem;
         height: 5.2rem;
@@ -95,8 +96,8 @@
     &__digit-circle--latest { width: 6.4rem; height: 6.4rem; flex-basis: 6.4rem; font-size: 2.8rem; }
     &__digit-circle--leader { border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }
     &__latest { display: flex; align-items: center; flex-direction: column; text-align: center; }
-    &__leader-row { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 1rem; }
-    &__leader-row strong { display: block; color: #22c55e; font-size: 2.5rem; }
+    &__metric-value { display: block; color: var(--text-prominent); font-size: 2.8rem; font-weight: 800; line-height: 1.2; }
+    &__metric-value--leader { color: #22c55e; }
     &__muted { display: block; margin-top: 0.5rem; color: var(--text-less-prominent); font-size: 1.05rem; }
     &__section-heading {
         margin-bottom: 1.5rem;
@@ -104,7 +105,7 @@
         p { margin: 0.4rem 0 0; color: var(--text-less-prominent); font-size: 1.1rem; }
         > span { color: var(--text-less-prominent); font-size: 1.1rem; }
     }
-    &__digit-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 0.8rem; }
+    &__digit-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; }
     &__digit-card {
         display: flex;
         min-width: 0;
@@ -117,21 +118,34 @@
         background: var(--general-main-1);
         strong { color: var(--text-prominent); font-size: 1.2rem; }
         > span { color: var(--text-less-prominent); font-size: 0.95rem; }
-        &.is-leading { border-color: #22c55e; background: rgba(34, 197, 94, 0.06); }
-        &.is-leading .analysis-tool__digit-circle { border-color: #22c55e; background: rgba(34, 197, 94, 0.14); }
+        &.is-leading { border-color: #22c55e; background: rgba(34, 197, 94, 0.08); }
+        &.is-leading .analysis-tool__digit-circle { border-color: #22c55e; background: rgba(34, 197, 94, 0.16); color: #4ade80; }
+        &.is-second { border-color: #2583ff; }
+        &.is-second .analysis-tool__digit-circle { border-color: #2583ff; background: rgba(37, 131, 255, 0.16); }
+        &.is-lowest { border-color: #ef4444; }
+        &.is-lowest .analysis-tool__digit-circle { border-color: #ef4444; background: rgba(239, 68, 68, 0.14); color: #f87171; }
+        &.is-second-lowest { border-color: #eab308; }
+        &.is-second-lowest .analysis-tool__digit-circle { border-color: #eab308; background: rgba(234, 179, 8, 0.14); color: #facc15; }
+        &.is-current .analysis-tool__digit-circle { animation: analysis-tick-pulse 850ms ease-out infinite; box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.24), 0 0 1.2rem rgba(34, 211, 238, 0.55); }
+        &.is-current .analysis-tool__tick-cursor { position: absolute; top: -0.35rem; right: -0.2rem; width: 1rem; height: 1rem; border: 2px solid var(--general-section-1); border-radius: 50%; background: #22d3ee; box-shadow: 0 0 0.8rem #22d3ee; }
     }
     &__bar { width: 100%; height: 0.45rem; overflow: hidden; border-radius: 1rem; background: var(--border-normal); }
     &__bar i { display: block; height: 100%; border-radius: inherit; background: #2583ff; }
     &__error { padding: 1rem; border: 1px solid #ef4444; border-radius: 0.8rem; color: #ef4444; font-size: 1.1rem; }
     &__disclaimer { margin: 0; color: var(--text-less-prominent); font-size: 1.05rem; line-height: 1.5; }
 
+    @keyframes analysis-tick-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+        100% { transform: scale(1); }
+    }
+
     @media (max-width: 900px) {
         padding: 1rem;
         gap: 1rem;
         &__controls { grid-template-columns: 1fr 1fr; }
         &__window { grid-column: 1 / -1; }
-        &__digit-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-    }
+        }
     @media (max-width: 600px) {
         min-height: var(--tab-content-height-mobile);
         &__header { align-items: flex-start; flex-direction: column; }
@@ -139,6 +153,6 @@
         &__controls, &__overview { grid-template-columns: 1fr; }
         &__window { grid-column: auto; }
         &__digit-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-        &__leader-row strong { font-size: 2rem; }
+        &__metric-value { font-size: 2.3rem; }
     }
 }
