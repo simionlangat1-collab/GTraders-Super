@@ -73,12 +73,10 @@ const AnalysisTool = observer(() => {
             return;
         }
         try {
-            // Request the full, unfiltered Deriv catalogue so every available
-            // market and symbol can be selected in this independent analyzer.
-            const response = await api.send({ active_symbols: 'full' });
-            const payload = typeof response === 'string' ? JSON.parse(response) : response;
-            const data = payload?.data ?? payload;
-            const list = (data?.active_symbols || [])
+            // Use the same active-symbol loader as the rest of GTraders Super.
+            // The "brief" catalogue contains the complete active symbol list
+            // while keeping this tool on the app's established API path.
+            const list = ((await api_base.getActiveSymbols()) || [])
                 .filter((item: TMarket) => item.symbol)
                 .map((item: TMarket) => ({ ...item, display_name: item.display_name || item.symbol }))
                 .sort((a: TMarket, b: TMarket) => {
@@ -122,8 +120,12 @@ const AnalysisTool = observer(() => {
 
     useEffect(() => {
         const api = api_base.api as any;
-        if (!socketReady || !api || api.connection?.readyState !== 1 || !selectedMarket) {
+        if (!socketReady || !api || api.connection?.readyState !== 1) {
             setConnection('disconnected');
+            return undefined;
+        }
+        if (!selectedMarket) {
+            setConnection('connecting');
             return undefined;
         }
 
@@ -134,7 +136,7 @@ const AnalysisTool = observer(() => {
         setConnection('connecting');
 
         const messageSubscription = api.onMessage().subscribe((message: any) => {
-            const data = message?.data;
+            const data = message?.data ?? message;
             if (!active || data?.msg_type !== 'tick' || data.tick?.symbol !== selectedMarket) return;
             const quote = Number(data.tick.quote);
             const epoch = Number(data.tick.epoch);
