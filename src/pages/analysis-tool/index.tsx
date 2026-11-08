@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { api_base } from '@/external/bot-skeleton';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
-import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import './analysis-tool.scss';
 
 type TMarket = {
@@ -39,8 +38,6 @@ const getLastDigit = (quote: number | string, precision?: number) => {
 
 const AnalysisTool = observer(() => {
     const [markets, setMarkets] = useState<TMarket[]>([]);
-    const [marketPrecisions, setMarketPrecisions] = useState<Record<string, number>>({});
-    const [socketReady, setSocketReady] = useState(false);
     const [marketPrecisions, setMarketPrecisions] = useState<Record<string, number>>({});
     const [socketReady, setSocketReady] = useState(false);
     const [selectedMarket, setSelectedMarket] = useState('R_100');
@@ -127,7 +124,7 @@ const AnalysisTool = observer(() => {
             const quote = Number(data.tick.quote);
             const epoch = Number(data.tick.epoch);
             if (!Number.isFinite(quote) || !Number.isFinite(epoch)) return;
-            const precision = marketPrecisions[selectedMarket] ?? api_base.pip_sizes?.[selectedMarket];
+            const precision = marketPrecisions[selectedMarket] ?? (api_base.pip_sizes as Record<string, number>)?.[selectedMarket];
             setTicks(previous => [...previous, { quote, epoch, digit: getLastDigit(data.tick.quote, precision) }].slice(-TICK_WINDOW));
         });
 
