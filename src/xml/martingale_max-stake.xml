@@ -18,6 +18,7 @@
     <variable type="" id="3^~61:59m?#VJ(:SG^^[" islocal="false" iscloud="false">setMaxStake?</variable>
     <variable type="" id="]6T=O624:eVRioXro1kh" islocal="false" iscloud="false">Notification:currentStake</variable>
     <variable type="" id="lES4b_A$jwUMq,9_z2,I" islocal="false" iscloud="false">Notification:maxStakeExceeds</variable>
+    <variable type="" id="gkPurchasePriceAuto" islocal="false" iscloud="false">martingale:purchasePrice</variable>
   </variables>
   <block type="trade_definition" id="i]`fLRZ]?mshi{9kS+fg" deletable="false" x="0" y="0">
     <statement name="TRADE_OPTIONS">
@@ -101,6 +102,7 @@
           <block type="procedures_callreturn" id="_ES]wQc*K9uQmJ1a:MA,">
             <mutation name="Martingale Trade Again After Purchase">
               <arg name="martingale:profit"></arg>
+              <arg name="martingale:purchasePrice"></arg>
               <arg name="martingale:resultIsWin"></arg>
             </mutation>
             <data>N,_%hZ47`]!eOyc7%u8]</data>
@@ -110,6 +112,11 @@
               </block>
             </value>
             <value name="ARG1">
+              <block type="read_details" id="gk-auto-purchase-price">
+                <field name="DETAIL_INDEX">2</field>
+              </block>
+            </value>
+            <value name="ARG2">
               <block type="contract_check_result" id="N85;,Dl!TJMa_U[tgj6#">
                 <field name="CHECK_RESULT">win</field>
               </block>
@@ -207,8 +214,8 @@
                           <shadow type="math_number" id="#Om$-j0C[l$EXD$2JdKl">
                             <field name="NUM">2</field>
                           </shadow>
-                          <block type="variables_get" id="OIfB4l~Tv5_$I;ILt79^">
-                            <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">martingale:size</field>
+                          <block type="variables_get" id="gk-get-auto-purchase-price">
+                            <field name="VAR" id="gkPurchasePriceAuto" variabletype="">martingale:purchasePrice</field>
                           </block>
                         </value>
                       </block>
@@ -462,6 +469,7 @@
   <block type="procedures_defreturn" id="N,_%hZ47`]!eOyc7%u8]" collapsed="true" x="0" y="1024">
     <mutation>
       <arg name="martingale:profit" varid="[M$5RsD`g|8-P;C+mbf4"></arg>
+      <arg name="martingale:purchasePrice" varid="gkPurchasePriceAuto"></arg>
       <arg name="martingale:resultIsWin" varid="x]b3MHpbtR?cJQDP@,eG"></arg>
     </mutation>
     <field name="NAME">Martingale Trade Again After Purchase</field>
