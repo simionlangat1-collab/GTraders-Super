@@ -21,6 +21,7 @@
     <variable type="" id="]6T=O624:eVRioXro1kh" islocal="false" iscloud="false">Notification:currentStake</variable>
     <variable type="" id="lES4b_A$jwUMq,9_z2,I" islocal="false" iscloud="false">Notification:maxStakeExceeds</variable>
     <variable type="" id="gk-payout-rate-var" islocal="false" iscloud="false">martingale:payoutRate</variable>
+    <variable type="" id="gkPurchasePriceAuto" islocal="false" iscloud="false">martingale:purchasePrice</variable>
   </variables>
   <block type="trade_definition" id="i]`fLRZ]?mshi{9kS+fg" deletable="false" x="0" y="0">
     <statement name="TRADE_OPTIONS">
@@ -154,6 +155,7 @@
           <block type="procedures_callreturn" id="_ES]wQc*K9uQmJ1a:MA,">
             <mutation name="Martingale Trade Again After Purchase">
               <arg name="martingale:profit"></arg>
+              <arg name="martingale:purchasePrice"></arg>
               <arg name="martingale:resultIsWin"></arg>
             </mutation>
             <data>N,_%hZ47`]!eOyc7%u8]</data>
@@ -163,6 +165,11 @@
               </block>
             </value>
             <value name="ARG1">
+              <block type="read_details" id="gk-auto-purchase-price">
+                <field name="DETAIL_INDEX">2</field>
+              </block>
+            </value>
+            <value name="ARG2">
               <block type="contract_check_result" id="N85;,Dl!TJMa_U[tgj6#">
                 <field name="CHECK_RESULT">win</field>
               </block>
@@ -233,7 +240,7 @@
                   </block>
                 </value>
                 <statement name="DO0">
-                  <block type="variables_set" id="o`/I0!/s^K{7$xZtceYh"><field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field><value name="VALUE"><shadow type="math_number"><field name="NUM">1</field></shadow></value><next><block type="controls_if" id="gk-update-payout-after-win"><value name="IF0"><block type="logic_compare"><field name="OP">GT</field><value name="A"><block type="variables_get"><field name="VAR" id="[M$5RsD`g|8-P;C+mbf4" variabletype="">martingale:profit</field></block></value><value name="B"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block></value><statement name="DO0"><block type="variables_set"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field><value name="VALUE"><block type="math_arithmetic"><field name="OP">DIVIDE</field><value name="A"><block type="variables_get"><field name="VAR" id="[M$5RsD`g|8-P;C+mbf4" variabletype="">martingale:profit</field></block></value><value name="B"><block type="read_details" id="gk-actual-trade-stake"><field name="DETAIL_INDEX">2</field></block></value></block></value></block></statement></block></next></block>
+                  <block type="variables_set" id="o`/I0!/s^K{7$xZtceYh"><field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field><value name="VALUE"><shadow type="math_number"><field name="NUM">1</field></shadow></value><next><block type="controls_if" id="gk-update-payout-after-win"><value name="IF0"><block type="logic_compare"><field name="OP">GT</field><value name="A"><block type="variables_get"><field name="VAR" id="[M$5RsD`g|8-P;C+mbf4" variabletype="">martingale:profit</field></block></value><value name="B"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block></value><statement name="DO0"><block type="variables_set"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field><value name="VALUE"><block type="math_arithmetic"><field name="OP">DIVIDE</field><value name="A"><block type="variables_get"><field name="VAR" id="[M$5RsD`g|8-P;C+mbf4" variabletype="">martingale:profit</field></block></value><value name="B"><block type="variables_get" id="gk-get-auto-purchase-price"><field name="VAR" id="gkPurchasePriceAuto" variabletype="">martingale:purchasePrice</field></block></value></block></value></block></statement></block></next></block>
                 </statement>
                 <statement name="ELSE">
                   <block type="variables_set" id="DA78AxndLk]Q@dIBt7O|"><field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field><value name="VALUE"><block type="math_arithmetic" id="gk-cumulative-recovery"><field name="OP">ADD</field><value name="A"><block type="math_arithmetic"><field name="OP">DIVIDE</field><value name="A"><block type="math_single"><field name="OP">ABS</field><value name="NUM"><shadow type="math_number"><field name="NUM">0</field></shadow><block type="variables_get"><field name="VAR" id="Kb@{Vb{+5IqV=d~y*dcr" variabletype="">martingale:totalProfit</field></block></value></block></value><value name="B"><block type="math_arithmetic"><field name="OP">MULTIPLY</field><value name="A"><shadow type="math_number"><field name="NUM">1</field></shadow><block type="variables_get"><field name="VAR" id="[$B]vBH,~wrN`PUt5m/f" variabletype="">martingale:initialStake</field></block></value><value name="B"><shadow type="math_number"><field name="NUM">1</field></shadow><block type="variables_get"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field></block></value></block></value></block></value><value name="B"><block type="variables_get"><field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Multiplier</field></block></value></block></value></block>
@@ -436,6 +443,7 @@
   <block type="procedures_defreturn" id="N,_%hZ47`]!eOyc7%u8]" collapsed="true" x="0" y="1024">
     <mutation>
       <arg name="martingale:profit" varid="[M$5RsD`g|8-P;C+mbf4"></arg>
+      <arg name="martingale:purchasePrice" varid="gkPurchasePriceAuto"></arg>
       <arg name="martingale:resultIsWin" varid="x]b3MHpbtR?cJQDP@,eG"></arg>
     </mutation>
     <field name="NAME">Martingale Trade Again After Purchase</field>
