@@ -77,7 +77,8 @@ const AnalysisTool = observer(() => {
             // market and symbol can be selected in this independent analyzer.
             const response = await api.send({ active_symbols: 'full' });
             const payload = typeof response === 'string' ? JSON.parse(response) : response;
-            const list = (payload?.active_symbols || [])
+            const data = payload?.data ?? payload;
+            const list = (data?.active_symbols || [])
                 .filter((item: TMarket) => item.symbol)
                 .map((item: TMarket) => ({ ...item, display_name: item.display_name || item.symbol }))
                 .sort((a: TMarket, b: TMarket) => {
@@ -156,7 +157,8 @@ const AnalysisTool = observer(() => {
                     if (id) api.send({ forget: id });
                     return;
                 }
-                const history = response?.history;
+                const responseData = response?.data ?? response;
+                const history = responseData?.history;
                 const prices: (number | string)[] = history?.prices || [];
                 const times: number[] = history?.times || [];
                 setTicks(prices.map((price, index) => ({
@@ -164,7 +166,7 @@ const AnalysisTool = observer(() => {
                     epoch: Number(times[index] || 0),
                     digit: getLastDigit(price, marketPrecisions[selectedMarket] ?? api_base.pip_sizes?.[selectedMarket]),
                 })).slice(-TICK_WINDOW));
-                subscriptionId = response?.subscription?.id || '';
+                subscriptionId = responseData?.subscription?.id || response?.subscription?.id || '';
                 setConnection('connected');
             } catch (requestError) {
                 if (!active) return;
