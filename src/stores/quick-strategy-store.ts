@@ -316,12 +316,13 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                 showIncompatibleStrategyDialog: null,
             });
 
-            // Keep GK Pioneer initialization active in Blockly, but hide the two
-            // internal setup blocks from the visible workspace. The XML block IDs
-            // are not guaranteed to survive every Blockly import, so locate them
-            // by the variable they initialize and hide their rendered SVG roots.
+            // Keep GK Pioneer initialization active, but keep only the two
+            // internal setup blocks off the visible user workspace. The blocks
+            // are detached into their own top-level initialization blocks so the
+            // following user-facing controls keep their normal position with no
+            // blank/black gap. They remain part of Blockly code generation.
             if (isGKPioneerMode) {
-                const hideGKPioneerInternalBlocks = () => {
+                const isolateGKPioneerInternalBlocks = () => {
                     const internalVariableIds = [
                         '[$B]vBH,~wrN`PUt5m/f',
                         'gk-payout-rate-var',
@@ -335,30 +336,33 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
 
                         if (!internalVariableIds.includes(String(variableId))) return;
 
+                        // Detach only this internal block from the visible
+                        // initialization chain. Its following block becomes
+                        // the start of the user-facing chain.
+                        if (block.nextConnection?.isConnected()) {
+                            block.nextConnection.disconnect();
+                        }
+
+                        // Keep the internal calculation active as a top-level
+                        // Blockly block, but place it well outside the normal
+                        // visible workspace area.
+                        block.moveBy(-2000, -2000);
+
                         const blockWithVisibility = block as typeof block & {
                             setVisible?: (visible: boolean) => void;
-                            getSvgRoot?: () => SVGElement | null;
                         };
 
-                        // Do not call Blockly's setVisible(false) here: for blocks
-                        // connected in the initialization chain it can hide the
-                        // following user-facing blocks as well. Hide only this
-                        // block's rendered SVG element instead.
-                        const svgRoot = blockWithVisibility.getSvgRoot?.();
-                        if (svgRoot) {
-                            svgRoot.style.display = 'none';
-                            svgRoot.setAttribute('data-gk-internal-hidden', 'true');
-                        }
+                        // It is now safely disconnected, so hiding this block
+                        // cannot hide any user-facing blocks.
+                        blockWithVisibility.setVisible?.(false);
                     });
                 };
 
-                hideGKPioneerInternalBlocks();
+                isolateGKPioneerInternalBlocks();
 
-                // Run again after Blockly's render/layout pass so the blocks
-                // remain invisible even if the imported workspace re-renders.
                 requestAnimationFrame(() => {
-                    hideGKPioneerInternalBlocks();
-                    requestAnimationFrame(hideGKPioneerInternalBlocks);
+                    isolateGKPioneerInternalBlocks();
+                    requestAnimationFrame(isolateGKPioneerInternalBlocks);
                 });
             }
 
