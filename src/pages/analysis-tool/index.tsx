@@ -73,10 +73,10 @@ const AnalysisTool = observer(() => {
             return;
         }
         try {
-            // Reuse the app's shared active-symbol loader so the analyzer receives
-            // the complete Deriv symbol catalogue, not a hard-coded market list.
-            const response = await api_base.getActiveSymbols();
-            const list = (response || [])
+            // Request the full, unfiltered Deriv catalogue so every available
+            // market and symbol can be selected in this independent analyzer.
+            const response = await api.send({ active_symbols: 'full' });
+            const list = (response?.active_symbols || [])
                 .filter((item: TMarket) => item.symbol)
                 .map((item: TMarket) => ({ ...item, display_name: item.display_name || item.symbol }))
                 .sort((a: TMarket, b: TMarket) => {
