@@ -44,6 +44,7 @@ const AnalysisTool = observer(() => {
     const [socketReady, setSocketReady] = useState(false);
     const [selectedMarket, setSelectedMarket] = useState('R_100');
     const [contractType, setContractType] = useState('all');
+    const [overUnderDigit, setOverUnderDigit] = useState(5);
     const [ticks, setTicks] = useState<TTick[]>([]);
     const [connection, setConnection] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const [error, setError] = useState('');
@@ -61,6 +62,32 @@ const AnalysisTool = observer(() => {
         [frequencies]
     );
     const latestDigit = ticks.length ? ticks[ticks.length - 1].digit : null;
+    // Over/Under percentages are conditional on outcomes above or below the
+    // selected barrier. The barrier digit itself is excluded and disclosed.
+    const overUnderStats = useMemo(() => {
+        const overCount = ticks.filter(tick => tick.digit > overUnderDigit).length;
+        const underCount = ticks.filter(tick => tick.digit < overUnderDigit).length;
+        const excludedCount = ticks.filter(tick => tick.digit === overUnderDigit).length;
+        const eligibleCount = overCount + underCount;
+        return {
+            overCount,
+            underCount,
+            excludedCount,
+            eligibleCount,
+            overPercentage: eligibleCount ? (overCount / eligibleCount) * 100 : 0,
+            underPercentage: eligibleCount ? (underCount / eligibleCount) * 100 : 0,
+        };
+    }, [ticks, overUnderDigit]);
+    const evenOddStats = useMemo(() => {
+        const evenCount = ticks.filter(tick => tick.digit % 2 === 0).length;
+        const oddCount = ticks.length - evenCount;
+        return {
+            evenCount,
+            oddCount,
+            evenPercentage: ticks.length ? (evenCount / ticks.length) * 100 : 0,
+            oddPercentage: ticks.length ? (oddCount / ticks.length) * 100 : 0,
+        };
+    }, [ticks]);
     const rankedDigits = useMemo(
         () => [...frequencies].sort((a, b) => a.count - b.count || a.digit - b.digit),
         [frequencies]
@@ -209,12 +236,11 @@ const AnalysisTool = observer(() => {
                     <span>Market</span>
                     <select value={selectedMarket} onChange={handleMarketChange}>
                         {markets.length ? markets.map(market => {
-                            const group = market.market_display || market.market || 'Other markets';
-                            const submarket = market.submarket_display || market.submarket;
-                            const label = [group, submarket, market.display_name]
-                                .filter((value, index, values) => value && values.indexOf(value) === index)
-                                .join(' · ');
-                            return <option key={market.symbol} value={market.symbol}>{label} ({market.symbol})</option>;
+                            // Keep the original Deriv symbol as the option value;
+                            // only simplify the human-readable label.
+                            const label = (market.display_name || market.symbol)
+                                .replace(/^(?:Synthetic_Indices|Random_Index)\s*[•·\-:]\s*/i, '');
+                            return <option key={market.symbol} value={market.symbol}>{label}</option>;
                         }) : <option value='' disabled>Loading all Deriv markets…</option>}
                     </select>
                 </label>
@@ -278,6 +304,114 @@ const AnalysisTool = observer(() => {
                         </div>
                     ))}
                 </div>
+            </section>
+
+            <section className='analysis-tool__probability-section'>
+                <div className='analysis-tool__section-heading'>
+                    <div>
+                        <h2>Over / Under probability</h2>
+                        <p>Choose a barrier digit to compare the live tick distribution</p>
+                    </div>
+                    <span>{ticks.length.toLocaleString()} / {TICK_WINDOW.toLocaleString()} ticks</span>
+                </div>
+                <div className='analysis-tool__barrier-control'>
+                    <label htmlFor='analysis-over-under-digit'>Over / Under digit</label>
+                    <select
+                        id='analysis-over-under-digit'
+                        value={overUnderDigit}
+                        onChange={event => setOverUnderDigit(Number(event.target.value))}
+                    >
+                        {Array.from({ length: 10 }, (_, digit) => (
+                            <option key={digit} value={digit}>{digit}</option>
+                        ))}
+                    </select>
+                    <span>Barrier digit {overUnderDigit} is excluded from both sides.</span>
+                </div>
+                <div className='analysis-tool__probability-grid'>
+                    <article className='analysis-tool__probability-card analysis-tool__probability-card--over'>
+                        <div className='analysis-tool__probability-card-top'>
+                            <div>
+                                <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
+                                <h3>OVER {overUnderDigit}</h3>
+                            </div>
+                            <strong>{ticks.length ? overUnderStats.overPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                        </div>
+                        <div className='analysis-tool__probability-track'>
+                            <i style={{ width: `${overUnderStats.overPercentage}%` }} />
+                        </div>
+                        <div className='analysis-tool__probability-meta'>
+                            <span>{overUnderStats.overCount.toLocaleString()} ticks</span>
+                            <span>Above {overUnderDigit}</span>
+                        </div>
+                    </article>
+                    <article className='analysis-tool__probability-card analysis-tool__probability-card--under'>
+                        <div className='analysis-tool__probability-card-top'>
+                            <div>
+                                <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
+                                <h3>UNDER {overUnderDigit}</h3>
+                            </div>
+                            <strong>{ticks.length ? overUnderStats.underPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                        </div>
+                        <div className='analysis-tool__probability-track'>
+                            <i style={{ width: `${overUnderStats.underPercentage}%` }} />
+                        </div>
+                        <div className='analysis-tool__probability-meta'>
+                            <span>{overUnderStats.underCount.toLocaleString()} ticks</span>
+                            <span>Below {overUnderDigit}</span>
+                        </div>
+                    </article>
+                </div>
+                <p className='analysis-tool__probability-note'>
+                    {overUnderStats.eligibleCount.toLocaleString()} eligible ticks · {overUnderStats.excludedCount.toLocaleString()} occurrences of barrier digit {overUnderDigit} excluded.
+                    {overUnderStats.eligibleCount ? ` Over + Under = ${(overUnderStats.overPercentage + overUnderStats.underPercentage).toFixed(1)}%.` : ' Waiting for eligible ticks on either side of the barrier.'}
+                </p>
+            </section>
+
+            <section className='analysis-tool__probability-section analysis-tool__parity-section'>
+                <div className='analysis-tool__section-heading'>
+                    <div>
+                        <h2>Even / Odd probability</h2>
+                        <p>Live parity distribution across all observed digits</p>
+                    </div>
+                    <span>{ticks.length.toLocaleString()} samples</span>
+                </div>
+                <div className='analysis-tool__probability-grid'>
+                    <article className='analysis-tool__probability-card analysis-tool__probability-card--even'>
+                        <div className='analysis-tool__probability-card-top'>
+                            <div>
+                                <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
+                                <h3>EVEN</h3>
+                            </div>
+                            <strong>{ticks.length ? evenOddStats.evenPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                        </div>
+                        <div className='analysis-tool__probability-track'>
+                            <i style={{ width: `${evenOddStats.evenPercentage}%` }} />
+                        </div>
+                        <div className='analysis-tool__probability-meta'>
+                            <span>{evenOddStats.evenCount.toLocaleString()} ticks</span>
+                            <span>0 · 2 · 4 · 6 · 8</span>
+                        </div>
+                    </article>
+                    <article className='analysis-tool__probability-card analysis-tool__probability-card--odd'>
+                        <div className='analysis-tool__probability-card-top'>
+                            <div>
+                                <span className='analysis-tool__probability-kicker'>DIGIT CONTRACT</span>
+                                <h3>ODD</h3>
+                            </div>
+                            <strong>{ticks.length ? evenOddStats.oddPercentage.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                        </div>
+                        <div className='analysis-tool__probability-track'>
+                            <i style={{ width: `${evenOddStats.oddPercentage}%` }} />
+                        </div>
+                        <div className='analysis-tool__probability-meta'>
+                            <span>{evenOddStats.oddCount.toLocaleString()} ticks</span>
+                            <span>1 · 3 · 5 · 7 · 9</span>
+                        </div>
+                    </article>
+                </div>
+                <p className='analysis-tool__probability-note'>
+                    Even + Odd = {ticks.length ? (evenOddStats.evenPercentage + evenOddStats.oddPercentage).toFixed(1) : '0.0'}% · Both groups use all digits, with no excluded outcomes.
+                </p>
             </section>
 
             <p className='analysis-tool__disclaimer'>
