@@ -340,11 +340,14 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                             getSvgRoot?: () => SVGElement | null;
                         };
 
-                        blockWithVisibility.setVisible?.(false);
-
+                        // Do not call Blockly's setVisible(false) here: for blocks
+                        // connected in the initialization chain it can hide the
+                        // following user-facing blocks as well. Hide only this
+                        // block's rendered SVG element instead.
                         const svgRoot = blockWithVisibility.getSvgRoot?.();
                         if (svgRoot) {
                             svgRoot.style.display = 'none';
+                            svgRoot.setAttribute('data-gk-internal-hidden', 'true');
                         }
                     });
                 };
