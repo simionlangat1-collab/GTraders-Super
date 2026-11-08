@@ -46,6 +46,7 @@ import './main.scss';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 const Tutorial = lazy(() => import('../tutorials'));
+const AnalysisTool = lazy(() => import('../analysis-tool'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -78,7 +79,7 @@ const AppWrapper = observer(() => {
     const { clear } = summary_card;
     const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots'];
+    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -454,6 +455,16 @@ const AppWrapper = observer(() => {
                                 id='id-free-bots'
                             >
                                 <FreeBots />
+                            </div>
+                            <div
+                                label={<Localize i18n_default_text='Analysis Tool' />}
+                                id='id-analysis-tool'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Loading Analysis Tool...')} />}
+                                >
+                                    <AnalysisTool />
+                                </Suspense>
                             </div>
                         </Tabs>
                         {!isDesktop && right_tab_shadow && <span className='tabs-shadow tabs-shadow--right' />}{' '}
