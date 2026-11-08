@@ -171,6 +171,8 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
     };
 
     onSubmit = async (data: TFormData) => {
+        // Capture the GK Pioneer context before setFormVisibility(false) resets the mode.
+        const isGKPioneerMode = this.is_gk_pioneer_mode;
         const { contracts_for } = ApiHelpers?.instance ?? {};
 
         if (!contracts_for) {
@@ -313,6 +315,15 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                 strategy_id: null,
                 showIncompatibleStrategyDialog: null,
             });
+
+            // Keep GK Pioneer initialization active in Blockly, but hide the two
+            // internal setup blocks from the visible workspace.
+            if (isGKPioneerMode) {
+                ['gk-initial-stake-init', 'gk-payout-rate-init'].forEach(blockId => {
+                    const internalBlock = workspace.getBlockById(blockId);
+                    internalBlock?.setVisible(false);
+                });
+            }
 
             if (action === 'RUN') {
                 await blockCreated;
