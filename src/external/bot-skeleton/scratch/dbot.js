@@ -360,6 +360,12 @@ class DBot {
         return true;
     }
 
+    releaseExecutionSession(workspace = this.workspace) {
+        const owner = this.getSessionOwner(workspace);
+        tradingSessionLock.release(owner);
+        if (this.active_session_owner === owner) this.active_session_owner = null;
+    }
+
     runBot(workspace = this.workspace) {
         if (api_base.is_stopping) return false;
 
