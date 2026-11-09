@@ -148,8 +148,9 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                 <div className='acc-switcher-modal-overlay' onClick={() => setIsOpen(false)}>
                     <div
                         className='acc-switcher-modal'
-                        role='listbox'
-                        aria-label='Choose Deriv account'
+                        role='dialog'
+                        aria-modal='true'
+                        aria-label='Switch Deriv account'
                         onClick={e => e.stopPropagation()}
                     >
                         <div className='acc-switcher-modal__header'>
@@ -163,7 +164,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                 ×
                             </button>
                         </div>
-                        <div className='acc-switcher-modal__accounts'>
+                        <div className='acc-switcher-modal__accounts' role='listbox' aria-label='Available accounts'>
                             {realAccount && (
                                 <div
                                     key={realAccount.loginid}
