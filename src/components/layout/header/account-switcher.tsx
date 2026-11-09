@@ -10,7 +10,7 @@ import { isDemoAccount } from '@/utils/account-helpers';
 import { Localize } from '@deriv-com/translations';
 import { TAccountSwitcher } from './common/types';
 import AccountInfoWrapper from './account-info-wrapper';
-import { getToken } from '@/external/bot-skeleton/services/api/appId';
+import { OAuthTokenExchangeService } from '@/services/oauth-token-exchange.service';
 import brandConfig from '../../../../brand.config.json';
 import { isProduction } from '@/components/shared';
 import { setAccountList } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
@@ -69,7 +69,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
 
             setResettingAccount(loginid);
             try {
-                const accessToken = getToken().token;
+                const accessToken = OAuthTokenExchangeService.getAccessToken();
                 if (typeof accessToken !== 'string' || !accessToken) {
                     throw new Error('Your Deriv session token could not be found. Please log in again.');
                 }
