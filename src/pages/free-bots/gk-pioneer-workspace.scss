@@ -64,6 +64,15 @@
             background: #f7f8ff;
             color: #344568;
         }
+
+        &--stop {
+            background: linear-gradient(105deg, #dc315f, #a52383);
+        }
+
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
     }
 
     &__status {
