@@ -22,21 +22,24 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const isSingleAccount = !accountList || accountList.length <= 1;
 
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-                setIsOpen(false);
-            }
-        };
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setIsOpen(false);
         };
-        document.addEventListener('mousedown', handleClickOutside);
+
         document.addEventListener('keydown', handleKeyDown);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('keydown', handleKeyDown);
-        };
+        return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [isOpen]);
 
     const toggleDropdown = useCallback(() => {
         if (is_bot_running || isSingleAccount) return;
@@ -79,7 +82,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     role={showChevron ? 'button' : undefined}
                     tabIndex={showChevron ? 0 : -1}
                     aria-expanded={showChevron ? isOpen : undefined}
-                    aria-haspopup={showChevron ? 'listbox' : undefined}
+                    aria-haspopup={showChevron ? 'dialog' : undefined}
                     className={classNames('acc-info', {
                         'acc-info--is-virtual': isVirtual,
                         'acc-info--interactive': showChevron,
@@ -93,7 +96,9 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     }}
                 >
                     <span className='acc-info__id' aria-hidden='true'></span>
-                    <span className='acc-info__flag' role='img' aria-label='United States flag'>🇺🇸</span>
+                    <span className='acc-info__flag' role='img' aria-label='United States flag'>
+                        🇺🇸
+                    </span>
                     <div className='acc-info__content'>
                         <div className='acc-info__account-type-header'>
                             <Text as='p' size='xs' className='acc-info__account-type'>
@@ -132,7 +137,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                     {!currency ? (
                                         <Localize i18n_default_text='No currency assigned' />
                                     ) : (
-                                        `${balance} ${getCurrencyDisplayCode(currency)}`
+                                        balance + ' ' + getCurrencyDisplayCode(currency)
                                     )}
                                 </p>
                             </div>
@@ -140,47 +145,70 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     </div>
                 </div>
             </AccountInfoWrapper>
+
             {isOpen && (
-                <div className='acc-dropdown' role='listbox'>
-                    {formattedAccounts.map(account => (
-                        <div
-                            key={account.loginid}
-                            role='option'
-                            aria-selected={account.isActive}
-                            tabIndex={0}
-                            className={classNames('acc-dropdown__account', {
-                                'acc-dropdown__account--selected': account.isActive,
-                                'acc-dropdown__account--virtual': account.isVirtual,
-                            })}
-                            onClick={() => !account.isActive && handleAccountSelect(account.loginid)}
-                            onKeyDown={e => {
-                                if (!account.isActive && (e.key === 'Enter' || e.key === ' ')) {
-                                    e.preventDefault();
-                                    handleAccountSelect(account.loginid);
-                                }
-                            }}
-                        >
-                            <Text
-                                size='xxxs'
-                                className={classNames('acc-dropdown__account-type', {
-                                    'acc-dropdown__account-type--virtual': account.isVirtual,
-                                })}
+                <div
+                    className='acc-modal'
+                    role='dialog'
+                    aria-modal='true'
+                    aria-label='Switch account'
+                    onMouseDown={e => {
+                        if (e.target === e.currentTarget) setIsOpen(false);
+                    }}
+                >
+                    <div className='acc-modal__card'>
+                        <div className='acc-modal__header'>
+                            <div>
+                                <p className='acc-modal__eyebrow'>ACCOUNT</p>
+                                <h2>Switch account</h2>
+                            </div>
+                            <button
+                                type='button'
+                                className='acc-modal__close'
+                                aria-label='Close account switcher'
+                                onClick={() => setIsOpen(false)}
                             >
-                                {account.isVirtual ? (
-                                    <Localize i18n_default_text='Demo account' />
-                                ) : (
-                                    <Localize i18n_default_text='Real account' />
-                                )}
-                            </Text>
-                            <Text size='xs' weight='bold' className='acc-dropdown__balance'>
-                                {account.currency ? (
-                                    `${account.balance} ${getCurrencyDisplayCode(account.currency)}`
-                                ) : (
-                                    <Localize i18n_default_text='No currency assigned' />
-                                )}
-                            </Text>
+                                ×
+                            </button>
                         </div>
-                    ))}
+
+                        <div className='acc-modal__accounts'>
+                            {formattedAccounts.map(account => (
+                                <div
+                                    key={account.loginid}
+                                    role='option'
+                                    aria-selected={account.isActive}
+                                    tabIndex={0}
+                                    className={classNames('acc-modal__account', {
+                                        'acc-modal__account--selected': account.isActive,
+                                        'acc-modal__account--virtual': account.isVirtual,
+                                    })}
+                                    onClick={() => !account.isActive && handleAccountSelect(account.loginid)}
+                                    onKeyDown={e => {
+                                        if (!account.isActive && (e.key === 'Enter' || e.key === ' ')) {
+                                            e.preventDefault();
+                                            handleAccountSelect(account.loginid);
+                                        }
+                                    }}
+                                >
+                                    <span className='acc-modal__flag' aria-hidden='true'>
+                                        🇺🇸
+                                    </span>
+                                    <div className='acc-modal__account-info'>
+                                        <span className='acc-modal__account-type'>
+                                            {account.isVirtual ? 'Demo account' : 'Real account'}
+                                        </span>
+                                        <span className='acc-modal__balance'>
+                                            {account.currency
+                                                ? account.balance + ' ' + getCurrencyDisplayCode(account.currency)
+                                                : 'No currency assigned'}
+                                        </span>
+                                    </div>
+                                    {account.isActive && <span className='acc-modal__check'>✓</span>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
