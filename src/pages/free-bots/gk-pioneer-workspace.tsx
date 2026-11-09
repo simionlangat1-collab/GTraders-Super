@@ -98,6 +98,10 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                     setStatus('Independent G-K Pioneer workspace is ready. Changes are saved on this device.');
                 }
 
+                if (!workspace.getAllBlocks(false).length) {
+                    throw new Error('The starter strategy did not load into the independent workspace. Please reopen G-K Pioneer after Bot Builder has finished loading.');
+                }
+
                 window.dispatchEvent(new Event('resize'));
             } catch (initializationError) {
                 if (!cancelled) {
