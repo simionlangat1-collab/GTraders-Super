@@ -54,6 +54,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
 
                 workspace.RTL = originalWorkspace.RTL;
                 workspaceRef.current = workspace;
+                run_panel.setExecutionWorkspace(workspace);
 
                 const persistWorkspace = (event: any) => {
                     if (event?.isUiEvent || event?.type === Blockly.Events.UI) return;
@@ -116,6 +117,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
 
         return () => {
             cancelled = true;
+            run_panel.setExecutionWorkspace(null);
             if (workspaceRef.current) {
                 try {
                     const Blockly = window.Blockly;
@@ -129,26 +131,6 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
             }
         };
     }, [quick_strategy]);
-
-    const runBot = () => {
-        const workspace = workspaceRef.current;
-        if (!workspace) {
-            setError('The G-K Pioneer workspace is not ready yet.');
-            return;
-        }
-        if (sessionOwnedByAnotherBot) {
-            setError(`The shared Deriv engine is currently in use by ${tradingSessionLock.owner}. Stop that bot before starting G-K Pioneer.`);
-            return;
-        }
-        setError('');
-        setStatus('Validating G-K Pioneer blocks and starting the shared Deriv engine…');
-        void run_panel.onRunButtonClick(workspace);
-    };
-
-    const stopBot = () => {
-        run_panel.onStopButtonClick();
-        setStatus('Stop requested. The active contract will be handled by the Deriv engine.');
-    };
 
     const saveNow = () => {
         try {
@@ -175,11 +157,6 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 <div className='gk-pioneer__header-actions'>
                     <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={onBack} disabled={isGKPioneerRunning}>Back to Free Bots</button>
                     <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={saveNow}>Save Workspace</button>
-                    {isGKPioneerRunning ? (
-                        <button type='button' className='gk-pioneer__button gk-pioneer__button--stop' onClick={stopBot}>Stop G-K Pioneer</button>
-                    ) : (
-                        <button type='button' className='gk-pioneer__button' onClick={runBot} disabled={!workspaceRef.current || Boolean(error) || sessionOwnedByAnotherBot}>Run G-K Pioneer</button>
-                    )}
                 </div>
             </header>
             <div className='gk-pioneer__status' role='status'>
@@ -195,7 +172,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 <div className='gk-pioneer__workspace' ref={containerRef} />
             </div>
             <p className='gk-pioneer__note'>
-                This editor has its own blocks and saved workspace. Run and Stop use the shared Deriv trading engine; the original Bot Builder workspace remains separate.
+                This editor has its own blocks and saved workspace. The common Run/Stop control uses this workspace while G-K Pioneer is open; the original Bot Builder workspace remains separate.
             </p>
         </section>
     );
