@@ -4,7 +4,7 @@ import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observab
 import { useApiBase } from '@/hooks/useApiBase';
 import XvtSniperEngine from './xvt-sniper-engine';
 import GKPioneerWorkspace from './gk-pioneer-workspace';
-import { tradingSessionLock } from './trading-session-lock';
+import { tradingSessionLock } from '@/external/bot-skeleton/services/trading-session-lock';
 import './free-bots.scss';
 
 type TMarketOption = {
