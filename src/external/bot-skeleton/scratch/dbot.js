@@ -366,6 +366,13 @@ class DBot {
         if (this.active_session_owner === owner) this.active_session_owner = null;
     }
 
+    releaseActiveExecutionSession() {
+        if (this.active_session_owner) {
+            tradingSessionLock.release(this.active_session_owner);
+            this.active_session_owner = null;
+        }
+    }
+
     runBot(workspace = this.workspace) {
         if (api_base.is_stopping) return false;
 
