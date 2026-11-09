@@ -55,7 +55,9 @@ export default class RunPanelStore {
             setIsRunning: action,
             onRunButtonClick: action,
             is_contract_buying_in_progress: observable,
+            execution_workspace: observable,
             SetpurchaseInProgress: action,
+            setExecutionWorkspace: action,
             onStopButtonClick: action,
             onClearStatClick: action,
             clearStat: action,
@@ -108,6 +110,9 @@ export default class RunPanelStore {
     is_sell_requested = false;
     show_bot_stop_message = false;
     is_contract_buying_in_progress = false;
+    // The common Run/Stop control uses this workspace when G-K Pioneer is active.
+    // null means the normal Deriv Bot Builder workspace.
+    execution_workspace: any = null;
 
     run_id = '';
     onOkButtonClick: (() => void) | null = null;
@@ -159,6 +164,10 @@ export default class RunPanelStore {
         });
     };
 
+    setExecutionWorkspace = (workspace: any | null) => {
+        this.execution_workspace = workspace;
+    };
+
     onRunButtonClick = async (workspace?: any) => {
         let timer_counter = 1;
         if (window.sendRequestsStatistic) {
@@ -177,7 +186,7 @@ export default class RunPanelStore {
         const { summary_card } = this.root_store;
         const { client, ui } = this.core;
         const is_ios = mobileOSDetect() === 'iOS';
-        const targetWorkspace = workspace || this.dbot.workspace;
+        const targetWorkspace = workspace || this.execution_workspace || this.dbot.workspace;
 
         const acquireExecutionSession = (this.dbot as any).acquireExecutionSession;
         if (
