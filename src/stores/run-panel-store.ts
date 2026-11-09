@@ -186,10 +186,18 @@ export default class RunPanelStore {
         if (!workspace) this.dbot.saveRecentWorkspace();
 
         const originalWorkspace = this.dbot.workspace;
-        this.dbot.workspace = targetWorkspace;
-        this.dbot.unHighlightAllBlocks();
-        const should_run = this.dbot.shouldRunBot();
-        this.dbot.workspace = originalWorkspace;
+        let should_run = false;
+        try {
+            this.dbot.workspace = targetWorkspace;
+            this.dbot.unHighlightAllBlocks();
+            should_run = this.dbot.shouldRunBot();
+        } catch (validationError) {
+            console.error('G-K Pioneer workspace validation failed:', validationError);
+            (this.dbot as any).releaseExecutionSession(targetWorkspace);
+            return;
+        } finally {
+            this.dbot.workspace = originalWorkspace;
+        }
 
         if (!client.is_logged_in) {
             (this.dbot as any).releaseExecutionSession(targetWorkspace);
