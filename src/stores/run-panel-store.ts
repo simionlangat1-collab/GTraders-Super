@@ -204,7 +204,7 @@ export default class RunPanelStore {
         }
 
         if (!client.is_logged_in) {
-            (this.dbot as any).releaseExecutionSession(targetWorkspace);
+            (this.dbot as any).releaseExecutionSession?.(targetWorkspace);
             this.showLoginDialog();
             return;
         }
@@ -227,7 +227,7 @@ export default class RunPanelStore {
         // Keep the shared tick subscription aligned with whichever workspace
         // is about to run. This also restores the Bot Builder's market after G-K
         // Pioneer has used a different symbol.
-        const marketBlock = targetWorkspace?.getAllBlocks(false).find(
+        const marketBlock = targetWorkspace?.getAllBlocks?.(false)?.find(
             (block: any) => block.type === 'trade_definition_market'
         );
         const selectedSymbol = marketBlock?.getFieldValue('SYMBOL_LIST');
