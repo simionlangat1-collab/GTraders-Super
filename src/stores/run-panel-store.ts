@@ -600,6 +600,7 @@ export default class RunPanelStore {
         }
 
         this.setHasOpenContract(false);
+        if (!this.is_running) (this.dbot as any).releaseActiveExecutionSession();
 
         summary_card.clearContractUpdateConfigValues();
 
@@ -610,6 +611,7 @@ export default class RunPanelStore {
 
     onBotReadyEvent = () => {
         this.setIsRunning(false);
+        (this.dbot as any).releaseActiveExecutionSession();
         observer.unregisterAll('bot.bot_ready');
     };
 
