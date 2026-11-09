@@ -135,6 +135,22 @@
         margin-bottom: 0.2rem;
     }
 
+    &__flag {
+        align-items: center;
+        background: linear-gradient(145deg, #18243a, #10182b);
+        border: 1.5px solid #2583ff;
+        border-radius: 50%;
+        box-shadow: 0 0 8px rgb(37 131 255 / 45%), inset 0 0 4px rgb(34 211 238 / 20%);
+        display: inline-flex;
+        flex: 0 0 2.2rem;
+        font-size: 1.25rem;
+        height: 2.2rem;
+        justify-content: center;
+        line-height: 1;
+        overflow: hidden;
+        width: 2.2rem;
+    }
+
     &__account-type {
         @include typeface(--xxsmall-left-normal-green);
 
