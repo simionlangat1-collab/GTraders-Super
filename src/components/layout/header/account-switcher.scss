@@ -742,47 +742,49 @@
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    z-index: 3;
-    min-width: 16rem;
-    background-color: var(--general-main-2);
+    z-index: 1000;
+    min-width: 18rem;
+    background-color: #18243a;
+    border: 1px solid #2b3d5b;
     border-radius: $BORDER_RADIUS;
-    box-shadow: 0 8px 16px 0 var(--shadow-menu);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     overflow: hidden;
 
     &__account {
         display: flex;
         flex-direction: column;
-        padding: .8rem 1.6rem;
+        padding: 1rem 1.6rem;
         cursor: pointer;
-        background: var(--general-main-2);
+        background: #18243a;
+        color: #f4f7ff;
 
         &:not(:last-child) {
-            border-bottom: 1px solid var(--general-section-1);
+            border-bottom: 1px solid #2b3d5b;
         }
 
         &:hover:not(.acc-dropdown__account--selected) {
-            background: var(--state-hover);
+            background: #223452;
         }
 
         &--selected {
-            background: var(--state-active);
+            background: #263d60;
             cursor: default;
         }
     }
 
     &__account-type {
-        color: var(--status-success);
-        margin-bottom: 0.1rem;
-        line-height: 1.2;
+        color: #22d3a6;
+        margin-bottom: 0.2rem;
+        line-height: 1.3;
         font-size: 1.4rem;
 
         &--virtual {
-            color: $color-yellow;
+            color: #ffd166;
         }
     }
 
     &__balance {
-        color: var(--text-prominent);
+        color: #f4f7ff;
         line-height: 1.4;
         font-size: 1.2rem;
     }
