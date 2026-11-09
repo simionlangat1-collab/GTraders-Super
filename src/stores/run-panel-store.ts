@@ -212,6 +212,21 @@ export default class RunPanelStore {
             return;
         }
 
+        // The isolated editor does not share the Bot Builder's market block.
+        // Point the shared tick service at the symbol selected in G-K Pioneer.
+        if (workspace && targetWorkspace !== originalWorkspace) {
+            const marketBlock = targetWorkspace.getAllBlocks(false).find(
+                (block: any) => block.type === 'trade_definition_market'
+            );
+            const selectedSymbol = marketBlock?.getFieldValue('SYMBOL_LIST');
+            const interpreter = (this.dbot as any).interpreter;
+            if (selectedSymbol && interpreter?.unsubscribeFromTicksService && interpreter?.bot?.tradeEngine) {
+                this.dbot.symbol = selectedSymbol;
+                await interpreter.unsubscribeFromTicksService();
+                await interpreter.bot.tradeEngine.watchTicks(selectedSymbol);
+            }
+        }
+
         ui?.setAccountSwitcherDisabledMessage(
             localize(
                 'Account switching is disabled while your bot is running. Please stop your bot before switching accounts.'
