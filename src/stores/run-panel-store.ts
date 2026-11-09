@@ -220,19 +220,23 @@ export default class RunPanelStore {
             return;
         }
 
-        // The isolated editor does not share the Bot Builder's market block.
-        // Point the shared tick service at the symbol selected in G-K Pioneer.
-        if (workspace && targetWorkspace !== originalWorkspace) {
-            const marketBlock = targetWorkspace.getAllBlocks(false).find(
-                (block: any) => block.type === 'trade_definition_market'
-            );
-            const selectedSymbol = marketBlock?.getFieldValue('SYMBOL_LIST');
-            const interpreter = (this.dbot as any).interpreter;
-            if (selectedSymbol && interpreter?.unsubscribeFromTicksService && interpreter?.bot?.tradeEngine) {
-                this.dbot.symbol = selectedSymbol;
-                await interpreter.unsubscribeFromTicksService();
-                await interpreter.bot.tradeEngine.watchTicks(selectedSymbol);
-            }
+        // Keep the shared tick subscription aligned with whichever workspace
+        // is about to run. This also restores the Bot Builder's market after G-K
+        // Pioneer has used a different symbol.
+        const marketBlock = targetWorkspace?.getAllBlocks(false).find(
+            (block: any) => block.type === 'trade_definition_market'
+        );
+        const selectedSymbol = marketBlock?.getFieldValue('SYMBOL_LIST');
+        const interpreter = (this.dbot as any).interpreter;
+        if (
+            selectedSymbol &&
+            selectedSymbol !== this.dbot.symbol &&
+            interpreter?.unsubscribeFromTicksService &&
+            interpreter?.bot?.tradeEngine
+        ) {
+            this.dbot.symbol = selectedSymbol;
+            await interpreter.unsubscribeFromTicksService();
+            await interpreter.bot.tradeEngine.watchTicks(selectedSymbol);
         }
 
         ui?.setAccountSwitcherDisabledMessage(
