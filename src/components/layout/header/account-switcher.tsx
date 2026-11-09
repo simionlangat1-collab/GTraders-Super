@@ -10,10 +10,16 @@ import { isDemoAccount } from '@/utils/account-helpers';
 import { Localize } from '@deriv-com/translations';
 import { TAccountSwitcher } from './common/types';
 import AccountInfoWrapper from './account-info-wrapper';
+import { getToken } from '@/external/bot-skeleton/services/api/appId';
+import brandConfig from '../../../../brand.config.json';
+import { isProduction } from '@/components/shared';
+import { setAccountList } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
+import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 import './account-switcher.scss';
 
 const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [resettingAccount, setResettingAccount] = useState<string | null>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const { accountList, activeLoginid } = useApiBase();
     const { client, run_panel } = useStore() ?? {};
@@ -53,6 +59,61 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
             setIsOpen(false);
         },
         [client]
+    );
+
+    const handleResetDemoBalance = useCallback(
+        async (loginid: string) => {
+            if (resettingAccount || is_bot_running) return;
+            const confirmed = window.confirm('Reset this demo account balance to 10,000 USD?');
+            if (!confirmed) return;
+
+            setResettingAccount(loginid);
+            try {
+                const accessToken = getToken().token;
+                if (typeof accessToken !== 'string' || !accessToken) {
+                    throw new Error('Your Deriv session token could not be found. Please log in again.');
+                }
+
+                const environment = isProduction() ? 'production' : 'staging';
+                const baseURL = brandConfig.platform.derivws.url[environment];
+                const optionsDir = brandConfig.platform.derivws.directories.options;
+                const response = await fetch(
+                    `${baseURL}${optionsDir}accounts/${encodeURIComponent(loginid)}/reset-demo-balance`,
+                    {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                    }
+                );
+
+                if (!response.ok) {
+                    let message = 'Deriv could not reset this demo balance. Please try again.';
+                    try {
+                        const body = await response.json();
+                        message = body?.errors?.[0]?.message || message;
+                    } catch {
+                        // Keep the friendly fallback message.
+                    }
+                    throw new Error(message);
+                }
+
+                const refreshedAccounts = await DerivWSAccountsService.fetchAccountsList(accessToken);
+                const updatedList = refreshedAccounts
+                    .filter(account => !account.status || account.status === 'active')
+                    .map(account => ({
+                        balance: Number(account.balance) || 0,
+                        currency: account.currency || 'USD',
+                        is_virtual: account.account_type === 'demo' ? 1 : 0,
+                        loginid: account.account_id,
+                    }));
+                setAccountList(updatedList);
+                localStorage.setItem('client_account_details', JSON.stringify(updatedList));
+            } catch (error) {
+                window.alert(error instanceof Error ? error.message : 'Unable to reset demo balance.');
+            } finally {
+                setResettingAccount(null);
+            }
+        },
+        [is_bot_running, resettingAccount]
     );
 
     const formattedAccounts = useMemo(() => {
@@ -204,6 +265,19 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                                 : 'No currency assigned'}
                                         </span>
                                     </div>
+                                    {account.isVirtual && (
+                                        <button
+                                            type='button'
+                                            className='acc-modal__reset'
+                                            disabled={!!resettingAccount || is_bot_running}
+                                            onClick={event => {
+                                                event.stopPropagation();
+                                                void handleResetDemoBalance(account.loginid);
+                                            }}
+                                        >
+                                            {resettingAccount === account.loginid ? 'Resetting…' : 'Reset Balance'}
+                                        </button>
+                                    )}
                                     {account.isActive && <span className='acc-modal__check'>✓</span>}
                                 </div>
                             ))}
