@@ -28,8 +28,14 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
     const { isMobile } = useDevice();
 
     const { is_contract_completed, profit } = summary_card;
-    const { contract_stage, is_stop_button_visible, is_stop_button_disabled, onRunButtonClick, onStopBotClick } =
-        run_panel;
+    const {
+        contract_stage,
+        is_stop_button_visible,
+        is_stop_button_disabled,
+        execution_workspace,
+        onRunButtonClick,
+        onStopBotClick,
+    } = run_panel;
     const [shouldDisable, setShouldDisable] = React.useState(false);
     const is_unavailable_for_payment_agent = false;
 
@@ -104,14 +110,16 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
 
     // Disable the RUN button if:
     // 1. There are no active or saved bots AND the user is not in the bot builder tab
-    const should_disable_run = has_no_bots && !is_bot_builder_tab;
+    const has_gk_workspace = Boolean(execution_workspace);
+    const should_disable_run = !has_gk_workspace && has_no_bots && !is_bot_builder_tab;
 
     const is_disabled = is_stop_button_visible ? false : shouldDisable || should_disable_run;
 
     // Show the tooltip when:
     // 1. The user is NOT in the bot builder tab, AND
     // 2. There are no bots
-    const should_show_tooltip = !is_stop_button_visible && !is_bot_builder_tab && has_no_bots;
+    const should_show_tooltip =
+        !is_stop_button_visible && !has_gk_workspace && !is_bot_builder_tab && has_no_bots;
 
     const button_props = React.useMemo(() => {
         if (is_stop_button_visible && !is_stop_button_disabled) {
@@ -204,7 +212,7 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
                             onStopBotClick();
                             return;
                         }
-                        onRunButtonClick();
+                        onRunButtonClick(execution_workspace || undefined);
                         /* [AI] - Analytics event tracking removed - see migrate-docs/MONITORING_PACKAGES.md for re-implementation guide */
                         /* [/AI] */
                     }}
