@@ -179,7 +179,11 @@ export default class RunPanelStore {
         const is_ios = mobileOSDetect() === 'iOS';
         const targetWorkspace = workspace || this.dbot.workspace;
 
-        if (!(this.dbot as any).acquireExecutionSession(targetWorkspace)) {
+        const acquireExecutionSession = (this.dbot as any).acquireExecutionSession;
+        if (
+            typeof acquireExecutionSession === 'function' &&
+            !acquireExecutionSession.call(this.dbot, targetWorkspace)
+        ) {
             return;
         }
 
@@ -193,7 +197,7 @@ export default class RunPanelStore {
             should_run = this.dbot.shouldRunBot();
         } catch (validationError) {
             console.error('G-K Pioneer workspace validation failed:', validationError);
-            (this.dbot as any).releaseExecutionSession(targetWorkspace);
+            (this.dbot as any).releaseExecutionSession?.(targetWorkspace);
             return;
         } finally {
             this.dbot.workspace = originalWorkspace;
@@ -252,7 +256,7 @@ export default class RunPanelStore {
 
             summary_card.clear();
             this.setContractStage(contract_stages.STARTING);
-            const did_start = this.dbot.runBot(targetWorkspace);
+            const did_start = workspace ? this.dbot.runBot(targetWorkspace) : this.dbot.runBot();
             if (!did_start) {
                 (this.dbot as any).releaseExecutionSession(targetWorkspace);
                 this.unregisterBotListeners();
@@ -612,7 +616,7 @@ export default class RunPanelStore {
         }
 
         this.setHasOpenContract(false);
-        if (!this.is_running) (this.dbot as any).releaseActiveExecutionSession();
+        if (!this.is_running) (this.dbot as any).releaseActiveExecutionSession?.();
 
         summary_card.clearContractUpdateConfigValues();
 
