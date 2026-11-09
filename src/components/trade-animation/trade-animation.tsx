@@ -110,7 +110,7 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
 
     // Disable the RUN button if:
     // 1. There are no active or saved bots AND the user is not in the bot builder tab
-    const has_gk_workspace = Boolean(execution_workspace);
+    const has_gk_workspace = active_tab === DBOT_TABS.FREE_BOTS && Boolean(execution_workspace);
     const should_disable_run = !has_gk_workspace && has_no_bots && !is_bot_builder_tab;
 
     const is_disabled = is_stop_button_visible ? false : shouldDisable || should_disable_run;
