@@ -6,6 +6,7 @@ import Interpreter from '../services/tradeEngine/utils/interpreter';
 import { compareXml, observer as globalObserver } from '../utils';
 import { getSavedWorkspaces, saveWorkspaceToRecent } from '../utils/local-storage';
 import { isDbotRTL } from '../utils/workspace';
+import { tradingSessionLock } from '../services/trading-session-lock';
 import main_xml from './xml/main.xml';
 import { forgetAccumulatorsProposalRequest } from './accumulators-proposal-handler';
 import { loadBlockly } from './blockly';
@@ -19,6 +20,7 @@ class DBot {
         this.before_run_funcs = [];
         this.symbol = null;
         this.is_bot_running = false;
+        this.active_session_owner = null;
     }
 
     /**
@@ -344,27 +346,59 @@ class DBot {
      * Runs the bot. Does a sanity check before attempting to generate the
      * JavaScript code that's fed to the interpreter.
      */
-    runBot() {
-        if (api_base.is_stopping) return;
+    getSessionOwner(workspace = this.workspace) {
+        return workspace === this.workspace ? 'Bot Builder' : 'G-K Pioneer';
+    }
 
+    acquireExecutionSession(workspace = this.workspace) {
+        const owner = this.getSessionOwner(workspace);
+        if (!tradingSessionLock.acquire(owner)) {
+            globalObserver.emit('Error', new Error(`Trading session is already owned by ${tradingSessionLock.owner}.`));
+            return false;
+        }
+        this.active_session_owner = owner;
+        return true;
+    }
+
+    runBot(workspace = this.workspace) {
+        if (api_base.is_stopping) return false;
+
+        const owner = this.getSessionOwner(workspace);
+        if (this.active_session_owner !== owner && !this.acquireExecutionSession(workspace)) {
+            return false;
+        }
+
+        const originalWorkspace = this.workspace;
         try {
             api_base.is_stopping = false;
+            // Blockly code generation and validation read this.workspace.
+            // Temporarily point it at the selected editor, then restore the
+            // original Bot Builder workspace before asynchronous execution.
+            this.workspace = workspace;
             const code = this.generateCode();
+            this.workspace = originalWorkspace;
+
             if (!this.interpreter.bot.tradeEngine.checkTicksPromiseExists()) this.interpreter = Interpreter();
 
             this.is_bot_running = true;
-
             api_base.setIsRunning(true);
             this.interpreter.run(code).catch(error => {
                 globalObserver.emit('Error', error);
                 this.stopBot();
             });
+            return true;
         } catch (error) {
+            this.workspace = originalWorkspace;
+            tradingSessionLock.release(owner);
+            this.active_session_owner = null;
             globalObserver.emit('Error', error);
 
             if (this.interpreter) {
                 this.stopBot();
             }
+            return false;
+        } finally {
+            this.workspace = originalWorkspace;
         }
     }
 
@@ -455,12 +489,18 @@ class DBot {
 
         api_base.setIsRunning(false);
 
-        await this.interpreter.stop();
-        this.is_bot_running = false;
-        this.interpreter = null;
-        this.interpreter = Interpreter();
-        await this.interpreter.bot.tradeEngine.watchTicks(this.symbol);
-        forgetAccumulatorsProposalRequest(this);
+        const sessionOwner = this.active_session_owner;
+        try {
+            await this.interpreter.stop();
+            this.is_bot_running = false;
+            this.interpreter = null;
+            this.interpreter = Interpreter();
+            await this.interpreter.bot.tradeEngine.watchTicks(this.symbol);
+            forgetAccumulatorsProposalRequest(this);
+        } finally {
+            if (sessionOwner) tradingSessionLock.release(sessionOwner);
+            this.active_session_owner = null;
+        }
     }
 
     /**
@@ -472,6 +512,8 @@ class DBot {
             this.interpreter = null;
             this.interpreter = Interpreter();
             await this.interpreter.bot.tradeEngine.watchTicks(this.symbol);
+            if (this.active_session_owner) tradingSessionLock.release(this.active_session_owner);
+            this.active_session_owner = null;
         }
     }
 
