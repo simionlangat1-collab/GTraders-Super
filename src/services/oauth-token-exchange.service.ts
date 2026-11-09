@@ -1,4 +1,5 @@
 import { clearCodeVerifier, getCodeVerifier, isProduction } from '@/components/shared';
+import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 import { ErrorLogger } from '@/utils/error-logger';
 import brandConfig from '../../brand.config.json';
 
@@ -195,6 +196,11 @@ export class OAuthTokenExchangeService {
                 if (data.refresh_token) {
                     authInfo.refresh_token = data.refresh_token;
                 }
+
+                // A fresh OAuth login may belong to a different Deriv account profile.
+                // Clear cached account data so the new token retrieves its own full account list.
+                DerivWSAccountsService.clearCache();
+                DerivWSAccountsService.clearStoredAccounts();
 
                 // Store as JSON string
                 sessionStorage.setItem('auth_info', JSON.stringify(authInfo));
