@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
-import { useApiBase } from '@/hooks/useApiBase';
-import XvtSniperEngine from './xvt-sniper-engine';
-import GKPioneerWorkspace from './gk-pioneer-workspace';
 import { tradingSessionLock } from '@/external/bot-skeleton/services/trading-session-lock';
+import { useApiBase } from '@/hooks/useApiBase';
+import GKPioneerWorkspace from './gk-pioneer-workspace';
+import XvtSniperEngine from './xvt-sniper-engine';
 import './free-bots.scss';
 
 type TMarketOption = {
@@ -44,7 +44,6 @@ const emptyAnalysis: TAnalysis = {
 
 const FreeBots = () => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
-    
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
     const [isGKPioneerOpen, setIsGKPioneerOpen] = useState(false);
