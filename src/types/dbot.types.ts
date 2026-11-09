@@ -14,6 +14,7 @@ export type TBotSkeleton = {
     runBot: (workspace?: window.Blockly.WorkspaceSvg | null) => boolean;
     acquireExecutionSession: (workspace?: window.Blockly.WorkspaceSvg | null) => boolean;
     releaseExecutionSession: (workspace?: window.Blockly.WorkspaceSvg | null) => void;
+    releaseActiveExecutionSession: () => void;
     symbol: string;
     generateCode: (limitations?: Record<string, unknown>) => string;
     stopBot: () => void;
