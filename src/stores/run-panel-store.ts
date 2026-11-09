@@ -257,7 +257,7 @@ export default class RunPanelStore {
             summary_card.clear();
             this.setContractStage(contract_stages.STARTING);
             const did_start = workspace ? this.dbot.runBot(targetWorkspace) : this.dbot.runBot();
-            if (!did_start) {
+            if (did_start === false) {
                 (this.dbot as any).releaseExecutionSession(targetWorkspace);
                 this.unregisterBotListeners();
                 this.setIsRunning(false);
