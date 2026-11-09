@@ -294,3 +294,20 @@
     background-color: #ffffff !important;
     width: 100%;
 }
+
+
+/* GTRADERS SUPER - keep the account menu above the dashboard navigation */
+.app-header {
+    position: relative;
+    z-index: 10000;
+    overflow: visible;
+}
+
+.app-header .acc-info__wrapper {
+    position: relative;
+    z-index: 10010;
+}
+
+.app-header .acc-dropdown {
+    z-index: 10020;
+}
