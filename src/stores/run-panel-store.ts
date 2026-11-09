@@ -225,7 +225,15 @@ export default class RunPanelStore {
 
             summary_card.clear();
             this.setContractStage(contract_stages.STARTING);
-            this.dbot.runBot(targetWorkspace);
+            const did_start = this.dbot.runBot(targetWorkspace);
+            if (!did_start) {
+                (this.dbot as any).releaseExecutionSession(targetWorkspace);
+                this.unregisterBotListeners();
+                this.setIsRunning(false);
+                this.setContractStage(contract_stages.NOT_RUNNING);
+                ui.setPromptHandler(false);
+                ui.setAccountSwitcherDisabledMessage();
+            }
         });
         this.setShowBotStopMessage(false);
     };
