@@ -65,6 +65,10 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
             .sort((a, b) => (a.isActive ? -1 : b.isActive ? 1 : 0));
     }, [accountList, activeLoginid]);
 
+    // Keep one selectable account for each account type, preferring the active one.
+    const realAccount = formattedAccounts.find(account => !account.isVirtual);
+    const demoAccount = formattedAccounts.find(account => account.isVirtual);
+
     if (!activeAccount) return null;
 
     const { currency, isVirtual, balance } = activeAccount;
@@ -141,46 +145,86 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                 </div>
             </AccountInfoWrapper>
             {isOpen && (
-                <div className='acc-dropdown' role='listbox'>
-                    {formattedAccounts.map(account => (
-                        <div
-                            key={account.loginid}
-                            role='option'
-                            aria-selected={account.isActive}
-                            tabIndex={0}
-                            className={classNames('acc-dropdown__account', {
-                                'acc-dropdown__account--selected': account.isActive,
-                                'acc-dropdown__account--virtual': account.isVirtual,
-                            })}
-                            onClick={() => !account.isActive && handleAccountSelect(account.loginid)}
-                            onKeyDown={e => {
-                                if (!account.isActive && (e.key === 'Enter' || e.key === ' ')) {
-                                    e.preventDefault();
-                                    handleAccountSelect(account.loginid);
-                                }
-                            }}
-                        >
-                            <Text
-                                size='xxxs'
-                                className={classNames('acc-dropdown__account-type', {
-                                    'acc-dropdown__account-type--virtual': account.isVirtual,
-                                })}
+                <div className='acc-switcher-modal-overlay' onClick={() => setIsOpen(false)}>
+                    <div
+                        className='acc-switcher-modal'
+                        role='listbox'
+                        aria-label='Choose Deriv account'
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className='acc-switcher-modal__header'>
+                            <div className='acc-switcher-modal__title'>SWITCH ACCOUNT</div>
+                            <button
+                                type='button'
+                                className='acc-switcher-modal__close'
+                                aria-label='Close account switcher'
+                                onClick={() => setIsOpen(false)}
                             >
-                                {account.isVirtual ? (
-                                    <Localize i18n_default_text='Demo account' />
-                                ) : (
-                                    <Localize i18n_default_text='Real account' />
-                                )}
-                            </Text>
-                            <Text size='xs' weight='bold' className='acc-dropdown__balance'>
-                                {account.currency ? (
-                                    `${account.balance} ${getCurrencyDisplayCode(account.currency)}`
-                                ) : (
-                                    <Localize i18n_default_text='No currency assigned' />
-                                )}
-                            </Text>
+                                ×
+                            </button>
                         </div>
-                    ))}
+                        <div className='acc-switcher-modal__accounts'>
+                            {realAccount && (
+                                <div
+                                    key={realAccount.loginid}
+                                    role='option'
+                                    aria-selected={realAccount.isActive}
+                                    tabIndex={0}
+                                    className={classNames('acc-switcher-modal__account', {
+                                        'acc-switcher-modal__account--selected': realAccount.isActive,
+                                    })}
+                                    onClick={() => !realAccount.isActive && handleAccountSelect(realAccount.loginid)}
+                                    onKeyDown={e => {
+                                        if (!realAccount.isActive && (e.key === 'Enter' || e.key === ' ')) {
+                                            e.preventDefault();
+                                            handleAccountSelect(realAccount.loginid);
+                                        }
+                                    }}
+                                >
+                                    <span className='acc-switcher-modal__account-type'>REAL</span>
+                                    <span className='acc-switcher-modal__account-label'>Deriv account</span>
+                                    <span className='acc-switcher-modal__balance'>
+                                        {realAccount.currency
+                                            ? `${realAccount.balance} ${getCurrencyDisplayCode(realAccount.currency)}`
+                                            : 'No currency assigned'}
+                                    </span>
+                                    {realAccount.isActive && (
+                                        <span className='acc-switcher-modal__selected-label'>SELECTED</span>
+                                    )}
+                                </div>
+                            )}
+                            {demoAccount && (
+                                <div
+                                    key={demoAccount.loginid}
+                                    role='option'
+                                    aria-selected={demoAccount.isActive}
+                                    tabIndex={0}
+                                    className={classNames('acc-switcher-modal__account', {
+                                        'acc-switcher-modal__account--selected': demoAccount.isActive,
+                                        'acc-switcher-modal__account--demo': true,
+                                    })}
+                                    onClick={() => !demoAccount.isActive && handleAccountSelect(demoAccount.loginid)}
+                                    onKeyDown={e => {
+                                        if (!demoAccount.isActive && (e.key === 'Enter' || e.key === ' ')) {
+                                            e.preventDefault();
+                                            handleAccountSelect(demoAccount.loginid);
+                                        }
+                                    }}
+                                >
+                                    <span className='acc-switcher-modal__account-type'>DEMO</span>
+                                    <span className='acc-switcher-modal__account-label'>Deriv account</span>
+                                    <span className='acc-switcher-modal__balance'>
+                                        {demoAccount.currency
+                                            ? `${demoAccount.balance} ${getCurrencyDisplayCode(demoAccount.currency)}`
+                                            : 'No currency assigned'}
+                                    </span>
+                                    {demoAccount.isActive && (
+                                        <span className='acc-switcher-modal__selected-label'>SELECTED</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
