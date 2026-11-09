@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
-import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
+import { addComma, getCurrencyDisplayCode, getDecimalPlaces, isProduction } from '@/components/shared';
 import Text from '@/components/shared_ui/text';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { useApiBase } from '@/hooks/useApiBase';
@@ -12,7 +12,6 @@ import { TAccountSwitcher } from './common/types';
 import AccountInfoWrapper from './account-info-wrapper';
 import { OAuthTokenExchangeService } from '@/services/oauth-token-exchange.service';
 import brandConfig from '../../../../brand.config.json';
-import { isProduction } from '@/components/shared';
 import { setAccountList } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 import './account-switcher.scss';
@@ -96,6 +95,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     throw new Error(message);
                 }
 
+                DerivWSAccountsService.clearCache();
                 const refreshedAccounts = await DerivWSAccountsService.fetchAccountsList(accessToken);
                 const updatedList = refreshedAccounts
                     .filter(account => !account.status || account.status === 'active')
