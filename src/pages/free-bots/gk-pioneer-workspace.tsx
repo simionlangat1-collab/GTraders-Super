@@ -152,7 +152,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                     <p>A separate Blockly workspace. Your original Deriv Bot Builder remains untouched.</p>
                 </div>
                 <div className='gk-pioneer__header-actions'>
-                    <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={onBack} disabled={isGKPioneerRunning}>Back to Free Bots</button>
+                    <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={onBack}>Back to Free Bots</button>
                     <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={saveNow}>Save Workspace</button>
                 </div>
             </header>
