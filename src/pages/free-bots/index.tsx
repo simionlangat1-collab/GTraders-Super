@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { useApiBase } from '@/hooks/useApiBase';
-import { useStore } from '@/hooks/useStore';
 import XvtSniperEngine from './xvt-sniper-engine';
 import GKPioneerWorkspace from './gk-pioneer-workspace';
 import { tradingSessionLock } from './trading-session-lock';
@@ -153,11 +152,6 @@ const FreeBots = () => {
     const startBot = async () => {
         setErrorMessage('');
 
-        if (!tradingSessionLock.acquire('G-T Sniper XVT')) {
-            setErrorMessage(`Another trading session is active (${tradingSessionLock.owner}). Stop it before starting G-T Sniper XVT.`);
-            return;
-        }
-
         const entry = Number(entryDigit);
         const initialStake = Number(stake);
         const target = Number(takeProfit);
@@ -179,6 +173,11 @@ const FreeBots = () => {
         if (![initialStake, target, maximumLoss, multiplier].every(Number.isFinite) ||
             initialStake <= 0 || target <= 0 || maximumLoss <= 0 || multiplier < 1) {
             setErrorMessage('Enter valid positive Stake, Take Profit and Stop Loss values, and a Martingale multiplier of at least 1.');
+            return;
+        }
+
+        if (!tradingSessionLock.acquire('G-T Sniper XVT')) {
+            setErrorMessage(`Another trading session is active (${tradingSessionLock.owner}). Stop it before starting G-T Sniper XVT.`);
             return;
         }
 
