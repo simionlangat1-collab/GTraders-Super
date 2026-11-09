@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useStore } from '@/hooks/useStore';
 import { tradingSessionLock } from '@/external/bot-skeleton/services/trading-session-lock';
+import { useStore } from '@/hooks/useStore';
 import './gk-pioneer-workspace.scss';
 
 const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v1';
