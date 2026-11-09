@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
 import { useStore } from '@/hooks/useStore';
+import { tradingSessionLock } from '@/external/bot-skeleton/services/trading-session-lock';
 import './gk-pioneer-workspace.scss';
 
 const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v1';
@@ -8,12 +10,13 @@ type TGKPioneerWorkspaceProps = {
     onBack: () => void;
 };
 
-const GKPioneerWorkspace = ({ onBack }: TGKPioneerWorkspaceProps) => {
-    const { quick_strategy } = useStore();
+const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
+    const { quick_strategy, run_panel } = useStore();
     const containerRef = useRef<HTMLDivElement | null>(null);
     const workspaceRef = useRef<any>(null);
     const [status, setStatus] = useState('Preparing your independent Blockly workspace…');
     const [error, setError] = useState('');
+    const isGKPioneerRunning = run_panel.is_running && tradingSessionLock.isOwnedBy('G-K Pioneer');
 
     useEffect(() => {
         let cancelled = false;
@@ -122,6 +125,22 @@ const GKPioneerWorkspace = ({ onBack }: TGKPioneerWorkspaceProps) => {
         };
     }, [quick_strategy]);
 
+    const runBot = () => {
+        const workspace = workspaceRef.current;
+        if (!workspace) {
+            setError('The G-K Pioneer workspace is not ready yet.');
+            return;
+        }
+        setError('');
+        setStatus('Validating G-K Pioneer blocks and starting the shared Deriv engine…');
+        void run_panel.onRunButtonClick(workspace);
+    };
+
+    const stopBot = () => {
+        run_panel.onStopButtonClick();
+        setStatus('Stop requested. The active contract will be handled by the Deriv engine.');
+    };
+
     const saveNow = () => {
         try {
             const Blockly = window.Blockly;
@@ -145,8 +164,13 @@ const GKPioneerWorkspace = ({ onBack }: TGKPioneerWorkspaceProps) => {
                     <p>A separate Blockly workspace. Your original Deriv Bot Builder remains untouched.</p>
                 </div>
                 <div className='gk-pioneer__header-actions'>
-                    <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={onBack}>Back to Free Bots</button>
-                    <button type='button' className='gk-pioneer__button' onClick={saveNow}>Save Workspace</button>
+                    <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={onBack} disabled={isGKPioneerRunning}>Back to Free Bots</button>
+                    <button type='button' className='gk-pioneer__button gk-pioneer__button--quiet' onClick={saveNow}>Save Workspace</button>
+                    {isGKPioneerRunning ? (
+                        <button type='button' className='gk-pioneer__button gk-pioneer__button--stop' onClick={stopBot}>Stop G-K Pioneer</button>
+                    ) : (
+                        <button type='button' className='gk-pioneer__button' onClick={runBot} disabled={!workspaceRef.current}>Run G-K Pioneer</button>
+                    )}
                 </div>
             </header>
             <div className='gk-pioneer__status' role='status'>
@@ -166,6 +190,6 @@ const GKPioneerWorkspace = ({ onBack }: TGKPioneerWorkspaceProps) => {
             </p>
         </section>
     );
-};
+});
 
 export default GKPioneerWorkspace;
