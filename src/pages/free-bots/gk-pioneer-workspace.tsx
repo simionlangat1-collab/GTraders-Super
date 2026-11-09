@@ -48,7 +48,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                         wheel: true,
                         startScale: window.innerWidth < 768 ? 0.62 : 0.78,
                     },
-                    toolbox: sourceToolbox.cloneNode(true),
+                    toolbox: sourceToolbox.cloneNode(true) as Element,
                     theme: Blockly.Themes.zelos_renderer,
                 });
 
@@ -178,7 +178,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                     {isGKPioneerRunning ? (
                         <button type='button' className='gk-pioneer__button gk-pioneer__button--stop' onClick={stopBot}>Stop G-K Pioneer</button>
                     ) : (
-                        <button type='button' className='gk-pioneer__button' onClick={runBot} disabled={!workspaceRef.current || sessionOwnedByAnotherBot}>Run G-K Pioneer</button>
+                        <button type='button' className='gk-pioneer__button' onClick={runBot} disabled={!workspaceRef.current || Boolean(error) || sessionOwnedByAnotherBot}>Run G-K Pioneer</button>
                     )}
                 </div>
             </header>
