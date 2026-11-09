@@ -186,7 +186,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 <div className='gk-pioneer__workspace' ref={containerRef} />
             </div>
             <p className='gk-pioneer__note'>
-                This editor has its own blocks and saved workspace. Trading execution will be connected through the shared Deriv engine after the isolated-workspace runner is wired and verified.
+                This editor has its own blocks and saved workspace. Run and Stop use the shared Deriv trading engine; the original Bot Builder workspace remains separate.
             </p>
         </section>
     );
