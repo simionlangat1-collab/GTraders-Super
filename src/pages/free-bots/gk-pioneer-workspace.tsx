@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { tradingSessionLock } from '@/external/bot-skeleton/services/trading-session-lock';
 import { useStore } from '@/hooks/useStore';
 import './gk-pioneer-workspace.scss';
 
@@ -16,8 +15,6 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
     const workspaceRef = useRef<any>(null);
     const [status, setStatus] = useState('Preparing your independent Blockly workspace…');
     const [error, setError] = useState('');
-    const isGKPioneerRunning = run_panel.is_running && tradingSessionLock.isOwnedBy('G-K Pioneer');
-    const sessionOwnedByAnotherBot = Boolean(tradingSessionLock.owner && !tradingSessionLock.isOwnedBy('G-K Pioneer'));
 
     useEffect(() => {
         let cancelled = false;
