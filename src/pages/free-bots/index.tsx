@@ -4,6 +4,7 @@ import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observab
 import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import XvtSniperEngine from './xvt-sniper-engine';
+import { tradingSessionLock } from './trading-session-lock';
 import './free-bots.scss';
 
 type TMarketOption = {
@@ -150,6 +151,11 @@ const FreeBots = () => {
     const startBot = async () => {
         setErrorMessage('');
 
+        if (!tradingSessionLock.acquire('G-T Sniper XVT')) {
+            setErrorMessage(`Another trading session is active (${tradingSessionLock.owner}). Stop it before starting G-T Sniper XVT.`);
+            return;
+        }
+
         const entry = Number(entryDigit);
         const initialStake = Number(stake);
         const target = Number(takeProfit);
@@ -219,7 +225,10 @@ const FreeBots = () => {
                 },
                 onProfit: setSessionProfit,
                 onError: setErrorMessage,
-                onStopped: () => setIsRunning(false),
+                onStopped: () => {
+                    tradingSessionLock.release('G-T Sniper XVT');
+                    setIsRunning(false);
+                },
             }
         );
 
@@ -227,6 +236,7 @@ const FreeBots = () => {
         try {
             await engine.start();
         } catch (error) {
+            tradingSessionLock.release('G-T Sniper XVT');
             setIsRunning(false);
             engineRef.current = null;
             setErrorMessage(error instanceof Error ? error.message : 'Unable to start G - T Sniper XVT.');
@@ -236,6 +246,7 @@ const FreeBots = () => {
 
     const stopBot = () => {
         engineRef.current?.stop();
+        if (!engineRef.current) tradingSessionLock.release('G-T Sniper XVT');
     };
 
     // Load G-K Pioneer directly into the Blockly trading workspace.
