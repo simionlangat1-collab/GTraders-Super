@@ -17,6 +17,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
     const [status, setStatus] = useState('Preparing your independent Blockly workspace…');
     const [error, setError] = useState('');
     const isGKPioneerRunning = run_panel.is_running && tradingSessionLock.isOwnedBy('G-K Pioneer');
+    const sessionOwnedByAnotherBot = Boolean(tradingSessionLock.owner && !tradingSessionLock.isOwnedBy('G-K Pioneer'));
 
     useEffect(() => {
         let cancelled = false;
@@ -135,6 +136,10 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
             setError('The G-K Pioneer workspace is not ready yet.');
             return;
         }
+        if (sessionOwnedByAnotherBot) {
+            setError(`The shared Deriv engine is currently in use by ${tradingSessionLock.owner}. Stop that bot before starting G-K Pioneer.`);
+            return;
+        }
         setError('');
         setStatus('Validating G-K Pioneer blocks and starting the shared Deriv engine…');
         void run_panel.onRunButtonClick(workspace);
@@ -173,7 +178,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                     {isGKPioneerRunning ? (
                         <button type='button' className='gk-pioneer__button gk-pioneer__button--stop' onClick={stopBot}>Stop G-K Pioneer</button>
                     ) : (
-                        <button type='button' className='gk-pioneer__button' onClick={runBot} disabled={!workspaceRef.current}>Run G-K Pioneer</button>
+                        <button type='button' className='gk-pioneer__button' onClick={runBot} disabled={!workspaceRef.current || sessionOwnedByAnotherBot}>Run G-K Pioneer</button>
                     )}
                 </div>
             </header>
