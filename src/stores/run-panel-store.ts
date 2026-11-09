@@ -159,7 +159,7 @@ export default class RunPanelStore {
         });
     };
 
-    onRunButtonClick = async () => {
+    onRunButtonClick = async (workspace?: any) => {
         let timer_counter = 1;
         if (window.sendRequestsStatistic) {
             performance.clearMeasures();
@@ -177,9 +177,22 @@ export default class RunPanelStore {
         const { summary_card } = this.root_store;
         const { client, ui } = this.core;
         const is_ios = mobileOSDetect() === 'iOS';
-        this.dbot.saveRecentWorkspace();
+        const targetWorkspace = workspace || this.dbot.workspace;
+
+        if (!(this.dbot as any).acquireExecutionSession(targetWorkspace)) {
+            return;
+        }
+
+        if (!workspace) this.dbot.saveRecentWorkspace();
+
+        const originalWorkspace = this.dbot.workspace;
+        this.dbot.workspace = targetWorkspace;
         this.dbot.unHighlightAllBlocks();
+        const should_run = this.dbot.shouldRunBot();
+        this.dbot.workspace = originalWorkspace;
+
         if (!client.is_logged_in) {
+            (this.dbot as any).releaseExecutionSession(targetWorkspace);
             this.showLoginDialog();
             return;
         }
@@ -193,8 +206,9 @@ export default class RunPanelStore {
 
         this.registerBotListeners();
 
-        if (!this.dbot.shouldRunBot()) {
+        if (!should_run) {
             this.unregisterBotListeners();
+            (this.dbot as any).releaseExecutionSession(targetWorkspace);
             return;
         }
 
@@ -211,7 +225,7 @@ export default class RunPanelStore {
 
             summary_card.clear();
             this.setContractStage(contract_stages.STARTING);
-            this.dbot.runBot();
+            this.dbot.runBot(targetWorkspace);
         });
         this.setShowBotStopMessage(false);
     };
