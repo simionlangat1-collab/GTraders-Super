@@ -45,7 +45,7 @@ interface IQuickStrategyStore {
     setGKPioneerMode: (enabled: boolean) => void;
     setSelectedStrategy: (strategy: string) => void;
     setValue: (name: string, value: string) => void;
-    onSubmit: (data: TFormData) => void;
+    onSubmit: (data: TFormData, targetWorkspace?: any, strategyOverride?: string) => Promise<void>;
     toggleStopBotDialog: () => void;
     setCurrentDurationMinMax: (min: number, max: number) => void;
     setOptionsLoading: (is_loading: boolean) => void;
@@ -170,7 +170,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
         };
     };
 
-    onSubmit = async (data: TFormData) => {
+    onSubmit = async (data: TFormData, targetWorkspace?: any, strategyOverride?: string) => {
         // Capture the GK Pioneer context before setFormVisibility(false) resets the mode.
         const isGKPioneerMode = this.is_gk_pioneer_mode;
         const { contracts_for } = ApiHelpers?.instance ?? {};
@@ -182,7 +182,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             return;
         }
 
-        const workspace = window.Blockly?.derivWorkspace;
+        const workspace = targetWorkspace ?? window.Blockly?.derivWorkspace;
 
         if (!workspace) {
             console.error(
@@ -197,18 +197,17 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             const trade_type_cat =
                 await contracts_for.getTradeTypeCategoryByTradeType(data.tradetype);
 
-            const selected_strategy = STRATEGIES()[this.selected_strategy];
+            const selected_strategy_key = strategyOverride || this.selected_strategy;
+            const selected_strategy = STRATEGIES()[selected_strategy_key];
 
             if (!selected_strategy) {
                 throw new Error('Selected strategy configuration was not found.');
             }
 
-            this.selected_strategy_for_notofy = this.selected_strategy;
-
-            storeSetting(
-                'selected_strategy_for_notofy',
-                this.selected_strategy
-            );
+            if (workspace === window.Blockly?.derivWorkspace) {
+                this.selected_strategy_for_notofy = selected_strategy_key;
+                storeSetting('selected_strategy_for_notofy', selected_strategy_key);
+            }
 
             const strategy_xml = await import(
                 /* webpackChunkName: `[request]` */
