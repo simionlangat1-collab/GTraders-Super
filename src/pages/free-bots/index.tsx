@@ -4,6 +4,7 @@ import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observab
 import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import XvtSniperEngine from './xvt-sniper-engine';
+import GKPioneerWorkspace from './gk-pioneer-workspace';
 import { tradingSessionLock } from './trading-session-lock';
 import './free-bots.scss';
 
@@ -44,9 +45,10 @@ const emptyAnalysis: TAnalysis = {
 
 const FreeBots = () => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
-    const { quick_strategy, dashboard } = useStore();
+    
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
+    const [isGKPioneerOpen, setIsGKPioneerOpen] = useState(false);
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
     const [symbol, setSymbol] = useState('');
     const [direction, setDirection] = useState<'OVER' | 'UNDER'>('OVER');
@@ -249,29 +251,11 @@ const FreeBots = () => {
         if (!engineRef.current) tradingSessionLock.release('G-T Sniper XVT');
     };
 
-    // Load G-K Pioneer directly into the Blockly trading workspace.
-    // Keep its editable Martingale inputs prefilled with the intended defaults.
-    const openGKPioneer = async () => {
+    // Open G-K Pioneer in its own Blockly workspace; never switch or write to Bot Builder.
+    const openGKPioneer = () => {
         if (isRunning) return;
-
-        quick_strategy.setGKPioneerMode(true);
-        quick_strategy.setSelectedStrategy('MARTINGALE');
-        await quick_strategy.onSubmit({
-            symbol: '1HZ10V',
-            tradetype: 'overunder',
-            type: 'both',
-            last_digit_prediction: 2,
-            size: 2.5,
-            stake: 10,
-            durationtype: 't',
-            duration: 1,
-            profit: 10,
-            loss: 10,
-            boolean_max_stake: false,
-            max_stake: 10,
-            action: 'EDIT',
-        });
-        dashboard.setActiveTab(1);
+        setIsBotOpen(false);
+        setIsGKPioneerOpen(true);
     };
 
     const selectedBarrier = direction === 'OVER'
@@ -286,7 +270,9 @@ const FreeBots = () => {
                 <p>Explore ready-made trading strategies.</p>
             </header>
 
-            {!isBotOpen ? (
+            {isGKPioneerOpen ? (
+                <GKPioneerWorkspace onBack={() => setIsGKPioneerOpen(false)} />
+            ) : !isBotOpen ? (
                 <>
                     <article className='free-bots-card'>
                         <div className='free-bots-card__details'>
