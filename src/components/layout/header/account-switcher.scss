@@ -902,3 +902,33 @@
         }
     }
 }
+
+
+/* GTRADERS SUPER - demo balance reset action */
+.acc-modal__reset {
+    flex: 0 0 auto;
+    border: 1px solid #2583ff;
+    border-radius: 0.8rem;
+    padding: 0.75rem 1rem;
+    background: #edf5ff;
+    color: #1768d2;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, opacity 0.15s ease;
+
+    &:hover:not(:disabled) {
+        background: #dcecff;
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: wait;
+    }
+
+    @include mobile-screen {
+        padding: 0.65rem 0.8rem;
+        font-size: 1rem;
+    }
+}
