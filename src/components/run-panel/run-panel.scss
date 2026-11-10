@@ -247,6 +247,11 @@
     }
 }
 
+/* Keep the Trade/Summary/Journal drawer toggle strip white only in G-K Pioneer. */
+.run-panel__container--gk-pioneer .dc-drawer__toggle {
+    background-color: #ffffff;
+}
+
 // animation
 .list {
     &__animation {
