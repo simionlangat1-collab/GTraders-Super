@@ -148,6 +148,11 @@
 }
 
 
+/* Internal initialization blocks remain in the XML/code but stay out of the trading UI. */
+.gk-pioneer__workspace .gk-pioneer-hidden-block {
+    display: none !important;
+}
+
 /* G-K Pioneer is a clean standalone editor: no Deriv toolbox/flyout overlay. */
 .gk-pioneer__workspace .blocklyToolbox,
 .gk-pioneer__workspace .blocklyFlyout {
