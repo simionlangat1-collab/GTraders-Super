@@ -190,26 +190,36 @@
     <statement name="AFTERPURCHASE_STACK">
       <block type="controls_if" id="Y7vVfZ`@dP+KBKXW6C|a">
         <value name="IF0">
-          <block type="procedures_callreturn" id="_ES]wQc*K9uQmJ1a:MA,">
-            <mutation name="Martingale Trade Again After Purchase">
-              <arg name="martingale:profit"></arg>
-              <arg name="martingale:purchasePrice"></arg>
-              <arg name="martingale:resultIsWin"></arg>
-            </mutation>
-            <data>N,_%hZ47`]!eOyc7%u8]</data>
-            <value name="ARG0">
-              <block type="read_details" id="6~ERQr:ogkONG,..Ooj+">
-                <field name="DETAIL_INDEX">4</field>
+          <block type="logic_compare" id="gk-restart-trading-boolean-check">
+            <field name="OP">EQ</field>
+            <value name="A">
+              <block type="procedures_callreturn" id="_ES]wQc*K9uQmJ1a:MA,">
+                <mutation name="Martingale Trade Again After Purchase">
+                  <arg name="martingale:profit"></arg>
+                  <arg name="martingale:purchasePrice"></arg>
+                  <arg name="martingale:resultIsWin"></arg>
+                </mutation>
+                <data>N,_%hZ47`]!eOyc7%u8]</data>
+                <value name="ARG0">
+                  <block type="read_details" id="6~ERQr:ogkONG,..Ooj+">
+                    <field name="DETAIL_INDEX">4</field>
+                  </block>
+                </value>
+                <value name="ARG1">
+                  <block type="read_details" id="gk-auto-purchase-price">
+                    <field name="DETAIL_INDEX">2</field>
+                  </block>
+                </value>
+                <value name="ARG2">
+                  <block type="contract_check_result" id="N85;,Dl!TJMa_U[tgj6#">
+                    <field name="CHECK_RESULT">win</field>
+                  </block>
+                </value>
               </block>
             </value>
-            <value name="ARG1">
-              <block type="read_details" id="gk-auto-purchase-price">
-                <field name="DETAIL_INDEX">2</field>
-              </block>
-            </value>
-            <value name="ARG2">
-              <block type="contract_check_result" id="N85;,Dl!TJMa_U[tgj6#">
-                <field name="CHECK_RESULT">win</field>
+            <value name="B">
+              <block type="logic_boolean" id="gk-restart-trading-true">
+                <field name="BOOL">TRUE</field>
               </block>
             </value>
           </block>
