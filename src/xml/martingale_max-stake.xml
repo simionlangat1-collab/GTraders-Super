@@ -6,8 +6,8 @@
     <variable type="" id="6G^6o^Ic@rjF|sHv*m.6" islocal="false" iscloud="false">martingale:tradeAgain</variable>
     <variable type="" id="*p5|Lkk9Q^ZuPBQ-48g2" islocal="false" iscloud="false">Expected Profit</variable>
     <variable type="" id="ipD5?_dQ1Zkvf%v|[?DQ" islocal="false" iscloud="false">Martingale Level</variable>
-    <variable type="" id="gk-target-profit-enabled-var" islocal="false" iscloud="false">Target Profit Enabled</variable>
-    <variable type="" id="gk-target-loss-enabled-var" islocal="false" iscloud="false">Target Loss Enabled</variable>
+    <variable type="" id="gk-target-profit-enabled-var" islocal="false" iscloud="false">Expected profit Enabled</variable>
+    <variable type="" id="gk-target-loss-enabled-var" islocal="false" iscloud="false">Stop loss Enabled</variable>
     <variable type="" id="[$B]vBH,~wrN`PUt5m/f" islocal="false" iscloud="false">Initial Amount</variable>
     <variable type="" id="gk-win-amount-var-id" islocal="false" iscloud="false">Win Amount</variable>
     <variable type="" id="a1BTYNHC?_yR4sfvNJ7N" islocal="false" iscloud="false">Stop Loss</variable>
@@ -97,7 +97,7 @@
         </value>
         <next>
           <block type="variables_set" id="gk-target-profit-enabled-control">
-            <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Target Profit Enabled</field>
+            <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Expected profit Enabled</field>
             <value name="VALUE">
               <block type="logic_boolean" id="gk-target-profit-enabled-default">
                 <field name="BOOL">TRUE</field>
@@ -113,7 +113,7 @@
                 </value>
                 <next>
                   <block type="variables_set" id="gk-target-loss-enabled-control">
-                    <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Target Loss Enabled</field>
+                    <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Stop loss Enabled</field>
                     <value name="VALUE">
                       <block type="logic_boolean" id="gk-target-loss-enabled-default">
                         <field name="BOOL">TRUE</field>
@@ -160,6 +160,8 @@
       </block>
             </next>
           </block>
+        </next>
+      </block>
         </next>
       </block>
     </statement>
@@ -617,7 +619,7 @@
     <block type="logic_negate" id="gk-profit-enabled-negate">
       <value name="BOOL">
         <block type="variables_get" id="gk-profit-enabled-get">
-          <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Target Profit Enabled</field>
+          <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Expected profit Enabled</field>
         </block>
       </value>
     </block>
@@ -649,7 +651,7 @@
     <block type="logic_negate" id="gk-loss-enabled-negate">
       <value name="BOOL">
         <block type="variables_get" id="gk-loss-enabled-get">
-          <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Target Loss Enabled</field>
+          <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Stop loss Enabled</field>
         </block>
       </value>
     </block>
