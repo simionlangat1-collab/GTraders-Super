@@ -3,7 +3,6 @@ import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { tradingSessionLock } from '@/external/bot-skeleton/services/trading-session-lock';
 import { useApiBase } from '@/hooks/useApiBase';
-import GKPioneerWorkspace from './gk-pioneer-workspace';
 import XvtSniperEngine from './xvt-sniper-engine';
 import './free-bots.scss';
 
@@ -42,11 +41,10 @@ const emptyAnalysis: TAnalysis = {
     latestDigit: null,
 };
 
-const FreeBots = () => {
+const FreeBots = ({ onOpenGKPioneer }: { onOpenGKPioneer: () => void }) => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
-    const [isGKPioneerOpen, setIsGKPioneerOpen] = useState(false);
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
     const [symbol, setSymbol] = useState('');
     const [direction, setDirection] = useState<'OVER' | 'UNDER'>('OVER');
@@ -249,13 +247,6 @@ const FreeBots = () => {
         if (!engineRef.current) tradingSessionLock.release('G-T Sniper XVT');
     };
 
-    // Open G-K Pioneer in its own Blockly workspace; never switch or write to Bot Builder.
-    const openGKPioneer = () => {
-        if (isRunning) return;
-        setIsBotOpen(false);
-        setIsGKPioneerOpen(true);
-    };
-
     const selectedBarrier = direction === 'OVER'
         ? (recoveryStep > 0 ? 'OVER 3' : 'OVER 2')
         : (recoveryStep > 0 ? 'UNDER 6' : 'UNDER 7');
@@ -268,9 +259,7 @@ const FreeBots = () => {
                 <p>Explore ready-made trading strategies.</p>
             </header>
 
-            {isGKPioneerOpen ? (
-                <GKPioneerWorkspace onBack={() => setIsGKPioneerOpen(false)} />
-            ) : !isBotOpen ? (
+            {!isBotOpen ? (
                 <>
                     <article className='free-bots-card'>
                         <div className='free-bots-card__details'>
@@ -290,7 +279,7 @@ const FreeBots = () => {
                         </div>
                         <button
                             className='xvt-button xvt-button--primary'
-                            onClick={openGKPioneer}
+                            onClick={onOpenGKPioneer}
                         >
                             Open G-K Pioneer Bot
                         </button>
