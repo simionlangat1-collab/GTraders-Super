@@ -4,13 +4,13 @@
     <variable type="" id="[M$5RsD`g|8-P;C+mbf4" islocal="false" iscloud="false">martingale:profit</variable>
     <variable type="" id="Kb@{Vb{+5IqV=d~y*dcr" islocal="false" iscloud="false">martingale:totalProfit</variable>
     <variable type="" id="6G^6o^Ic@rjF|sHv*m.6" islocal="false" iscloud="false">martingale:tradeAgain</variable>
-    <variable type="" id="*p5|Lkk9Q^ZuPBQ-48g2" islocal="false" iscloud="false">Expected Profit</variable>
+    <variable type="" id="*p5|Lkk9Q^ZuPBQ-48g2" islocal="false" iscloud="false">Expected profit</variable>
     <variable type="" id="ipD5?_dQ1Zkvf%v|[?DQ" islocal="false" iscloud="false">Martingale Level</variable>
-    <variable type="" id="gk-target-profit-enabled-var" islocal="false" iscloud="false">Expected profit Enabled</variable>
-    <variable type="" id="gk-target-loss-enabled-var" islocal="false" iscloud="false">Stop loss Enabled</variable>
+    <variable type="" id="gk-target-profit-enabled-var" islocal="false" iscloud="false">Target Profit Enabled</variable>
+    <variable type="" id="gk-target-loss-enabled-var" islocal="false" iscloud="false">Target Loss Enabled</variable>
     <variable type="" id="[$B]vBH,~wrN`PUt5m/f" islocal="false" iscloud="false">Initial Amount</variable>
     <variable type="" id="gk-win-amount-var-id" islocal="false" iscloud="false">Win Amount</variable>
-    <variable type="" id="a1BTYNHC?_yR4sfvNJ7N" islocal="false" iscloud="false">Stop Loss</variable>
+    <variable type="" id="a1BTYNHC?_yR4sfvNJ7N" islocal="false" iscloud="false">Stop loss</variable>
     <variable type="" id="_(;)ob:l.sc|#L7kv7Z6" islocal="false" iscloud="false">won</variable>
     <variable type="" id="p#@Pr/Y.sKueWX#oRSPl" islocal="false" iscloud="false">Notification:totalProfit</variable>
     <variable type="" id="5SwcMzq.f)VNUzjbKfrw" islocal="false" iscloud="false">Notification:lossThresholdReached</variable>
@@ -97,7 +97,7 @@
         </value>
         <next>
           <block type="variables_set" id="gk-target-profit-enabled-control">
-            <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Expected profit Enabled</field>
+            <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Target Profit Enabled</field>
             <value name="VALUE">
               <block type="logic_boolean" id="gk-target-profit-enabled-default">
                 <field name="BOOL">TRUE</field>
@@ -105,7 +105,7 @@
             </value>
             <next>
               <block type="variables_set" id="gk-target-profit-amount-control">
-                <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected Profit</field>
+                <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected profit</field>
                 <value name="VALUE" strategy_value="profit">
                   <shadow type="math_number" id="gk-target-profit-amount-default">
                     <field name="NUM">10</field>
@@ -113,7 +113,7 @@
                 </value>
                 <next>
                   <block type="variables_set" id="gk-target-loss-enabled-control">
-                    <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Stop loss Enabled</field>
+                    <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Target Loss Enabled</field>
                     <value name="VALUE">
                       <block type="logic_boolean" id="gk-target-loss-enabled-default">
                         <field name="BOOL">TRUE</field>
@@ -121,7 +121,7 @@
                     </value>
                     <next>
                       <block type="variables_set" id="gk-target-loss-amount-control">
-                        <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop Loss</field>
+                        <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop loss</field>
                         <value name="VALUE" strategy_value="loss">
                           <shadow type="math_number" id="gk-target-loss-amount-default">
                             <field name="NUM">10</field>
@@ -307,7 +307,7 @@
             <field name="OP">EQ</field>
             <value name="A">
               <block type="variables_get" id="f.km2[vh(%]*F2SuNU%G">
-                <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected Profit</field>
+                <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected profit</field>
               </block>
             </value>
             <value name="B">
@@ -317,7 +317,7 @@
         </value>
         <statement name="DO0">
           <block type="variables_set" id="{}-XA:3=]2W.Aq|zIiP(">
-            <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected Profit</field>
+            <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected profit</field>
             <value name="VALUE" strategy_value="profit">
               <block type="math_number" id="oey_#oK,W{kwyW]bH$Q0">
                 <field name="NUM">5000</field>
@@ -332,7 +332,7 @@
                 <field name="OP">EQ</field>
                 <value name="A">
                   <block type="variables_get" id="EzMg)v,zllQlN8mb?5{h">
-                    <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop Loss</field>
+                    <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop loss</field>
                   </block>
                 </value>
                 <value name="B">
@@ -342,7 +342,7 @@
             </value>
             <statement name="DO0">
               <block type="variables_set" id=":OS%IuonU;AkRO!H-SEF">
-                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop Loss</field>
+                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop loss</field>
                 <value name="VALUE" strategy_value="loss">
                   <block type="math_number" id="UdK4EIuuo|^~SBqy^_UN">
                     <field name="NUM">3000</field>
@@ -619,7 +619,7 @@
     <block type="logic_negate" id="gk-profit-enabled-negate">
       <value name="BOOL">
         <block type="variables_get" id="gk-profit-enabled-get">
-          <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Expected profit Enabled</field>
+          <field name="VAR" id="gk-target-profit-enabled-var" variabletype="">Target Profit Enabled</field>
         </block>
       </value>
     </block>
@@ -634,7 +634,7 @@
                                     </value>
                                     <value name="B">
                                       <block type="variables_get" id="5m`a=f+P*-wT*3b-Acg=">
-                                        <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected Profit</field>
+                                        <field name="VAR" id="*p5|Lkk9Q^ZuPBQ-48g2" variabletype="">Expected profit</field>
                                       </block>
                                     </value>
                                   </block>
@@ -651,7 +651,7 @@
     <block type="logic_negate" id="gk-loss-enabled-negate">
       <value name="BOOL">
         <block type="variables_get" id="gk-loss-enabled-get">
-          <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Stop loss Enabled</field>
+          <field name="VAR" id="gk-target-loss-enabled-var" variabletype="">Target Loss Enabled</field>
         </block>
       </value>
     </block>
@@ -672,7 +672,7 @@
                                                 <field name="NUM">9</field>
                                               </shadow>
                                               <block type="variables_get" id="`nfV$q=C}%gf{r$Jyt-#">
-                                                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop Loss</field>
+                                                <field name="VAR" id="a1BTYNHC?_yR4sfvNJ7N" variabletype="">Stop loss</field>
                                               </block>
                                             </value>
                                           </block>
