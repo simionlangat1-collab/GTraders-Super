@@ -147,6 +147,13 @@
     }
 }
 
+
+/* G-K Pioneer is a clean standalone editor: no Deriv toolbox/flyout overlay. */
+.gk-pioneer__workspace .blocklyToolbox,
+.gk-pioneer__workspace .blocklyFlyout {
+    display: none !important;
+}
+
 .gk-pioneer__workspace .injectionDiv {
     height: 100%;
 }
