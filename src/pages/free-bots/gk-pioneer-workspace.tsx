@@ -5,6 +5,32 @@ import './gk-pioneer-workspace.scss';
 
 const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v1';
 
+const HIDDEN_SETUP_VARIABLES = new Set([
+    'martingale:payoutRate',
+    'martingale:cycleLoss',
+    'martingale:Multiplier',
+    'Target Profit Enabled',
+    'Target Profit',
+    'Target Loss Enabled',
+    'Target Loss',
+    'setMaxStake?',
+    'maxStake',
+]);
+
+const hideInternalSetupBlocks = (workspace: any) => {
+    workspace
+        .getAllBlocks(false)
+        .filter((block: any) => !block.getParent() && block.type === 'variables_set')
+        .forEach((block: any) => {
+            const variableName = block.getFieldValue('VAR');
+            if (HIDDEN_SETUP_VARIABLES.has(variableName)) {
+                // Keep these runtime initialization blocks in the workspace/code,
+                // but hide them from the visual editor so the trading surface stays clean.
+                block.setVisible?.(false);
+            }
+        });
+};
+
 type TGKPioneerWorkspaceProps = {
     onBack: () => void;
 };
@@ -45,7 +71,8 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                         wheel: true,
                         startScale: window.innerWidth < 768 ? 0.62 : 0.78,
                     },
-                    toolbox: sourceToolbox.cloneNode(true) as Element,
+                    // G-K Pioneer deliberately uses a clean workspace without the
+                    // original Deriv category toolbox/flyout overlay.
                     theme: Blockly.Themes.zelos_renderer,
                 });
 
@@ -69,6 +96,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                     const dom = Blockly.utils.xml.textToDom(savedXml);
                     Blockly.Xml.domToWorkspace(dom, workspace);
                     workspace.cleanUp();
+                    hideInternalSetupBlocks(workspace);
                     setStatus('Your separate G-K Pioneer workspace has been restored.');
                 } else {
                     setStatus('Creating the starter Martingale strategy…');
@@ -93,9 +121,12 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                     );
                     if (cancelled) return;
                     workspace.cleanUp();
+                    hideInternalSetupBlocks(workspace);
                     persistWorkspace({ type: 'create' });
                     setStatus('Independent G-K Pioneer workspace is ready. Changes are saved on this device.');
                 }
+
+                hideInternalSetupBlocks(workspace);
 
                 if (!workspace.getAllBlocks(false).length) {
                     throw new Error('The starter strategy did not load into the independent workspace. Please reopen G-K Pioneer after Bot Builder has finished loading.');
