@@ -4,7 +4,6 @@ import { observer } from 'mobx-react-lite';
 import ProgressBarTracker from '@/components/shared_ui/progress-bar-tracker';
 import Text from '@/components/shared_ui/text';
 import { useStore } from '@/hooks/useStore';
-import { getSetting } from '@/utils/settings';
 import { LegacyClose1pxIcon } from '@deriv/quill-icons/Legacy';
 import { localize } from '@deriv-com/translations';
 import TourButton from '../common/tour-button';
@@ -43,16 +42,6 @@ const OnboardingTourMobile = observer(() => {
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tour_step]);
-
-    React.useEffect(() => {
-        const checkTokenForTour = () => {
-            const token = getSetting('onboard_tour_token');
-            if (!token && active_tab === 0) {
-                setActiveTour('onboarding');
-            }
-        };
-        checkTokenForTour();
-    }, [active_tab, active_tour]);
 
     if (!active_tour) {
         return null;
