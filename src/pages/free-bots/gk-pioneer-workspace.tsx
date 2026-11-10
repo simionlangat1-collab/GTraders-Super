@@ -6,6 +6,7 @@ import './gk-pioneer-workspace.scss';
 const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v1';
 
 const HIDDEN_SETUP_VARIABLES = new Set([
+    'martingale:initialStake',
     'martingale:payoutRate',
     'martingale:cycleLoss',
     'martingale:Multiplier',
@@ -26,7 +27,7 @@ const hideInternalSetupBlocks = (workspace: any) => {
             if (HIDDEN_SETUP_VARIABLES.has(variableName)) {
                 // Keep these runtime initialization blocks in the workspace/code,
                 // but hide them from the visual editor so the trading surface stays clean.
-                block.setVisible?.(false);
+                block.getSvgRoot?.()?.classList.add('gk-pioneer-hidden-block');
             }
         });
 };
