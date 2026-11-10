@@ -72,7 +72,7 @@ const AppWrapper = observer(() => {
         onOkButtonClick,
         stopBot,
     } = run_panel;
-    const { is_open } = quick_strategy;
+    const { is_open, is_gk_pioneer_mode } = quick_strategy;
     const { cancel_button_text, ok_button_text, title, message, dismissable, is_closed_on_cancel } = dialog_options as {
         [key: string]: string;
     };
@@ -354,7 +354,7 @@ const AppWrapper = observer(() => {
     }, [handleTabChange, quick_strategy, run_panel]);
 
     React.useEffect(() => {
-        if (!quick_strategy.is_gk_pioneer_mode) {
+        if (!is_gk_pioneer_mode) {
             gkPioneerLoadStarted.current = false;
             return;
         }
@@ -394,7 +394,7 @@ const AppWrapper = observer(() => {
             cancelled = true;
             cancelAnimationFrame(frame);
         };
-    }, [active_tab, is_loading, quick_strategy, BOT_BUILDER]);
+    }, [active_tab, is_loading, is_gk_pioneer_mode, quick_strategy, BOT_BUILDER]);
 
     // [AI]
     const handleLoginGeneration = async () => {
