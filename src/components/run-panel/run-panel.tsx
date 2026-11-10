@@ -321,6 +321,7 @@ const RunPanel = observer(() => {
                     className={classNames('run-panel', {
                         'run-panel__container': isDesktop,
                         'run-panel__container--tour-active': isDesktop && active_tour,
+                        'run-panel__container--gk-pioneer': Boolean(run_panel.execution_workspace),
                     })}
                     contentClassName='run-panel__content'
                     header={header}
