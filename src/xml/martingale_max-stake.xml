@@ -132,7 +132,7 @@
                             <field name="VAR" id="3^~61:59m?#VJ(:SG^^[" variabletype="">setMaxStake?</field>
                             <value name="VALUE" strategy_value="boolean_max_stake">
                               <block type="logic_boolean" id="%@4HYVeOB$jA`7.ljdbf">
-                                <field name="BOOL">TRUE</field>
+                                <field name="BOOL">FALSE</field>
                               </block>
                             </value>
                             <next>
@@ -140,7 +140,7 @@
                                 <field name="VAR" id="4vh+dtelQS#?}@cNPcN!" variabletype="">maxStake</field>
                                 <value name="VALUE" strategy_value="max_stake">
                                   <shadow type="math_number" id="FF1sPs*ENIx4n#SmKe|9">
-                                    <field name="NUM">1000</field>
+                                    <field name="NUM">10</field>
                                   </shadow>
                                 </value>
                               </block>
