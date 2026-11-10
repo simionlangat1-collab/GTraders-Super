@@ -364,10 +364,10 @@ const AppWrapper = observer(() => {
         const workspace = window.Blockly?.derivWorkspace;
         if (!workspace) return;
 
-        gkPioneerLoadStarted.current = true;
         let cancelled = false;
         const frame = requestAnimationFrame(() => {
             if (cancelled) return;
+            gkPioneerLoadStarted.current = true;
 
             void quick_strategy.onSubmit(
                 {
