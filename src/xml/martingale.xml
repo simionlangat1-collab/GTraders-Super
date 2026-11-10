@@ -275,8 +275,6 @@
                             </statement>
                           </block>
                         </next>
-                          </block>
-                        </next>
                       </block>
                     </next>
                   </block>
@@ -726,6 +724,8 @@
                           </block>
                         </next>
                       </block>
+                      </next>
+                    </block>
                     </next>
                   </block>
                 </next>
