@@ -77,7 +77,7 @@
         padding: 1.5rem;
         border: 1px solid var(--border-normal);
         border-radius: 1rem;
-        background: linear-gradient(120deg, #EAF4FF 0%, #DCEBFA 45%, #C9E2F7 100%);
+        background: #FFFFFF;
     }
     &__panel-label { display: block; margin-bottom: 1rem; color: var(--text-less-prominent); font-size: 1.15rem; font-weight: 600; }
     &__digit-circle {
@@ -129,7 +129,7 @@
         padding: 1rem 0.5rem;
         border: 1px solid var(--border-normal);
         border-radius: 0.8rem;
-        background: linear-gradient(120deg, #EAF4FF 0%, #DCEBFA 45%, #C9E2F7 100%);
+        background: #FFFFFF;
         strong { color: var(--text-prominent); font-size: 1.2rem; }
         > span { color: var(--text-less-prominent); font-size: 0.95rem; }
         &.is-leading { border-color: #22c55e; background: #FFFFFF; }
