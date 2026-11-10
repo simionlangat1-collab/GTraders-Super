@@ -315,15 +315,12 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                 showIncompatibleStrategyDialog: null,
             });
 
-            // Keep GK Pioneer initialization active, but keep only the two
-            // internal setup blocks off the visible user workspace. The blocks
-            // are detached into their own top-level initialization blocks so the
-            // following user-facing controls keep their normal position with no
-            // blank/black gap. They remain part of Blockly code generation.
+            // Keep the payout-rate calculation internal and off the visible
+            // workspace. Initial Amount remains in the initialization chain as
+            // a visible trader control and continues feeding the Martingale engine.
             if (isGKPioneerMode) {
                 const isolateGKPioneerInternalBlocks = () => {
                     const internalVariableIds = [
-                        '[$B]vBH,~wrN`PUt5m/f',
                         'gk-payout-rate-var',
                     ];
 
