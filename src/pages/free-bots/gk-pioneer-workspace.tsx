@@ -6,7 +6,6 @@ import './gk-pioneer-workspace.scss';
 const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v1';
 
 const HIDDEN_SETUP_VARIABLES = new Set([
-    'martingale:initialStake',
     'martingale:payoutRate',
     'martingale:cycleLoss',
     'Target Profit Enabled',
@@ -14,6 +13,48 @@ const HIDDEN_SETUP_VARIABLES = new Set([
     'setMaxStake?',
     'maxStake',
 ]);
+
+const syncAmountControls = (workspace: any, event?: any) => {
+    const blocks = workspace.getAllBlocks(false).filter(
+        (block: any) => block.type === 'variables_set'
+    );
+    const initialBlock = blocks.find(
+        (block: any) => block.getFieldValue('VAR') === 'Initial Amount'
+    );
+    const winBlock = blocks.find(
+        (block: any) => block.getFieldValue('VAR') === 'Win Amount'
+    );
+    if (!initialBlock || !winBlock) return;
+
+    let changedBlock = event?.blockId ? workspace.getBlockById(event.blockId) : null;
+    while (changedBlock && changedBlock.type !== 'variables_set') {
+        changedBlock = changedBlock.getParent?.();
+    }
+
+    const changedName = changedBlock?.getFieldValue?.('VAR');
+    const sourceBlock =
+        changedName === 'Win Amount'
+            ? winBlock
+            : changedName === 'Initial Amount'
+              ? initialBlock
+              : initialBlock;
+    const targetBlock = sourceBlock === initialBlock ? winBlock : initialBlock;
+    const sourceNumber = sourceBlock.getInputTargetBlock('VALUE')?.getField('NUM');
+    const targetNumber = targetBlock.getInputTargetBlock('VALUE')?.getField('NUM');
+    if (!sourceNumber || !targetNumber) return;
+
+    const amount = Number(sourceNumber.getValue());
+    if (!Number.isFinite(amount) || amount < 0) return;
+    if (String(targetNumber.getValue()) === String(amount)) return;
+
+    const events = window.Blockly?.Events;
+    events?.disable();
+    try {
+        targetNumber.setValue(String(amount));
+    } finally {
+        events?.enable();
+    }
+};
 
 const hideInternalSetupBlocks = (workspace: any) => {
     workspace.getAllBlocks(false).forEach((block: any) => {
@@ -79,6 +120,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 const persistWorkspace = (event: any) => {
                     if (event?.isUiEvent || event?.type === Blockly.Events.UI) return;
                     try {
+                        syncAmountControls(workspace, event);
                         const xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
                         window.localStorage.setItem(STORAGE_KEY, xml);
                     } catch (saveError) {
@@ -91,6 +133,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 if (savedXml) {
                     const dom = Blockly.utils.xml.textToDom(savedXml);
                     Blockly.Xml.domToWorkspace(dom, workspace);
+                    syncAmountControls(workspace);
                     workspace.cleanUp();
                     hideInternalSetupBlocks(workspace);
                     setStatus('Your separate G-K Pioneer workspace has been restored.');
@@ -116,6 +159,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                         'MARTINGALE'
                     );
                     if (cancelled) return;
+                    syncAmountControls(workspace);
                     workspace.cleanUp();
                     hideInternalSetupBlocks(workspace);
                     persistWorkspace({ type: 'create' });
