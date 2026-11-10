@@ -265,7 +265,10 @@ export default class RunPanelStore {
 
             summary_card.clear();
             this.setContractStage(contract_stages.STARTING);
-            const did_start = workspace ? this.dbot.runBot(targetWorkspace) : this.dbot.runBot();
+            // Always execute the selected workspace. When G-K Pioneer is open,
+            // targetWorkspace is its independent Blockly workspace even though
+            // the shared Run button invokes this handler without an argument.
+            const did_start = this.dbot.runBot(targetWorkspace);
             if (did_start === false) {
                 (this.dbot as any).releaseExecutionSession(targetWorkspace);
                 this.unregisterBotListeners();
