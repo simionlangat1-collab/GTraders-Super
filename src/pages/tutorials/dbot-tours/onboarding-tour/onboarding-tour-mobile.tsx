@@ -23,7 +23,7 @@ type TTourData = TMobileTourConfig & {
 
 const OnboardingTourMobile = observer(() => {
     const { dashboard } = useStore();
-    const { onCloseTour, onTourEnd, setTourActiveStep, active_tour, active_tab, setActiveTour } = dashboard;
+    const { onCloseTour, onTourEnd, setTourActiveStep, active_tour } = dashboard;
     const [tour_step, setStep] = React.useState<number>(1);
     const [tour_data, setTourData] = React.useState<TTourData>(default_tour_data);
     const { content, header, img, media, tour_step_key } = tour_data;
