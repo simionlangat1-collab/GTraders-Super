@@ -79,6 +79,7 @@ const AppWrapper = observer(() => {
     const { clear } = summary_card;
     const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
     const init_render = React.useRef(true);
+    const gkPioneerLoadStarted = React.useRef(false);
     const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool'];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -340,6 +341,61 @@ const AppWrapper = observer(() => {
         [active_tab]
     );
 
+    const openGKPioneer = React.useCallback(() => {
+        // Do not replace the current Bot Builder workspace while a bot is trading.
+        if (run_panel.is_running || run_panel.has_open_contract) {
+            window.alert('Stop the currently running bot before opening G-K Pioneer.');
+            return;
+        }
+
+        quick_strategy.setSelectedStrategy('MARTINGALE');
+        quick_strategy.setGKPioneerMode(true);
+        handleTabChange(BOT_BUILDER);
+    }, [handleTabChange, quick_strategy, run_panel]);
+
+    React.useEffect(() => {
+        if (!quick_strategy.is_gk_pioneer_mode) {
+            gkPioneerLoadStarted.current = false;
+            return;
+        }
+
+        if (active_tab !== BOT_BUILDER || is_loading || gkPioneerLoadStarted.current) return;
+
+        const workspace = window.Blockly?.derivWorkspace;
+        if (!workspace) return;
+
+        gkPioneerLoadStarted.current = true;
+        let cancelled = false;
+        const frame = requestAnimationFrame(() => {
+            if (cancelled) return;
+
+            void quick_strategy.onSubmit(
+                {
+                    symbol: '1HZ10V',
+                    tradetype: 'overunder',
+                    type: 'both',
+                    last_digit_prediction: 2,
+                    size: 2.5,
+                    stake: 10,
+                    durationtype: 't',
+                    duration: 1,
+                    profit: 10,
+                    loss: 10,
+                    boolean_max_stake: false,
+                    max_stake: 10,
+                    action: 'EDIT',
+                } as any,
+                workspace,
+                'MARTINGALE'
+            );
+        });
+
+        return () => {
+            cancelled = true;
+            cancelAnimationFrame(frame);
+        };
+    }, [active_tab, is_loading, quick_strategy, BOT_BUILDER]);
+
     // [AI]
     const handleLoginGeneration = async () => {
         const oauthUrl = await generateOAuthURL();
@@ -440,7 +496,7 @@ const AppWrapper = observer(() => {
                                 label={<Localize i18n_default_text='Free Bots' />}
                                 id='id-free-bots'
                             >
-                                <FreeBots />
+                                <FreeBots onOpenGKPioneer={openGKPioneer} />
                             </div>
                             <div
                                 label={<Localize i18n_default_text='Analysis Tool' />}
