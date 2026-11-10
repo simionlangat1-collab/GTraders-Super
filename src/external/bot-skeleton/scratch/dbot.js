@@ -385,11 +385,24 @@ class DBot {
         try {
             api_base.is_stopping = false;
             // Blockly code generation and validation read this.workspace.
-            // Temporarily point it at the selected editor, then restore the
-            // original Bot Builder workspace before asynchronous execution.
+            // Temporarily point it at the selected editor, and also point the
+            // generator's variable database at that editor's variable map.
+            // G-K Pioneer is a separate Blockly workspace, so keeping the
+            // original Bot Builder variable database here causes generated
+            // variable references to resolve to null.
             this.workspace = workspace;
-            const code = this.generateCode();
-            this.workspace = originalWorkspace;
+            const originalVariableDB = window.Blockly.JavaScript.variableDB_;
+            const executionVariableDB = new window.Blockly.Names('window');
+            executionVariableDB.variableMap = workspace.getVariableMap();
+            window.Blockly.JavaScript.variableDB_ = executionVariableDB;
+
+            let code;
+            try {
+                code = this.generateCode();
+            } finally {
+                window.Blockly.JavaScript.variableDB_ = originalVariableDB;
+                this.workspace = originalWorkspace;
+            }
 
             if (!this.interpreter.bot.tradeEngine.checkTicksPromiseExists()) this.interpreter = Interpreter();
 
