@@ -3,7 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { useStore } from '@/hooks/useStore';
 import './gk-pioneer-workspace.scss';
 
-const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v2';
+const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v3';
 
 const HIDDEN_SETUP_VARIABLES = new Set([
     'martingale:payoutRate',
