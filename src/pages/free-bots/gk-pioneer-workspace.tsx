@@ -9,27 +9,27 @@ const HIDDEN_SETUP_VARIABLES = new Set([
     'martingale:initialStake',
     'martingale:payoutRate',
     'martingale:cycleLoss',
-    'martingale:Multiplier',
     'Target Profit Enabled',
-    'Target Profit',
     'Target Loss Enabled',
-    'Target Loss',
     'setMaxStake?',
     'maxStake',
 ]);
 
 const hideInternalSetupBlocks = (workspace: any) => {
-    workspace
-        .getAllBlocks(false)
-        .filter((block: any) => !block.getParent() && block.type === 'variables_set')
-        .forEach((block: any) => {
-            const variableName = block.getFieldValue('VAR');
-            if (HIDDEN_SETUP_VARIABLES.has(variableName)) {
-                // Keep these runtime initialization blocks in the workspace/code,
-                // but hide them from the visual editor so the trading surface stays clean.
-                block.getSvgRoot?.()?.classList.add('gk-pioneer-hidden-block');
-            }
-        });
+    workspace.getAllBlocks(false).forEach((block: any) => {
+        if (block.getParent?.() || block.type !== 'variables_set') return;
+        const variableName = block.getFieldValue('VAR');
+        if (!HIDDEN_SETUP_VARIABLES.has(variableName)) return;
+
+        // Hide the rendered Blockly block itself. The block remains in the
+        // workspace model/XML and is still included in generated JavaScript.
+        if (typeof block.setVisible === 'function') {
+            block.setVisible(false);
+        } else {
+            const root = block.getSvgRoot?.();
+            if (root) root.style.display = 'none';
+        }
+    });
 };
 
 type TGKPioneerWorkspaceProps = {
