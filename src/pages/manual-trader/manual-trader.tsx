@@ -3,9 +3,8 @@ import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { TradeControls } from './components/trade-controls';
 import { TradeHistory } from './components/trade-history';
-import { TradePanel } from './components/trade-panel';
 import { ManualTraderAnalysisDashboard } from './components/analysis-dashboard';
-import { manualTradeService } from './services/manual-trade-service';
+import { ManualTraderDistributionPanels } from './components/distribution-dashboard';
 import { ManualContractType, ManualMarketSymbol, ManualTradeRecord } from './types';
 import './manual-trader.scss';
 
@@ -30,7 +29,6 @@ const ManualTrader = () => {
     const [tickConnection, setTickConnection] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const [socketReady, setSocketReady] = useState(false);
     const [tickError, setTickError] = useState('');
-    const [proposal, setProposal] = useState<{ id: string; ask_price: number; payout: number } | null>(null);
     const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
     const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
     const [trades, setTrades] = useState<ManualTradeRecord[]>(() => {
@@ -40,9 +38,6 @@ const ManualTrader = () => {
             return [];
         }
     });
-    const [loading, setLoading] = useState(false);
-    const [buying, setBuying] = useState(false);
-    const [error, setError] = useState('');
     const [connection, setConnection] = useState(api_base.getConnectionStatus());
     const currency = String((api_base.account_info as any)?.currency || 'USD');
 
@@ -62,7 +57,6 @@ const ManualTrader = () => {
                 .sort((a: ManualMarketSymbol, b: ManualMarketSymbol) => a.display_name.localeCompare(b.display_name));
             setSymbols(volatility);
             setSymbol(current => volatility.some(item => item.symbol === current) ? current : volatility[0]?.symbol || '');
-            if (volatility.length === 0) setError('No open Volatility Indices are currently available on this account.');
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Unable to load Volatility Indices.');
         }
@@ -161,10 +155,6 @@ const ManualTrader = () => {
     }, [symbol, socketReady]);
 
     useEffect(() => {
-        setProposal(null);
-    }, [symbol, contractType, duration, stake, prediction]);
-
-    useEffect(() => {
         try {
             window.sessionStorage.setItem(historyStorageKey, JSON.stringify(trades));
         } catch {
@@ -173,68 +163,6 @@ const ManualTrader = () => {
     }, [historyStorageKey, trades]);
 
     const selectedSymbol = useMemo(() => symbols.find(item => item.symbol === symbol), [symbols, symbol]);
-
-    const getProposal = async () => {
-        setError('');
-        setProposal(null);
-        const amount = Number(stake);
-        if (!symbol) return setError('Select an available Volatility Index.');
-        if (!Number.isFinite(amount) || amount <= 0) return setError('Enter a valid positive stake.');
-        if (!Number.isInteger(duration) || duration < 1) return setError('Tick duration must be a positive whole number.');
-        setLoading(true);
-        try {
-            const quote = await manualTradeService.getProposal({
-                symbol, contractType, amount, currency, duration, prediction,
-            });
-            setProposal(quote);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'Unable to get proposal.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const buy = async () => {
-        if (!proposal) return;
-        setBuying(true);
-        setError('');
-        try {
-            const result = await manualTradeService.buy(proposal.id, proposal.ask_price);
-            const record: ManualTradeRecord = {
-                contract_id: Number(result.contract_id),
-                contract_type: contractType,
-                symbol,
-                symbol_name: selectedSymbol?.display_name || symbol,
-                buy_price: Number(result.buy_price),
-                payout: proposal.payout,
-                currency,
-                status: 'open',
-                purchase_time: Date.now(),
-            };
-            setTrades(current => [record, ...current]);
-            setProposal(null);
-            let stopWatching: (() => void) | undefined;
-            let contractFinished = false;
-            stopWatching = await manualTradeService.observeContract(record.contract_id, contract => {
-                if (contract.is_sold || contract.is_expired) {
-                    contractFinished = true;
-                    setTrades(current => current.map(item => item.contract_id === record.contract_id ? {
-                        ...item,
-                        status: contract.status === 'won' ? 'won' : contract.status === 'lost' ? 'lost' : 'sold',
-                        profit: Number(contract.profit),
-                        entry_tick: contract.entry_tick,
-                        exit_tick: contract.exit_tick,
-                    } : item));
-                    stopWatching?.();
-                }
-            });
-            if (contractFinished) stopWatching();
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'Purchase failed.');
-        } finally {
-            setBuying(false);
-        }
-    };
 
     return (
         <main className='manual-trader'>
@@ -264,22 +192,9 @@ const ManualTrader = () => {
                 onPredictionChange={setPrediction}
             />
 
-            <div className='manual-trader__layout manual-trader__layout--below-analysis'>
-                <div className='manual-trader__column'>
-                    <TradePanel
-                        loading={loading}
-                        buying={buying}
-                        proposal={proposal}
-                        currency={currency}
-                        error={error}
-                        onGetProposal={getProposal}
-                        onBuy={buy}
-                    />
-                </div>
-                <div className='manual-trader__column'>
-                    <TradeHistory trades={trades} currency={currency} />
-                </div>
-            </div>
+            <ManualTraderDistributionPanels ticks={digitTicks} />
+
+            <TradeHistory trades={trades} currency={currency} />
         </main>
     );
 };
