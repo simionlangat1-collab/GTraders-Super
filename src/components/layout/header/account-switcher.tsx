@@ -17,7 +17,7 @@ import { setAccountList } from '@/external/bot-skeleton/services/api/observables
 import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 import './account-switcher.scss';
 
-const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
+const AccountSwitcher = observer(({ activeAccount, balanceDisplayCurrency = 'USD', usdKesRate }: TAccountSwitcher) => {
     const [isOpen, setIsOpen] = useState(false);
     const [resettingAccount, setResettingAccount] = useState<string | null>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -207,7 +207,13 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                     {!currency ? (
                                         <Localize i18n_default_text='No currency assigned' />
                                     ) : (
-                                        balance + ' ' + getCurrencyDisplayCode(currency)
+                                        balanceDisplayCurrency === 'KES' && currency?.toUpperCase() === 'USD' && usdKesRate
+                                            ? 'KSh ' +
+                                              new Intl.NumberFormat('en-KE', {
+                                                  minimumFractionDigits: 2,
+                                                  maximumFractionDigits: 2,
+                                              }).format(Number(balance) * usdKesRate)
+                                            : balance + ' ' + getCurrencyDisplayCode(currency)
                                     )}
                                 </p>
                             </div>
