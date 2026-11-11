@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import { addComma, getCurrencyDisplayCode, getDecimalPlaces, isProduction } from '@/components/shared';
 import Text from '@/components/shared_ui/text';
+import { CurrencyIcon } from '@/components/currency/currency-icon';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
@@ -157,8 +158,16 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     }}
                 >
                     <span className='acc-info__id' aria-hidden='true'></span>
-                    <span className='acc-info__flag' role='img' aria-label='United States flag'>
-                        🇺🇸
+                    <span
+                        className='acc-info__flag'
+                        role='img'
+                        aria-label={isVirtual ? 'Demo account icon' : 'United States flag'}
+                    >
+                        {isVirtual ? (
+                            <CurrencyIcon currency={currency} isVirtual={isVirtual} />
+                        ) : (
+                            <span style={{ fontSize: '1.7rem' }}>🇺🇸</span>
+                        )}
                     </span>
                     <div className='acc-info__content'>
                         <div className='acc-info__account-type-header'>
