@@ -84,7 +84,9 @@ const ManualTrader = () => {
     // The frequency panel always reflects this rolling window, never an all-time count.
     useEffect(() => {
         const api = api_base.api as any;
-        if (connection !== CONNECTION_STATUS.OPENED || !api || api.connection?.readyState !== 1 || !symbol) {
+        // APIBase's connection status is authoritative; the generated API wrapper
+        // does not consistently expose its underlying WebSocket as api.connection.
+        if (connection !== CONNECTION_STATUS.OPENED || !api || !symbol) {
             setTickConnection('disconnected');
             setDigitTicks([]);
             return undefined;
