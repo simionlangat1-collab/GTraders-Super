@@ -76,7 +76,6 @@ const AppHeader = observer(() => {
     });
 
     const handleLogout = useLogout();
-    const canDisplayKes = activeAccount?.currency?.toUpperCase() === 'USD' && usdKesRate !== null;
 
     // Clear OAuth-pending flag once the account is set (auth succeeded)
     // or after a generous timeout in case something goes wrong.
@@ -255,32 +254,20 @@ const AppHeader = observer(() => {
                 <Wrapper variant='left'>
                     <MobileMenu onLogout={handleLogout} />
                     <AppLogo />
-                    <div className='gk-currency-toggle' role='group' aria-label='Balance display currency'>
-                        <button
-                            type='button'
-                            className={
-                                balanceDisplayCurrency === 'USD'
-                                    ? 'gk-currency-toggle__option gk-currency-toggle__option--active'
-                                    : 'gk-currency-toggle__option'
-                            }
-                            aria-pressed={balanceDisplayCurrency === 'USD'}
-                            onClick={() => setBalanceDisplayCurrency('USD')}
+                    <div className='gk-currency-dropdown'>
+                        <label className='gk-currency-dropdown__label' htmlFor='gk-balance-currency'>
+                            Display
+                        </label>
+                        <select
+                            id='gk-balance-currency'
+                            className='gk-currency-dropdown__select'
+                            aria-label='Balance display currency'
+                            value={balanceDisplayCurrency}
+                            onChange={event => setBalanceDisplayCurrency(event.target.value as 'USD' | 'KES')}
                         >
-                            USD
-                        </button>
-                        <button
-                            type='button'
-                            className={
-                                balanceDisplayCurrency === 'KES'
-                                    ? 'gk-currency-toggle__option gk-currency-toggle__option--active'
-                                    : 'gk-currency-toggle__option'
-                            }
-                            aria-pressed={balanceDisplayCurrency === 'KES'}
-                            disabled={!canDisplayKes}
-                            onClick={() => setBalanceDisplayCurrency('KES')}
-                        >
-                            KSh
-                        </button>
+                            <option value='USD'>USD</option>
+                            <option value='KES'>KSh</option>
+                        </select>
                     </div>
                     {isDesktop ? <MenuItems /> : renderAccountSection('left')}
                 </Wrapper>
