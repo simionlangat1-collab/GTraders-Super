@@ -19,7 +19,10 @@ const waitForMessage = <T,>(
             return;
         }
 
-        let timer: ReturnType<typeof setTimeout>;
+        const timer = setTimeout(() => {
+            listener.unsubscribe();
+            reject(new Error('Deriv did not respond in time. Please try again.'));
+        }, timeoutMs);
         const listener = api.onMessage().subscribe((message: any) => {
             const result = predicate(message?.data);
             if (result !== undefined) {
@@ -27,17 +30,7 @@ const waitForMessage = <T,>(
                 listener.unsubscribe();
                 resolve(result);
             }
-            if (message?.data?.error) {
-                clearTimeout(timer);
-                listener.unsubscribe();
-                reject(new Error(message.data.error.message || 'Deriv request failed.'));
-            }
         });
-
-        timer = setTimeout(() => {
-            listener.unsubscribe();
-            reject(new Error('Deriv did not respond in time. Please try again.'));
-        }, timeoutMs);
     });
 
 export class ManualTradeService {
@@ -56,19 +49,19 @@ export class ManualTradeService {
         if (!api_base.is_authorized) throw new Error('Please authorize your Deriv account first.');
 
         const requestId = `manual-${Date.now()}-${++this.requestSequence}`;
-        const passthrough = { manual_trade_request_id: requestId };
-        const proposalPromise = waitForMessage<ProposalResult>(data => {
-            if (data?.msg_type !== 'proposal' || data?.echo_req?.passthrough?.manual_trade_request_id !== requestId) {
-                return undefined;
-            }
-            if (data.error) throw new Error(data.error.message || 'Unable to get proposal.');
+        const proposalPromise = waitForMessage<any>(data => {
+            if (data?.echo_req?.passthrough?.manual_trade_request_id !== requestId) return undefined;
+            if (data.error) return { error: data.error.message || 'Unable to get proposal.' };
+            if (data.msg_type !== 'proposal') return undefined;
             const proposal = data.proposal;
-            if (!proposal?.id) throw new Error('Deriv returned an invalid proposal.');
+            if (!proposal?.id) return { error: 'Deriv returned an invalid proposal.' };
             return {
-                id: proposal.id,
-                ask_price: Number(proposal.ask_price),
-                payout: Number(proposal.payout),
-                contract_type: options.contractType,
+                proposal: {
+                    id: proposal.id,
+                    ask_price: Number(proposal.ask_price),
+                    payout: Number(proposal.payout),
+                    contract_type: options.contractType,
+                },
             };
         });
 
@@ -81,7 +74,7 @@ export class ManualTradeService {
             duration: options.duration,
             duration_unit: 't',
             symbol: options.symbol,
-            passthrough,
+            passthrough: { manual_trade_request_id: requestId },
         };
 
         if (['DIGITOVER', 'DIGITUNDER', 'DIGITMATCH', 'DIGITDIFF'].includes(options.contractType)) {
@@ -89,7 +82,9 @@ export class ManualTradeService {
         }
 
         await api.send(request);
-        return proposalPromise;
+        const result = await proposalPromise;
+        if (result.error) throw new Error(result.error);
+        return result.proposal;
     }
 
     async buy(proposalId: string, askPrice: number) {
@@ -101,10 +96,11 @@ export class ManualTradeService {
         return response.buy;
     }
 
-    observeContract(contractId: number, callback: (contract: any) => void) {
+    async observeContract(contractId: number, callback: (contract: any) => void) {
         const api = api_base.api;
-        if (!api) return () => undefined;
+        if (!api) throw new Error('Deriv connection is not available.');
 
+        let subscriptionId = '';
         const listener = api.onMessage().subscribe((message: any) => {
             const data = message?.data;
             const contract = data?.proposal_open_contract;
@@ -113,7 +109,23 @@ export class ManualTradeService {
             }
         });
 
-        return () => listener.unsubscribe();
+        try {
+            const initial: any = await api.send({
+                proposal_open_contract: 1,
+                contract_id: contractId,
+                subscribe: 1,
+            });
+            subscriptionId = initial?.subscription?.id || '';
+            if (initial?.proposal_open_contract) callback(initial.proposal_open_contract);
+        } catch (error) {
+            listener.unsubscribe();
+            throw error;
+        }
+
+        return () => {
+            listener.unsubscribe();
+            if (subscriptionId) void api.send({ forget: subscriptionId });
+        };
     }
 }
 
