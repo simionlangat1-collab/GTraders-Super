@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import './analysis-dashboard.scss';
+import '../../analysis-tool/analysis-tool.scss';
 
 type TTick = { quote: number; epoch: number; digit: number };
 type Props = {
