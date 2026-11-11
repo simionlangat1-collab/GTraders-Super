@@ -106,18 +106,28 @@ export const TradeControls = (props: Props) => {
             )}
 
             <div className='manual-trader__setup-row manual-trader__value-row'>
-                <button
-                    type='button'
-                    className='manual-trader__ticks-control'
-                    onClick={() => props.onDurationChange(clampDuration(props.duration + 1))}
-                    onContextMenu={event => {
-                        event.preventDefault();
-                        props.onDurationChange(clampDuration(props.duration - 1));
-                    }}
-                    title='Tap to increase ticks; long press/right click to decrease'
-                >
-                    {props.duration} {props.duration === 1 ? 'Tick' : 'Ticks'}
-                </button>
+                <div className='manual-trader__ticks-stepper' aria-label='Trade duration in ticks'>
+                    <button
+                        type='button'
+                        className='manual-trader__ticks-stepper-button'
+                        onClick={() => props.onDurationChange(clampDuration(props.duration - 1))}
+                        disabled={props.duration <= 1}
+                        aria-label='Decrease tick duration'
+                    >
+                        −
+                    </button>
+                    <span className='manual-trader__ticks-value'>
+                        {props.duration} {props.duration === 1 ? 'Tick' : 'Ticks'}
+                    </span>
+                    <button
+                        type='button'
+                        className='manual-trader__ticks-stepper-button'
+                        onClick={() => props.onDurationChange(clampDuration(props.duration + 1))}
+                        aria-label='Increase tick duration'
+                    >
+                        +
+                    </button>
+                </div>
 
                 <div className='manual-trader__stake-editor'>
                     {stakeEditing ? (
