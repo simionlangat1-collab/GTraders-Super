@@ -83,6 +83,8 @@ const ManualTrader = () => {
         };
         const statusSubscription = connectionStatus$.subscribe(updateSocketReady);
         updateSocketReady(connectionStatus$.value);
+        // Match Analysis Tool: also handle a socket that was already open before this page mounted.
+        if (api_base.api?.connection?.readyState === 1) setSocketReady(true);
         return () => statusSubscription.unsubscribe();
     }, []);
 
