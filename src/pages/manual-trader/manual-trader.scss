@@ -53,9 +53,19 @@
         &.is-selected { border-color: #22d3ee; background: rgba(34,211,238,.14); box-shadow: 0 0 .8rem rgba(34,211,238,.16); }
     }
     &__value-row { justify-content: space-between; gap: 1rem; margin: .2rem 0 1.15rem; }
-    &__ticks-control {
-        min-height: 3.5rem; padding: .45rem .85rem; border: 1px solid var(--border-normal); border-radius: .55rem;
-        background: var(--general-main-1); color: var(--text-prominent); font-size: 1.15rem; font-weight: 750; cursor: pointer;
+    &__ticks-stepper {
+        display: inline-flex; align-items: center; gap: .65rem; min-height: 3.5rem; padding: .3rem .45rem;
+        border: 1px solid var(--border-normal); border-radius: .65rem; background: var(--general-main-1);
+    }
+    &__ticks-stepper-button {
+        display: inline-flex; align-items: center; justify-content: center; width: 2.8rem; height: 2.8rem;
+        border: 1px solid var(--border-normal); border-radius: .45rem; background: var(--general-section-1);
+        color: var(--text-prominent); font-size: 1.65rem; font-weight: 800; line-height: 1; cursor: pointer;
+        &:active:not(:disabled) { transform: scale(.94); }
+        &:disabled { opacity: .35; cursor: not-allowed; }
+    }
+    &__ticks-value {
+        min-width: 4.7rem; color: var(--text-prominent); font-size: 1.05rem; font-weight: 800; text-align: center; white-space: nowrap;
     }
     &__stake-editor { flex: 1; display: flex; justify-content: center; }
     &__stake-editor button, &__stake-editor input {
@@ -153,7 +163,9 @@
         &__stake-editor button, &__stake-editor input { min-width: 7rem; font-size: 1.15rem; }
         &__stake-label { font-size: .9rem; }
         &__value-row { gap: .6rem; }
-        &__ticks-control { font-size: 1rem; padding-inline: .65rem; }
+        &__ticks-stepper { gap: .4rem; padding: .25rem .35rem; }
+        &__ticks-stepper-button { width: 2.55rem; height: 2.65rem; }
+        &__ticks-value { min-width: 4.2rem; font-size: .95rem; }
         &__digits { gap: .6rem; }
         &__digit-card { min-height: 9.2rem; padding: .8rem .2rem; }
         &__digit-circle { width: 4.5rem; height: 4.5rem; flex-basis: 4.5rem; }
