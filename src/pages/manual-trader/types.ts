@@ -4,7 +4,9 @@ export type ManualContractType =
     | 'DIGITMATCH'
     | 'DIGITDIFF'
     | 'DIGITEVEN'
-    | 'DIGITODD';
+    | 'DIGITODD'
+    | 'CALL'
+    | 'PUT';
 
 export type ManualMarketSymbol = {
     symbol: string;
