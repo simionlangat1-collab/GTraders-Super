@@ -30,10 +30,15 @@ const CONTRACT_OPTIONS: Record<string, { over: ManualContractType; under: Manual
 };
 
 const clampDuration = (value: number) => Math.max(1, Math.round(value || 1));
+const formatStake = (value: string | number) => {
+    const amount = Number(value);
+    return (Number.isFinite(amount) ? amount : 0).toFixed(2);
+};
 
 export const TradeControls = (props: Props) => {
     const [marketOpen, setMarketOpen] = useState(false);
     const [stakeEditing, setStakeEditing] = useState(false);
+    const [stakeDraft, setStakeDraft] = useState('0.00');
     const groupIndex = Math.max(0, CONTRACT_GROUPS.findIndex(group => {
         if (group.value === 'DIGITOVER') return props.contractType === 'DIGITOVER' || props.contractType === 'DIGITUNDER';
         if (group.value === 'DIGITEVEN') return props.contractType === 'DIGITEVEN' || props.contractType === 'DIGITODD';
@@ -47,6 +52,45 @@ export const TradeControls = (props: Props) => {
     const selectGroup = (nextIndex: number) => {
         const next = CONTRACT_GROUPS[nextIndex];
         props.onContractChange(CONTRACT_OPTIONS[next.value].over);
+    };
+
+    const openStakePad = () => {
+        setStakeDraft(props.stake || '0.00');
+        setStakeEditing(true);
+    };
+
+    const adjustStake = (amount: number) => {
+        const next = Math.max(0, Number(stakeDraft || 0) + amount);
+        setStakeDraft(next.toFixed(2));
+    };
+
+    const enterStakeDigit = (digit: string) => {
+        setStakeDraft(current => {
+            const value = current || '0';
+            if (value.includes('.')) {
+                const decimals = value.split('.')[1] || '';
+                if (decimals.length >= 2) return value;
+                return value + digit;
+            }
+            return value === '0' ? digit : value + digit;
+        });
+    };
+
+    const enterDecimal = () => {
+        setStakeDraft(current => (current || '0').includes('.') ? current : (current || '0') + '.');
+    };
+
+    const removeStakeDigit = () => {
+        setStakeDraft(current => {
+            const next = (current || '0').slice(0, -1);
+            return !next || next === '-' ? '0' : next;
+        });
+    };
+
+    const confirmStake = () => {
+        const amount = Number(stakeDraft);
+        props.onStakeChange((Number.isFinite(amount) && amount >= 0 ? amount : 0).toFixed(2));
+        setStakeEditing(false);
     };
 
     return (
@@ -130,28 +174,52 @@ export const TradeControls = (props: Props) => {
                 </div>
 
                 <div className='manual-trader__stake-editor'>
-                    {stakeEditing ? (
-                        <input
-                            autoFocus
-                            type='number'
-                            min='0.35'
-                            step='0.01'
-                            inputMode='decimal'
-                            value={props.stake}
-                            onChange={event => props.onStakeChange(event.target.value)}
-                            onBlur={() => setStakeEditing(false)}
-                            onKeyDown={event => {
-                                if (event.key === 'Enter') setStakeEditing(false);
-                            }}
-                        />
-                    ) : (
-                        <button type='button' onClick={() => setStakeEditing(true)}>
-                            {Number(props.stake || 0).toFixed(2)} USD
-                        </button>
-                    )}
+                    <button type='button' onClick={openStakePad} aria-label={`Change stake, currently ${formatStake(props.stake)} USD`}>
+                        {formatStake(props.stake)} USD
+                    </button>
                 </div>
                 <span className='manual-trader__stake-label'>Stake</span>
             </div>
+
+            {stakeEditing && (
+                <div className='manual-trader__stake-modal-backdrop' onClick={() => setStakeEditing(false)}>
+                    <div
+                        className='manual-trader__stake-modal'
+                        role='dialog'
+                        aria-modal='true'
+                        aria-label='Enter stake amount'
+                        onClick={event => event.stopPropagation()}
+                    >
+                        <div className='manual-trader__stake-modal-header'>
+                            <span>Enter Stake Amount</span>
+                            <button type='button' onClick={() => setStakeEditing(false)} aria-label='Close stake keypad'>×</button>
+                        </div>
+                        <div className='manual-trader__stake-adjuster'>
+                            <button type='button' onClick={() => adjustStake(-1)} aria-label='Decrease stake'>−</button>
+                            <output>{stakeDraft.endsWith('.') ? stakeDraft : formatStake(stakeDraft)} USD</output>
+                            <button type='button' onClick={() => adjustStake(1)} aria-label='Increase stake'>+</button>
+                        </div>
+                        <div className='manual-trader__stake-keypad'>
+                            {['1', '2', '3', 'backspace', '4', '5', '6', '7', '8', '9', '0', 'decimal', 'ok'].map(key => (
+                                <button
+                                    type='button'
+                                    key={key}
+                                    className={`manual-trader__stake-key ${key === 'backspace' ? 'is-backspace' : ''} ${key === 'ok' ? 'is-confirm' : ''} ${key === '0' ? 'is-zero' : ''}`}
+                                    onClick={() => {
+                                        if (key === 'backspace') removeStakeDigit();
+                                        else if (key === 'decimal') enterDecimal();
+                                        else if (key === 'ok') confirmStake();
+                                        else enterStakeDigit(key);
+                                    }}
+                                    aria-label={key === 'backspace' ? 'Delete last digit' : key === 'decimal' ? 'Decimal point' : key === 'ok' ? 'Confirm stake' : key}
+                                >
+                                    {key === 'backspace' ? '⌫' : key === 'decimal' ? '.' : key === 'ok' ? 'OK' : key}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className='manual-trader__execution-actions'>
                 <button
@@ -175,7 +243,7 @@ export const TradeControls = (props: Props) => {
             </div>
 
             <div className='manual-trader__setup-hint'>
-                {group.label} · {props.duration} ticks · {Number(props.stake || 0).toFixed(2)} USD
+                {group.label} · {props.duration} ticks · {formatStake(props.stake)} USD
             </div>
         </section>
     );
