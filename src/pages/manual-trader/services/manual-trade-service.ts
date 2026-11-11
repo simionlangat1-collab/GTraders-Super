@@ -22,17 +22,17 @@ const waitForMessage = <T,>(
         }
 
         let timer: ReturnType<typeof setTimeout> | undefined;
-        let listener: { unsubscribe: () => void };
+        let listener: { unsubscribe: () => void } | undefined;
         listener = api.onMessage().subscribe((message: any) => {
             const result = predicate(unwrapMessage(message));
             if (result !== undefined) {
                 if (timer) clearTimeout(timer);
-                listener.unsubscribe();
+                listener?.unsubscribe();
                 resolve(result);
             }
         });
         timer = setTimeout(() => {
-            listener.unsubscribe();
+            listener?.unsubscribe();
             reject(new Error('Deriv did not respond in time. Please try again.'));
         }, timeoutMs);
     });
@@ -106,11 +106,11 @@ export class ManualTradeService {
 
         let subscriptionId = '';
         let closed = false;
-        let listener: { unsubscribe: () => void };
+        let listener: { unsubscribe: () => void } | undefined;
         const cleanup = () => {
             if (closed) return;
             closed = true;
-            listener.unsubscribe();
+            listener?.unsubscribe();
             if (subscriptionId) void api.send({ forget: subscriptionId });
         };
         listener = api.onMessage().subscribe((message: any) => {
