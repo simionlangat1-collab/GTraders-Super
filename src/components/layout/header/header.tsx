@@ -155,10 +155,10 @@ const AppHeader = observer(() => {
                         <div className='auth-actions'>
                             <div className='account-info'>
                                 <AccountSwitcher
-                                activeAccount={activeAccount}
-                                balanceDisplayCurrency={balanceDisplayCurrency}
-                                usdKesRate={usdKesRate}
-                            />
+                                    activeAccount={activeAccount}
+                                    balanceDisplayCurrency={balanceDisplayCurrency}
+                                    usdKesRate={usdKesRate}
+                                />
                             </div>
                         </div>
                     );
@@ -240,7 +240,11 @@ const AppHeader = observer(() => {
                     <div className='gk-currency-toggle' role='group' aria-label='Balance display currency'>
                         <button
                             type='button'
-                            className={balanceDisplayCurrency === 'USD' ? 'gk-currency-toggle__option gk-currency-toggle__option--active' : 'gk-currency-toggle__option'}
+                            className={
+                                balanceDisplayCurrency === 'USD'
+                                    ? 'gk-currency-toggle__option gk-currency-toggle__option--active'
+                                    : 'gk-currency-toggle__option'
+                            }
                             aria-pressed={balanceDisplayCurrency === 'USD'}
                             onClick={() => setBalanceDisplayCurrency('USD')}
                         >
@@ -248,7 +252,11 @@ const AppHeader = observer(() => {
                         </button>
                         <button
                             type='button'
-                            className={balanceDisplayCurrency === 'KES' ? 'gk-currency-toggle__option gk-currency-toggle__option--active' : 'gk-currency-toggle__option'}
+                            className={
+                                balanceDisplayCurrency === 'KES'
+                                    ? 'gk-currency-toggle__option gk-currency-toggle__option--active'
+                                    : 'gk-currency-toggle__option'
+                            }
                             aria-pressed={balanceDisplayCurrency === 'KES'}
                             disabled={!canDisplayKes}
                             onClick={() => setBalanceDisplayCurrency('KES')}
