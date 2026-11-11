@@ -10,36 +10,7 @@ type ProposalResult = {
 
 const unwrapMessage = (message: any) => message?.data ?? message;
 
-const waitForMessage = <T,>(
-    predicate: (data: any) => T | undefined,
-    timeoutMs = 15000
-): Promise<T> =>
-    new Promise((resolve, reject) => {
-        const api = api_base.api;
-        if (!api) {
-            reject(new Error('Deriv connection is not available. Please log in again.'));
-            return;
-        }
-
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        let listener: { unsubscribe: () => void } | undefined;
-        listener = api.onMessage().subscribe((message: any) => {
-            const result = predicate(unwrapMessage(message));
-            if (result !== undefined) {
-                if (timer) clearTimeout(timer);
-                listener?.unsubscribe();
-                resolve(result);
-            }
-        });
-        timer = setTimeout(() => {
-            listener?.unsubscribe();
-            reject(new Error('Deriv did not respond in time. Please try again.'));
-        }, timeoutMs);
-    });
-
 export class ManualTradeService {
-    private requestSequence = 0;
-
     async getProposal(options: {
         symbol: string;
         contractType: ManualContractType;
@@ -52,23 +23,6 @@ export class ManualTradeService {
         if (!api) throw new Error('Deriv connection is not available.');
         if (!api_base.is_authorized) throw new Error('Please authorize your Deriv account first.');
 
-        const requestId = `manual-${Date.now()}-${++this.requestSequence}`;
-        const proposalPromise = waitForMessage<any>(data => {
-            if (data?.echo_req?.passthrough?.manual_trade_request_id !== requestId) return undefined;
-            if (data.error) return { error: data.error.message || 'Unable to get proposal.' };
-            if (data.msg_type !== 'proposal') return undefined;
-            const proposal = data.proposal;
-            if (!proposal?.id) return { error: 'Deriv returned an invalid proposal.' };
-            return {
-                proposal: {
-                    id: proposal.id,
-                    ask_price: Number(proposal.ask_price),
-                    payout: Number(proposal.payout),
-                    contract_type: options.contractType,
-                },
-            };
-        });
-
         const request: Record<string, any> = {
             proposal: 1,
             amount: options.amount,
@@ -78,17 +32,38 @@ export class ManualTradeService {
             duration: options.duration,
             duration_unit: 't',
             symbol: options.symbol,
-            passthrough: { manual_trade_request_id: requestId },
         };
 
         if (['DIGITOVER', 'DIGITUNDER', 'DIGITMATCH', 'DIGITDIFF'].includes(options.contractType)) {
             request.barrier = options.prediction;
         }
 
-        await api.send(request);
-        const result = await proposalPromise;
-        if (result.error) throw new Error(result.error);
-        return result.proposal;
+        // The Deriv API send() promise resolves with the matching response.
+        // Consume that response directly instead of waiting for a second
+        // onMessage event that may already have been emitted or may not carry
+        // the passthrough fields used for correlation.
+        const response: any = unwrapMessage(await api.send(request));
+        if (response?.error) {
+            throw new Error(response.error.message || 'Unable to get proposal.');
+        }
+
+        const proposal = response?.proposal;
+        if (response?.msg_type !== 'proposal' || !proposal?.id) {
+            throw new Error('Deriv returned an invalid proposal response. Please try again.');
+        }
+
+        const askPrice = Number(proposal.ask_price);
+        const payout = Number(proposal.payout);
+        if (!Number.isFinite(askPrice) || askPrice <= 0 || !Number.isFinite(payout) || payout <= 0) {
+            throw new Error('Deriv returned an invalid price quote. Please refresh the quote and try again.');
+        }
+
+        return {
+            id: String(proposal.id),
+            ask_price: askPrice,
+            payout,
+            contract_type: options.contractType,
+        };
     }
 
     async buy(proposalId: string, askPrice: number) {
@@ -128,6 +103,7 @@ export class ManualTradeService {
                 contract_id: contractId,
                 subscribe: 1,
             }));
+            if (initial?.error) throw new Error(initial.error.message || 'Unable to monitor the purchased contract.');
             subscriptionId = initial?.subscription?.id || '';
             if (initial?.proposal_open_contract) {
                 callback(initial.proposal_open_contract);
