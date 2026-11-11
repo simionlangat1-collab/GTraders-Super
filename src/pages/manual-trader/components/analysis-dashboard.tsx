@@ -6,11 +6,12 @@ type Props = {
     ticks: TTick[];
     marketName: string;
     tickConnection: 'connecting' | 'connected' | 'disconnected';
+    tickError?: string;
 };
 
 const TICK_WINDOW = 1000;
 
-export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnection }: Props) => {
+export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnection, tickError }: Props) => {
     const [overUnderDigit, setOverUnderDigit] = useState(5);
     const frequencies = useMemo(
         () => Array.from({ length: 10 }, (_, digit) => {
@@ -68,6 +69,8 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
                     {tickConnection === 'connected' ? 'Live tick stream' : tickConnection === 'connecting' ? 'Connecting' : 'Tick stream offline'}
                 </div>
             </header>
+
+            {tickError && <div className='analysis-tool__error' role='alert'>Tick subscription error: {tickError}</div>}
 
             <section className='analysis-tool__overview'>
                 <div className='analysis-tool__panel analysis-tool__latest'>
