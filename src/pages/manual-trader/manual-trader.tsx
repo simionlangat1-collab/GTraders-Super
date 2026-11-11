@@ -8,6 +8,17 @@ import { manualTradeService } from './services/manual-trade-service';
 import { ManualContractType, ManualMarketSymbol, ManualTradeRecord } from './types';
 import './manual-trader.scss';
 
+const TICK_WINDOW = 1000;
+type TDigitTick = { quote: number; epoch: number; digit: number };
+type TDigitFrequency = { digit: number; count: number; percentage: number };
+
+const getLastDigit = (quote: number | string, precision?: number) => {
+    const numericQuote = Number(quote);
+    const quoteText = Number.isFinite(precision) ? numericQuote.toFixed(precision) : String(quote);
+    const decimals = quoteText.split('.')[1] || '';
+    return Number((decimals || quoteText).slice(-1));
+};
+
 const ManualTrader = () => {
     const [symbols, setSymbols] = useState<ManualMarketSymbol[]>([]);
     const [symbol, setSymbol] = useState('');
@@ -15,6 +26,8 @@ const ManualTrader = () => {
     const [duration, setDuration] = useState(1);
     const [stake, setStake] = useState('1');
     const [prediction, setPrediction] = useState(5);
+    const [digitTicks, setDigitTicks] = useState<TDigitTick[]>([]);
+    const [tickConnection, setTickConnection] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const [proposal, setProposal] = useState<{ id: string; ask_price: number; payout: number } | null>(null);
     const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
     const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
@@ -66,6 +79,94 @@ const ManualTrader = () => {
             void loadSymbols();
         }
     }, [connection, symbols.length, loadSymbols]);
+
+    // Keep a rolling sample of the latest 1,000 Deriv ticks for the selected market.
+    useEffect(() => {
+        const api = api_base.api as any;
+        if (connection !== CONNECTION_STATUS.OPENED || !api || api.connection?.readyState !== 1 || !symbol) {
+            setTickConnection('disconnected');
+            setDigitTicks([]);
+            return undefined;
+        }
+
+        let active = true;
+        let subscriptionId = '';
+        setDigitTicks([]);
+        setTickConnection('connecting');
+
+        const precision = (api_base.pip_sizes as Record<string, number>)?.[symbol];
+        const messageSubscription = api.onMessage().subscribe((message: any) => {
+            const data = message?.data ?? message;
+            if (!active || data?.msg_type !== 'tick' || data.tick?.symbol !== symbol) return;
+            const quote = Number(data.tick.quote);
+            const epoch = Number(data.tick.epoch);
+            if (!Number.isFinite(quote) || !Number.isFinite(epoch)) return;
+            setDigitTicks(previous => [
+                ...previous,
+                { quote, epoch, digit: getLastDigit(data.tick.quote, precision) },
+            ].slice(-TICK_WINDOW));
+        });
+
+        const startStream = async () => {
+            try {
+                const response = await api.send({
+                    ticks_history: symbol,
+                    end: 'latest',
+                    count: TICK_WINDOW,
+                    style: 'ticks',
+                    subscribe: 1,
+                });
+                if (!active) {
+                    const id = response?.subscription?.id;
+                    if (id) api.send({ forget: id });
+                    return;
+                }
+                const responseData = response?.data ?? response;
+                const history = responseData?.history;
+                const prices: (number | string)[] = history?.prices || [];
+                const times: number[] = history?.times || [];
+                const historicalTicks = prices.map((price, index) => ({
+                    quote: Number(price),
+                    epoch: Number(times[index] || 0),
+                    digit: getLastDigit(price, precision),
+                }));
+                setDigitTicks(previous => {
+                    const combined = [...historicalTicks, ...previous]
+                        .sort((a, b) => a.epoch - b.epoch);
+                    return combined.slice(-TICK_WINDOW);
+                });
+                subscriptionId = responseData?.subscription?.id || response?.subscription?.id || '';
+                setTickConnection('connected');
+            } catch {
+                if (!active) return;
+                setTickConnection('disconnected');
+            }
+        };
+
+        void startStream();
+        return () => {
+            active = false;
+            messageSubscription?.unsubscribe?.();
+            if (subscriptionId) api.send({ forget: subscriptionId });
+        };
+    }, [symbol, connection]);
+
+    const digitFrequencies = useMemo<TDigitFrequency[]>(
+        () => Array.from({ length: 10 }, (_, digit) => {
+            const count = digitTicks.filter(tick => tick.digit === digit).length;
+            return {
+                digit,
+                count,
+                percentage: digitTicks.length ? (count / digitTicks.length) * 100 : 0,
+            };
+        }),
+        [digitTicks]
+    );
+    const rankedDigits = useMemo(
+        () => [...digitFrequencies].sort((a, b) => a.count - b.count || a.digit - b.digit),
+        [digitFrequencies]
+    );
+    const latestDigit = digitTicks.length ? digitTicks[digitTicks.length - 1].digit : null;
 
     useEffect(() => {
         setProposal(null);
@@ -153,8 +254,9 @@ const ManualTrader = () => {
                 <div className='manual-trader__column'>
                     <TradeControls
                         symbols={symbols} symbol={symbol} contractType={contractType} duration={duration}
-                        stake={stake} prediction={prediction} onSymbolChange={setSymbol}
-                        onContractChange={setContractType} onDurationChange={setDuration}
+                        stake={stake} prediction={prediction} digitFrequencies={digitFrequencies}
+                        latestDigit={latestDigit} tickCount={digitTicks.length} tickConnection={tickConnection}
+                        onSymbolChange={setSymbol} onContractChange={setContractType} onDurationChange={setDuration}
                         onStakeChange={setStake} onPredictionChange={setPrediction}
                     />
                     <TradeHistory trades={trades} currency={currency} />
