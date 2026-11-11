@@ -28,6 +28,8 @@ const AppHeader = observer(() => {
 
         const loadUsdKesRate = async () => {
             const rateSources = [
+                'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
+                'https://latest.currency-api.pages.dev/v1/currencies/usd.json',
                 'https://open.er-api.com/v6/latest/USD',
                 'https://api.exchangerate-api.com/v4/latest/USD',
             ];
@@ -37,13 +39,15 @@ const AppHeader = observer(() => {
                     const response = await fetch(url);
                     if (!response.ok) continue;
                     const data = await response.json();
-                    const rate = Number(data?.rates?.KES);
+                    // Currency API uses { usd: { kes: ... } }; the other
+                    // providers use { rates: { KES: ... } }.
+                    const rate = Number(data?.usd?.kes ?? data?.rates?.KES);
                     if (Number.isFinite(rate) && rate > 0) {
                         if (!isCancelled) setUsdKesRate(rate);
                         return;
                     }
                 } catch {
-                    // Try the backup exchange-rate source.
+                    // Try the next exchange-rate source.
                 }
             }
 
