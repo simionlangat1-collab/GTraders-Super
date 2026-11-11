@@ -31,7 +31,8 @@ export class ManualTradeService {
             currency: options.currency,
             duration: options.duration,
             duration_unit: 't',
-            symbol: options.symbol,
+            underlying_symbol: options.symbol,
+            subscribe: 1,
         };
 
         if (['DIGITOVER', 'DIGITUNDER', 'DIGITMATCH', 'DIGITDIFF'].includes(options.contractType)) {
