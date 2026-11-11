@@ -219,6 +219,7 @@ const ManualTrader = () => {
         setBuyingSide(side);
         setTradeError('');
         const amount = Number(stake);
+        let tradeStage: 'proposal' | 'purchase' | 'monitoring' = 'proposal';
 
         try {
             if (!api_base.api || !api_base.is_authorized) {
@@ -248,6 +249,7 @@ const ManualTrader = () => {
                 duration,
                 prediction,
             });
+            tradeStage = 'purchase';
             const purchase = await manualTradeService.buy(proposal.id, proposal.ask_price);
             const contractId = Number(purchase.contract_id);
             const record: ManualTradeRecord = {
@@ -263,6 +265,7 @@ const ManualTrader = () => {
             };
             setContractType(selectedContract);
             setTrades(previous => [record, ...previous]);
+            tradeStage = 'monitoring';
             void manualTradeService.observeContract(contractId, contract => {
                 const contractStatus = String(contract.status || 'open');
                 const status: ManualTradeRecord['status'] =
@@ -280,8 +283,16 @@ const ManualTrader = () => {
             }).catch(error => {
                 setTradeError(error instanceof Error ? error.message : 'Trade opened, but contract updates could not be received.');
             });
-        } catch (error) {
-            setTradeError(error instanceof Error ? error.message : 'Unable to execute trade. Please try again.');
+        } catch (error: any) {
+            const apiMessage =
+                (typeof error === 'string' && error) ||
+                error?.error?.message ||
+                error?.data?.error?.message ||
+                error?.message ||
+                error?.data?.message ||
+                (error?.code ? `${error.code}: ${error?.message || 'Request rejected'}` : '');
+            const fallback = 'Deriv returned an unexpected response. Please try again.';
+            setTradeError(`${tradeStage === 'proposal' ? 'Quote request' : tradeStage === 'purchase' ? 'Purchase request' : 'Contract monitoring'} failed: ${apiMessage || fallback}`);
         } finally {
             buyLock.current = false;
             setBuyingSide(null);
