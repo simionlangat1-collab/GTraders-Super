@@ -112,8 +112,8 @@
         span { grid-column: 1 / -1; justify-self: start; font-size: 1.3rem; font-weight: 900; }
         small { justify-self: start; font-size: .9rem; opacity: .85; }
         strong { justify-self: end; font-size: 1.35rem; }
-        &--over { background: #b9f2c7; color: #124a25; }
-        &--under { background: #ef9a9a; color: #5b1515; }
+        &--over { background: #65c96e; color: #102f18; }
+        &--under { background: #b91c36; color: #ffffff; }
         &.is-active { box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 .4rem 1rem rgba(0,0,0,.18); }
     }
     &__setup-hint { margin-top: .8rem; color: var(--text-less-prominent); font-size: .85rem; text-align: center; }
