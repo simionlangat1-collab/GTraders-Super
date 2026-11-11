@@ -16,7 +16,15 @@ const ManualTrader = () => {
     const [stake, setStake] = useState('1');
     const [prediction, setPrediction] = useState(5);
     const [proposal, setProposal] = useState<{ id: string; ask_price: number; payout: number } | null>(null);
-    const [trades, setTrades] = useState<ManualTradeRecord[]>([]);
+    const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
+    const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
+    const [trades, setTrades] = useState<ManualTradeRecord[]>(() => {
+        try {
+            return JSON.parse(window.sessionStorage.getItem(historyStorageKey) || '[]') as ManualTradeRecord[];
+        } catch {
+            return [];
+        }
+    });
     const [loading, setLoading] = useState(false);
     const [buying, setBuying] = useState(false);
     const [error, setError] = useState('');
@@ -54,8 +62,22 @@ const ManualTrader = () => {
     }, [loadSymbols]);
 
     useEffect(() => {
+        if (connection === CONNECTION_STATUS.OPENED && symbols.length === 0) {
+            void loadSymbols();
+        }
+    }, [connection, symbols.length, loadSymbols]);
+
+    useEffect(() => {
         setProposal(null);
     }, [symbol, contractType, duration, stake, prediction]);
+
+    useEffect(() => {
+        try {
+            window.sessionStorage.setItem(historyStorageKey, JSON.stringify(trades));
+        } catch {
+            // Keep the live workspace usable if browser storage is unavailable.
+        }
+    }, [historyStorageKey, trades]);
 
     const selectedSymbol = useMemo(() => symbols.find(item => item.symbol === symbol), [symbols, symbol]);
 
