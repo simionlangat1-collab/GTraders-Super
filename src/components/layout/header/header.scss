@@ -319,47 +319,87 @@
 }
 
 
-/* G-K Pioneer display-only USD/KSh dropdown */
-.gk-currency-dropdown {
+/* G-K Pioneer balance currency switcher */
+.gk-currency-switcher {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    position: relative;
     flex: 0 0 auto;
     margin-inline-start: 0.7rem;
-    padding: 0.3rem 0.6rem;
-    border: 1px solid #d7e4f2;
-    border-radius: 0.8rem;
-    background: #f4f8fc;
 
-    &__label {
-        color: #52647a;
-        font-size: 1rem;
-        font-weight: 600;
-    }
-
-    &__select {
-        min-width: 5.8rem;
-        padding: 0.45rem 1.8rem 0.45rem 0.6rem;
-        border: 0;
-        outline: none;
-        border-radius: 0.5rem;
-        background-color: #e5f2ff;
+    &__trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        min-height: 3.2rem;
+        padding: 0.45rem 0.8rem;
+        border: 1px solid #d7e4f2;
+        border-radius: 0.8rem;
+        background: #f4f8fc;
         color: #1267c4;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         font-weight: 700;
         cursor: pointer;
+
+        &:hover {
+            background: #eaf3fc;
+        }
+    }
+
+    &__arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #52647a;
+        transition: transform 0.2s ease;
+
+        &--open {
+            transform: rotate(180deg);
+        }
+    }
+
+    &__menu {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        left: 0;
+        z-index: 10030;
+        min-width: 8rem;
+        padding: 0.4rem;
+        border: 1px solid #dbe2ee;
+        border-radius: 0.8rem;
+        background: #ffffff;
+        box-shadow: 0 8px 22px rgba(16, 24, 43, 0.16);
+    }
+
+    &__option {
+        display: block;
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border: 0;
+        border-radius: 0.5rem;
+        background: transparent;
+        color: #26364d;
+        text-align: left;
+        font-size: 1.15rem;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover,
+        &--selected {
+            background: #eaf3fc;
+            color: #1267c4;
+        }
     }
 }
 
 @media (max-width: 768px) {
-    .gk-currency-dropdown {
-        gap: 0.25rem;
+    .gk-currency-switcher {
         margin-inline-start: 0.4rem;
-        padding: 0.25rem 0.4rem;
 
-        &__select {
-            min-width: 5.2rem;
-            font-size: 1rem;
+        &__trigger {
+            min-height: 3rem;
+            padding: 0.4rem 0.65rem;
+            font-size: 1.1rem;
         }
     }
 }
