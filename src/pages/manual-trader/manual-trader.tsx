@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
-import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
+import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { TradeControls } from './components/trade-controls';
 import { TradeHistory } from './components/trade-history';
 import { TradePanel } from './components/trade-panel';
@@ -28,6 +28,8 @@ const ManualTrader = () => {
     const [prediction, setPrediction] = useState(5);
     const [digitTicks, setDigitTicks] = useState<TDigitTick[]>([]);
     const [tickConnection, setTickConnection] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+    const [socketReady, setSocketReady] = useState(false);
+    const [tickError, setTickError] = useState('');
     const [proposal, setProposal] = useState<{ id: string; ask_price: number; payout: number } | null>(null);
     const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
     const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
@@ -74,6 +76,16 @@ const ManualTrader = () => {
         return () => window.clearInterval(interval);
     }, [loadSymbols]);
 
+    // Use the same connection-status observable as the working Analysis Tool.
+    useEffect(() => {
+        const updateSocketReady = (status: string) => {
+            setSocketReady(status === CONNECTION_STATUS.OPENED);
+        };
+        const statusSubscription = connectionStatus$.subscribe(updateSocketReady);
+        updateSocketReady(connectionStatus$.value);
+        return () => statusSubscription.unsubscribe();
+    }, []);
+
     useEffect(() => {
         if (connection === CONNECTION_STATUS.OPENED && symbols.length === 0) {
             void loadSymbols();
@@ -81,12 +93,10 @@ const ManualTrader = () => {
     }, [connection, symbols.length, loadSymbols]);
 
     // Keep a rolling sample of the latest 1,000 Deriv ticks for the selected market.
-    // The frequency panel always reflects this rolling window, never an all-time count.
+    // Match Analysis Tool's WebSocket readiness check and tick subscription lifecycle.
     useEffect(() => {
         const api = api_base.api as any;
-        // APIBase's connection status is authoritative; the generated API wrapper
-        // does not consistently expose its underlying WebSocket as api.connection.
-        if (connection !== CONNECTION_STATUS.OPENED || !api || !symbol) {
+        if (!socketReady || !api || api.connection?.readyState !== 1 || !symbol) {
             setTickConnection('disconnected');
             setDigitTicks([]);
             return undefined;
@@ -95,6 +105,7 @@ const ManualTrader = () => {
         let active = true;
         let subscriptionId = '';
         setDigitTicks([]);
+        setTickError('');
         setTickConnection('connecting');
 
         const precision = (api_base.pip_sizes as Record<string, number>)?.[symbol];
@@ -133,15 +144,12 @@ const ManualTrader = () => {
                     epoch: Number(times[index] || 0),
                     digit: getLastDigit(price, precision),
                 }));
-                setDigitTicks(previous => {
-                    const combined = [...historicalTicks, ...previous]
-                        .sort((a, b) => a.epoch - b.epoch);
-                    return combined.slice(-TICK_WINDOW);
-                });
+                setDigitTicks(previous => [...historicalTicks, ...previous].sort((a, b) => a.epoch - b.epoch).slice(-TICK_WINDOW));
                 subscriptionId = responseData?.subscription?.id || response?.subscription?.id || '';
                 setTickConnection('connected');
-            } catch {
+            } catch (requestError) {
                 if (!active) return;
+                setTickError(requestError instanceof Error ? requestError.message : 'Unable to stream market ticks.');
                 setTickConnection('disconnected');
             }
         };
@@ -152,7 +160,7 @@ const ManualTrader = () => {
             messageSubscription?.unsubscribe?.();
             if (subscriptionId) api.send({ forget: subscriptionId });
         };
-    }, [symbol, connection]);
+    }, [symbol, socketReady]);
 
     useEffect(() => {
         setProposal(null);
@@ -246,6 +254,7 @@ const ManualTrader = () => {
                 ticks={digitTicks}
                 marketName={selectedSymbol?.display_name || symbol}
                 tickConnection={tickConnection}
+                tickError={tickError}
             />
             <div className='manual-trader__layout manual-trader__layout--below-analysis'>
                 <div className='manual-trader__column'>
