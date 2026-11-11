@@ -8,6 +8,8 @@ type ProposalResult = {
     contract_type: ManualContractType;
 };
 
+const unwrapMessage = (message: any) => message?.data ?? message;
+
 const waitForMessage = <T,>(
     predicate: (data: any) => T | undefined,
     timeoutMs = 15000
@@ -20,8 +22,9 @@ const waitForMessage = <T,>(
         }
 
         let timer: ReturnType<typeof setTimeout> | undefined;
-        const listener = api.onMessage().subscribe((message: any) => {
-            const result = predicate(message?.data);
+        let listener: { unsubscribe: () => void };
+        listener = api.onMessage().subscribe((message: any) => {
+            const result = predicate(unwrapMessage(message));
             if (result !== undefined) {
                 if (timer) clearTimeout(timer);
                 listener.unsubscribe();
@@ -91,7 +94,7 @@ export class ManualTradeService {
     async buy(proposalId: string, askPrice: number) {
         const api = api_base.api;
         if (!api) throw new Error('Deriv connection is not available.');
-        const response: any = await api.send({ buy: proposalId, price: askPrice });
+        const response: any = unwrapMessage(await api.send({ buy: proposalId, price: askPrice }));
         if (response?.error) throw new Error(response.error.message || 'Purchase failed.');
         if (!response?.buy?.contract_id) throw new Error('Deriv did not confirm the purchase.');
         return response.buy;
@@ -102,31 +105,41 @@ export class ManualTradeService {
         if (!api) throw new Error('Deriv connection is not available.');
 
         let subscriptionId = '';
-        const listener = api.onMessage().subscribe((message: any) => {
-            const data = message?.data;
+        let closed = false;
+        let listener: { unsubscribe: () => void };
+        const cleanup = () => {
+            if (closed) return;
+            closed = true;
+            listener.unsubscribe();
+            if (subscriptionId) void api.send({ forget: subscriptionId });
+        };
+        listener = api.onMessage().subscribe((message: any) => {
+            const data = unwrapMessage(message);
             const contract = data?.proposal_open_contract;
             if (data?.msg_type === 'proposal_open_contract' && Number(contract?.contract_id) === contractId) {
                 callback(contract);
+                if (['won', 'lost', 'sold'].includes(String(contract.status))) cleanup();
             }
         });
 
         try {
-            const initial: any = await api.send({
+            const initial: any = unwrapMessage(await api.send({
                 proposal_open_contract: 1,
                 contract_id: contractId,
                 subscribe: 1,
-            });
+            }));
             subscriptionId = initial?.subscription?.id || '';
-            if (initial?.proposal_open_contract) callback(initial.proposal_open_contract);
+            if (initial?.proposal_open_contract) {
+                callback(initial.proposal_open_contract);
+                if (['won', 'lost', 'sold'].includes(String(initial.proposal_open_contract.status))) cleanup();
+            }
+            if (closed && subscriptionId) void api.send({ forget: subscriptionId });
         } catch (error) {
-            listener.unsubscribe();
+            cleanup();
             throw error;
         }
 
-        return () => {
-            listener.unsubscribe();
-            if (subscriptionId) void api.send({ forget: subscriptionId });
-        };
+        return cleanup;
     }
 }
 
