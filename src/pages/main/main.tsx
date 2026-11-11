@@ -42,6 +42,7 @@ import ChartModal from '../chart/chart-modal';
 import Dashboard from '../dashboard';
 import FreeBots from '../free-bots';
 import RunStrategy from '../dashboard/run-strategy';
+import ManualTrader from '../manual-trader/manual-trader';
 import './main.scss';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
@@ -80,7 +81,7 @@ const AppWrapper = observer(() => {
     const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
     const init_render = React.useRef(true);
     const gkPioneerLoadStarted = React.useRef(false);
-    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool'];
+    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool', 'manual_trader'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -507,6 +508,12 @@ const AppWrapper = observer(() => {
                                 >
                                     <AnalysisTool />
                                 </Suspense>
+                            </div>
+                            <div
+                                label={<Localize i18n_default_text='Manual Trader' />}
+                                id='id-manual-trader'
+                            >
+                                <ManualTrader />
                             </div>
                         </Tabs>
                         {!isDesktop && right_tab_shadow && <span className='tabs-shadow tabs-shadow--right' />}{' '}
