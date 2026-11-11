@@ -94,11 +94,6 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
                     ))}
                 </div>
             </section>
-
-            <p className='analysis-tool__disclaimer'>
-                Statistics describe the selected market's observed ticks. They are historical observations, not predictions or guarantees of the next result.
-                Always manage risk and verify contract settings before trading.
-            </p>
         </section>
     );
 };
