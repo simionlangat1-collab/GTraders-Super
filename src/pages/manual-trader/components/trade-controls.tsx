@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ManualContractType, ManualMarketSymbol } from '../types';
 
+type TradeSide = 'over' | 'under';
 type Props = {
     symbols: ManualMarketSymbol[];
     symbol: string;
@@ -8,6 +9,13 @@ type Props = {
     duration: number;
     stake: string;
     prediction: number;
+    currency: string;
+    overPayout: number | null;
+    underPayout: number | null;
+    buyingSide: TradeSide | null;
+    buyDisabled: boolean;
+    tradeError: string;
+    onBuy: (side: TradeSide) => void;
     onSymbolChange: (value: string) => void;
     onContractChange: (value: ManualContractType) => void;
     onDurationChange: (value: number) => void;
@@ -34,6 +42,8 @@ const formatStake = (value: string | number) => {
     const amount = Number(value);
     return (Number.isFinite(amount) ? amount : 0).toFixed(2);
 };
+const formatPayout = (value: number | null, currency: string) =>
+    value === null || !Number.isFinite(value) ? '—' : `${value.toFixed(2)} ${currency}`;
 
 export const TradeControls = (props: Props) => {
     const [marketOpen, setMarketOpen] = useState(false);
@@ -174,8 +184,8 @@ export const TradeControls = (props: Props) => {
                 </div>
 
                 <div className='manual-trader__stake-editor'>
-                    <button type='button' onClick={openStakePad} aria-label={`Change stake, currently ${formatStake(props.stake)} USD`}>
-                        {formatStake(props.stake)} USD
+                    <button type='button' onClick={openStakePad} aria-label={`Change stake, currently ${formatStake(props.stake)} ${props.currency}`}>
+                        {formatStake(props.stake)} {props.currency}
                     </button>
                 </div>
                 <span className='manual-trader__stake-label'>Stake</span>
@@ -196,7 +206,7 @@ export const TradeControls = (props: Props) => {
                         </div>
                         <div className='manual-trader__stake-adjuster'>
                             <button type='button' onClick={() => adjustStake(-1)} aria-label='Decrease stake'>−</button>
-                            <output>{stakeDraft.endsWith('.') ? stakeDraft : formatStake(stakeDraft)} USD</output>
+                            <output>{stakeDraft.endsWith('.') ? stakeDraft : formatStake(stakeDraft)} {props.currency}</output>
                             <button type='button' onClick={() => adjustStake(1)} aria-label='Increase stake'>+</button>
                         </div>
                         <div className='manual-trader__stake-keypad'>
@@ -225,25 +235,28 @@ export const TradeControls = (props: Props) => {
                 <button
                     type='button'
                     className={`manual-trader__execution-button manual-trader__execution-button--over ${activeSide === 'over' ? 'is-active' : ''}`}
-                    onClick={() => props.onContractChange(option.over)}
+                    onClick={() => props.onBuy('over')}
+                    disabled={props.buyDisabled || props.buyingSide !== null}
                 >
                     <span>{option.overLabel}</span>
-                    <small>Payout</small>
-                    <strong>—</strong>
+                    <small>{props.buyingSide === 'over' ? 'Buying…' : 'Payout'}</small>
+                    <strong>{formatPayout(props.overPayout, props.currency)}</strong>
                 </button>
                 <button
                     type='button'
                     className={`manual-trader__execution-button manual-trader__execution-button--under ${activeSide === 'under' ? 'is-active' : ''}`}
-                    onClick={() => props.onContractChange(option.under)}
+                    onClick={() => props.onBuy('under')}
+                    disabled={props.buyDisabled || props.buyingSide !== null}
                 >
                     <span>{option.underLabel}</span>
-                    <small>Payout</small>
-                    <strong>—</strong>
+                    <small>{props.buyingSide === 'under' ? 'Buying…' : 'Payout'}</small>
+                    <strong>{formatPayout(props.underPayout, props.currency)}</strong>
                 </button>
             </div>
+            {props.tradeError && <p className='manual-trader__error' role='alert'>{props.tradeError}</p>}
 
             <div className='manual-trader__setup-hint'>
-                {group.label} · {props.duration} ticks · {formatStake(props.stake)} USD
+                {group.label} · {props.duration} ticks · {formatStake(props.stake)} {props.currency}
             </div>
         </section>
     );
