@@ -25,18 +25,32 @@ const AppHeader = observer(() => {
 
     useEffect(() => {
         let isCancelled = false;
-        fetch('https://open.er-api.com/v6/latest/USD')
-            .then(response => {
-                if (!response.ok) throw new Error('Exchange rate request failed');
-                return response.json();
-            })
-            .then(data => {
-                const rate = Number(data?.rates?.KES);
-                if (!isCancelled && Number.isFinite(rate) && rate > 0) setUsdKesRate(rate);
-            })
-            .catch(() => {
-                if (!isCancelled) setUsdKesRate(null);
-            });
+
+        const loadUsdKesRate = async () => {
+            const rateSources = [
+                'https://open.er-api.com/v6/latest/USD',
+                'https://api.exchangerate-api.com/v4/latest/USD',
+            ];
+
+            for (const url of rateSources) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) continue;
+                    const data = await response.json();
+                    const rate = Number(data?.rates?.KES);
+                    if (Number.isFinite(rate) && rate > 0) {
+                        if (!isCancelled) setUsdKesRate(rate);
+                        return;
+                    }
+                } catch {
+                    // Try the backup exchange-rate source.
+                }
+            }
+
+            if (!isCancelled) setUsdKesRate(null);
+        };
+
+        loadUsdKesRate();
         return () => {
             isCancelled = true;
         };
