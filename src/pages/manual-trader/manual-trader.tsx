@@ -81,6 +81,7 @@ const ManualTrader = () => {
     }, [connection, symbols.length, loadSymbols]);
 
     // Keep a rolling sample of the latest 1,000 Deriv ticks for the selected market.
+    // The frequency panel always reflects this rolling window, never an all-time count.
     useEffect(() => {
         const api = api_base.api as any;
         if (connection !== CONNECTION_STATUS.OPENED || !api || api.connection?.readyState !== 1 || !symbol) {
