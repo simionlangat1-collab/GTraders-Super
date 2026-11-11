@@ -1,0 +1,48 @@
+.manual-trader {
+    min-height: var(--tab-content-height);
+    padding: 2rem;
+    overflow-y: auto;
+    background: var(--general-main-1);
+    color: var(--text-prominent);
+
+    &__header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+    &__header h2 { margin: 0 0 .5rem; font-size: 2.2rem; }
+    &__header p, &__muted { color: var(--text-less-prominent); margin: 0; }
+    &__connection { font-size: 1.2rem; padding: .7rem 1rem; border-radius: 2rem; background: var(--general-section-1); white-space: nowrap; }
+    &__connection.is-ready { color: #16a36a; }
+    &__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(28rem, .8fr); gap: 1.6rem; align-items: start; }
+    &__column { display: grid; gap: 1.6rem; }
+    &__card { padding: 1.8rem; border: 1px solid var(--border-normal); border-radius: 1.2rem; background: var(--general-section-1); }
+    &__card h3 { margin: 0 0 1.6rem; font-size: 1.6rem; }
+    &__field { display: grid; gap: .7rem; margin-bottom: 1.4rem; }
+    &__field span { font-size: 1.2rem; color: var(--text-less-prominent); }
+    &__field select, &__field input { width: 100%; min-height: 4.2rem; padding: .8rem 1rem; color: var(--text-prominent); background: var(--general-main-1); border: 1px solid var(--border-normal); border-radius: .6rem; }
+    &__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    &__digits { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .6rem; }
+    &__digits button { min-height: 3.8rem; border: 1px solid var(--border-normal); border-radius: .6rem; background: var(--general-main-1); color: var(--text-prominent); }
+    &__digits button.is-selected { background: var(--brand-red-coral); color: white; border-color: var(--brand-red-coral); }
+    &__quote { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem; }
+    &__quote div { display: grid; gap: .5rem; padding: 1rem; border-radius: .8rem; background: var(--general-main-1); }
+    &__quote span { color: var(--text-less-prominent); font-size: 1.1rem; }
+    &__quote strong { font-size: 1.7rem; }
+    &__secondary, &__buy { width: 100%; min-height: 4.4rem; margin-top: .8rem; border: 0; border-radius: .7rem; font-weight: 600; cursor: pointer; }
+    &__secondary { color: var(--text-prominent); background: var(--general-main-1); border: 1px solid var(--border-normal); }
+    &__buy { color: white; background: #16a36a; }
+    &__secondary:disabled, &__buy:disabled { opacity: .45; cursor: not-allowed; }
+    &__error { color: var(--brand-red-coral); font-size: 1.2rem; }
+    &__disclaimer { margin: 1rem 0 0; color: var(--text-less-prominent); font-size: 1.1rem; }
+    &__history { display: grid; gap: 1rem; }
+    &__history-row { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--border-normal); }
+    &__history-row div { display: grid; gap: .4rem; }
+    &__history-row span { color: var(--text-less-prominent); font-size: 1.1rem; }
+    &__history-result { text-align: right; }
+    &__history-result .status-won { color: #16a36a; }
+    &__history-result .status-lost { color: var(--brand-red-coral); }
+    @media (max-width: 768px) {
+        padding: 1.2rem;
+        min-height: var(--tab-content-height-mobile);
+        &__layout { grid-template-columns: 1fr; }
+        &__header { align-items: flex-start; }
+        &__grid { grid-template-columns: 1fr; gap: 0; }
+    }
+}
