@@ -19,10 +19,7 @@ const waitForMessage = <T,>(
             return;
         }
 
-        const timer = setTimeout(() => {
-            listener.unsubscribe();
-            reject(new Error('Deriv did not respond in time. Please try again.'));
-        }, timeoutMs);
+        let timer: ReturnType<typeof setTimeout>;
         const listener = api.onMessage().subscribe((message: any) => {
             const result = predicate(message?.data);
             if (result !== undefined) {
@@ -31,6 +28,10 @@ const waitForMessage = <T,>(
                 resolve(result);
             }
         });
+        timer = setTimeout(() => {
+            listener.unsubscribe();
+            reject(new Error('Deriv did not respond in time. Please try again.'));
+        }, timeoutMs);
     });
 
 export class ManualTradeService {
