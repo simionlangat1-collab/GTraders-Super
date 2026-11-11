@@ -4,6 +4,7 @@ import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observab
 import { TradeControls } from './components/trade-controls';
 import { TradeHistory } from './components/trade-history';
 import { TradePanel } from './components/trade-panel';
+import { ManualTraderAnalysisDashboard } from './components/analysis-dashboard';
 import { manualTradeService } from './services/manual-trade-service';
 import { ManualContractType, ManualMarketSymbol, ManualTradeRecord } from './types';
 import './manual-trader.scss';
@@ -269,6 +270,11 @@ const ManualTrader = () => {
                         error={error} onGetProposal={getProposal} onBuy={buy} />
                 </div>
             </div>
+            <ManualTraderAnalysisDashboard
+                ticks={digitTicks}
+                marketName={selectedSymbol?.display_name || symbol}
+                tickConnection={tickConnection}
+            />
         </main>
     );
 };
