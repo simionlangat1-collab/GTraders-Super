@@ -46,7 +46,7 @@ export const TradeControls = (props: Props) => {
                 </label>
                 <label className='manual-trader__field'>
                     <span>Duration (ticks)</span>
-                    <input type='number' min='1' max='10' step='1' value={props.duration} onChange={event => props.onDurationChange(Math.max(1, Math.min(10, Number(event.target.value) || 1)))} />
+                    <input type='number' min='1' step='1' value={props.duration} onChange={event => props.onDurationChange(Math.max(1, Number(event.target.value) || 1))} />
                 </label>
             </div>
             {selectedContract?.needsPrediction && (
