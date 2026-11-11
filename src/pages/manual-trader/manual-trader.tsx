@@ -11,7 +11,6 @@ import './manual-trader.scss';
 
 const TICK_WINDOW = 1000;
 type TDigitTick = { quote: number; epoch: number; digit: number };
-type TDigitFrequency = { digit: number; count: number; percentage: number };
 
 const getLastDigit = (quote: number | string, precision?: number) => {
     const numericQuote = Number(quote);
@@ -155,23 +154,6 @@ const ManualTrader = () => {
         };
     }, [symbol, connection]);
 
-    const digitFrequencies = useMemo<TDigitFrequency[]>(
-        () => Array.from({ length: 10 }, (_, digit) => {
-            const count = digitTicks.filter(tick => tick.digit === digit).length;
-            return {
-                digit,
-                count,
-                percentage: digitTicks.length ? (count / digitTicks.length) * 100 : 0,
-            };
-        }),
-        [digitTicks]
-    );
-    const rankedDigits = useMemo(
-        () => [...digitFrequencies].sort((a, b) => a.count - b.count || a.digit - b.digit),
-        [digitFrequencies]
-    );
-    const latestDigit = digitTicks.length ? digitTicks[digitTicks.length - 1].digit : null;
-
     useEffect(() => {
         setProposal(null);
     }, [symbol, contractType, duration, stake, prediction]);
@@ -254,27 +236,26 @@ const ManualTrader = () => {
                 <div><h2>Manual Trader</h2><p>Trade Volatility Indices with digit contracts and tick durations.</p></div>
                 <span className={`manual-trader__connection ${connection === CONNECTION_STATUS.OPENED ? 'is-ready' : ''}`}>{connection === CONNECTION_STATUS.OPENED ? 'Deriv connected' : connection}</span>
             </header>
-            <div className='manual-trader__layout'>
-                <div className='manual-trader__column'>
-                    <TradeControls
-                        symbols={symbols} symbol={symbol} contractType={contractType} duration={duration}
-                        stake={stake} prediction={prediction} digitFrequencies={digitFrequencies}
-                        latestDigit={latestDigit} tickCount={digitTicks.length} tickConnection={tickConnection}
-                        onSymbolChange={setSymbol} onContractChange={setContractType} onDurationChange={setDuration}
-                        onStakeChange={setStake} onPredictionChange={setPrediction}
-                    />
-                    <TradeHistory trades={trades} currency={currency} />
-                </div>
-                <div className='manual-trader__column'>
-                    <TradePanel loading={loading} buying={buying} proposal={proposal} currency={currency}
-                        error={error} onGetProposal={getProposal} onBuy={buy} />
-                </div>
-            </div>
+            <TradeControls
+                symbols={symbols} symbol={symbol} contractType={contractType} duration={duration}
+                stake={stake} prediction={prediction}
+                onSymbolChange={setSymbol} onContractChange={setContractType} onDurationChange={setDuration}
+                onStakeChange={setStake} onPredictionChange={setPrediction}
+            />
             <ManualTraderAnalysisDashboard
                 ticks={digitTicks}
                 marketName={selectedSymbol?.display_name || symbol}
                 tickConnection={tickConnection}
             />
+            <div className='manual-trader__layout manual-trader__layout--below-analysis'>
+                <div className='manual-trader__column'>
+                    <TradePanel loading={loading} buying={buying} proposal={proposal} currency={currency}
+                        error={error} onGetProposal={getProposal} onBuy={buy} />
+                </div>
+                <div className='manual-trader__column'>
+                    <TradeHistory trades={trades} currency={currency} />
+                </div>
+            </div>
         </main>
     );
 };
