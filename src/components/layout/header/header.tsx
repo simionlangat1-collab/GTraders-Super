@@ -20,6 +20,27 @@ const AppHeader = observer(() => {
     const { isAuthorizing, activeLoginid, setIsAuthorizing } = useApiBase();
     const { client } = useStore() ?? {};
     const [authTimeout, setAuthTimeout] = useState(false);
+    const [balanceDisplayCurrency, setBalanceDisplayCurrency] = useState<'USD' | 'KES'>('USD');
+    const [usdKesRate, setUsdKesRate] = useState<number | null>(null);
+
+    useEffect(() => {
+        let isCancelled = false;
+        fetch('https://open.er-api.com/v6/latest/USD')
+            .then(response => {
+                if (!response.ok) throw new Error('Exchange rate request failed');
+                return response.json();
+            })
+            .then(data => {
+                const rate = Number(data?.rates?.KES);
+                if (!isCancelled && Number.isFinite(rate) && rate > 0) setUsdKesRate(rate);
+            })
+            .catch(() => {
+                if (!isCancelled) setUsdKesRate(null);
+            });
+        return () => {
+            isCancelled = true;
+        };
+    }, []);
     const is_account_regenerating = client?.is_account_regenerating || false;
 
     // Detect OAuth callback on mount (before App.tsx cleans up the URL).
@@ -37,6 +58,7 @@ const AppHeader = observer(() => {
     });
 
     const handleLogout = useLogout();
+    const canDisplayKes = activeAccount?.currency?.toUpperCase() === 'USD' && usdKesRate !== null;
 
     // Clear OAuth-pending flag once the account is set (auth succeeded)
     // or after a generous timeout in case something goes wrong.
@@ -132,7 +154,11 @@ const AppHeader = observer(() => {
                     return (
                         <div className='auth-actions'>
                             <div className='account-info'>
-                                <AccountSwitcher activeAccount={activeAccount} />
+                                <AccountSwitcher
+                                activeAccount={activeAccount}
+                                balanceDisplayCurrency={balanceDisplayCurrency}
+                                usdKesRate={usdKesRate}
+                            />
                             </div>
                         </div>
                     );
@@ -193,6 +219,8 @@ const AppHeader = observer(() => {
             isOAuthPending,
             handleLogin,
             handleSignup,
+            balanceDisplayCurrency,
+            usdKesRate,
         ]
     );
 
@@ -209,6 +237,25 @@ const AppHeader = observer(() => {
                 <Wrapper variant='left'>
                     <MobileMenu onLogout={handleLogout} />
                     <AppLogo />
+                    <div className='gk-currency-toggle' role='group' aria-label='Balance display currency'>
+                        <button
+                            type='button'
+                            className={balanceDisplayCurrency === 'USD' ? 'gk-currency-toggle__option gk-currency-toggle__option--active' : 'gk-currency-toggle__option'}
+                            aria-pressed={balanceDisplayCurrency === 'USD'}
+                            onClick={() => setBalanceDisplayCurrency('USD')}
+                        >
+                            USD
+                        </button>
+                        <button
+                            type='button'
+                            className={balanceDisplayCurrency === 'KES' ? 'gk-currency-toggle__option gk-currency-toggle__option--active' : 'gk-currency-toggle__option'}
+                            aria-pressed={balanceDisplayCurrency === 'KES'}
+                            disabled={!canDisplayKes}
+                            onClick={() => setBalanceDisplayCurrency('KES')}
+                        >
+                            KSh
+                        </button>
+                    </div>
                     {isDesktop ? <MenuItems /> : renderAccountSection('left')}
                 </Wrapper>
                 <Wrapper variant='right'>{renderAccountSection('right')}</Wrapper>
