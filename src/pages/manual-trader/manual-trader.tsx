@@ -98,8 +98,11 @@ const ManualTrader = () => {
             };
             setTrades(current => [record, ...current]);
             setProposal(null);
-            const unsubscribe = manualTradeService.observeContract(record.contract_id, contract => {
+            let stopWatching: (() => void) | undefined;
+            let contractFinished = false;
+            stopWatching = await manualTradeService.observeContract(record.contract_id, contract => {
                 if (contract.is_sold || contract.is_expired) {
+                    contractFinished = true;
                     setTrades(current => current.map(item => item.contract_id === record.contract_id ? {
                         ...item,
                         status: contract.status === 'won' ? 'won' : contract.status === 'lost' ? 'lost' : 'sold',
@@ -107,9 +110,10 @@ const ManualTrader = () => {
                         entry_tick: contract.entry_tick,
                         exit_tick: contract.exit_tick,
                     } : item));
-                    unsubscribe();
+                    stopWatching?.();
                 }
             });
+            if (contractFinished) stopWatching();
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Purchase failed.');
         } finally {
