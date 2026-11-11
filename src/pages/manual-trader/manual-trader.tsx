@@ -65,7 +65,7 @@ const ManualTrader = () => {
         const amount = Number(stake);
         if (!symbol) return setError('Select an available Volatility Index.');
         if (!Number.isFinite(amount) || amount <= 0) return setError('Enter a valid positive stake.');
-        if (!Number.isInteger(duration) || duration < 1 || duration > 10) return setError('Tick duration must be between 1 and 10 ticks.');
+        if (!Number.isInteger(duration) || duration < 1) return setError('Tick duration must be a positive whole number.');
         setLoading(true);
         try {
             const quote = await manualTradeService.getProposal({
