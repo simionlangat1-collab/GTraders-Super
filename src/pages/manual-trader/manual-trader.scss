@@ -1,5 +1,4 @@
 .manual-trader {
-    // Constrain this page to the available tab viewport so its own content can scroll.
     height: var(--tab-content-height);
     min-height: 0;
     box-sizing: border-box;
@@ -21,12 +20,70 @@
     &__column { display: grid; gap: 1.6rem; }
     &__card { padding: 1.8rem; border: 1px solid var(--border-normal); border-radius: 1.2rem; background: var(--general-section-1); }
     &__card h3 { margin: 0 0 1.6rem; font-size: 1.6rem; }
+
+    /* Compact Trade Setup panel */
+    &__trade-setup { padding: 1.35rem; }
+    &__trade-setup-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.15rem; }
+    &__trade-setup-title { font-size: 1.55rem; font-weight: 800; letter-spacing: .01em; }
+    &__contract-switch {
+        display: inline-flex; align-items: center; gap: .7rem; min-height: 3.4rem; padding: .45rem .25rem .45rem .8rem;
+        border: 0; background: transparent; color: var(--text-prominent); font-weight: 800; font-size: 1.25rem; cursor: pointer;
+    }
+    &__contract-switch strong { font-size: 2.25rem; line-height: 1; font-weight: 400; }
+    &__setup-row { display: flex; align-items: center; }
+    &__market-row { margin-bottom: .9rem; }
+    &__setup-item { position: relative; width: 100%; }
+    &__setup-label { display: block; margin-bottom: .35rem; color: var(--text-less-prominent); font-size: .95rem; }
+    &__market-value {
+        display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 3.6rem; padding: .55rem .75rem;
+        border: 1px solid var(--border-normal); border-radius: .65rem; background: var(--general-main-1); color: var(--text-prominent);
+        font-size: 1.05rem; text-align: left; cursor: pointer;
+    }
+    &__market-menu {
+        position: absolute; z-index: 20; top: calc(100% + .35rem); left: 0; width: 100%; max-height: 18rem; overflow-y: auto;
+        border: 1px solid var(--border-normal); border-radius: .7rem; background: var(--general-section-1); box-shadow: 0 .8rem 2rem rgba(0,0,0,.3);
+        button { display: block; width: 100%; padding: .8rem 1rem; border: 0; background: transparent; color: var(--text-prominent); text-align: left; cursor: pointer; }
+        button:hover { background: rgba(37,131,255,.12); }
+    }
+    &__digit-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .55rem; margin: .9rem 0 1.15rem; }
+    &__digit-button {
+        min-height: 3.55rem; border: 1px solid var(--border-normal); border-radius: .5rem; background: var(--general-main-1); color: var(--text-prominent);
+        font-size: 1.35rem; font-weight: 800; cursor: pointer; transition: transform 120ms ease, border-color 160ms ease, background 160ms ease;
+        &:active { transform: scale(.96); }
+        &.is-selected { border-color: #22d3ee; background: rgba(34,211,238,.14); box-shadow: 0 0 .8rem rgba(34,211,238,.16); }
+    }
+    &__value-row { justify-content: space-between; gap: 1rem; margin: .2rem 0 1.15rem; }
+    &__ticks-control {
+        min-height: 3.5rem; padding: .45rem .85rem; border: 1px solid var(--border-normal); border-radius: .55rem;
+        background: var(--general-main-1); color: var(--text-prominent); font-size: 1.15rem; font-weight: 750; cursor: pointer;
+    }
+    &__stake-editor { flex: 1; display: flex; justify-content: center; }
+    &__stake-editor button, &__stake-editor input {
+        width: auto; min-width: 9rem; border: 0; outline: 0; background: transparent; color: var(--text-prominent);
+        text-align: center; font-size: 1.35rem; font-weight: 800;
+    }
+    &__stake-editor button { cursor: text; }
+    &__stake-label { color: var(--text-less-prominent); font-size: 1.05rem; white-space: nowrap; }
+    &__execution-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    &__execution-button {
+        min-height: 7.2rem; padding: .85rem 1rem; border: 1px solid transparent; border-radius: .75rem; color: #fff;
+        display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: center; column-gap: .8rem;
+        cursor: pointer; box-shadow: 0 .35rem .8rem rgba(0,0,0,.16); transition: transform 120ms ease, filter 160ms ease;
+        &:active { transform: scale(.985); }
+        span { grid-column: 1 / -1; justify-self: start; font-size: 1.3rem; font-weight: 900; }
+        small { justify-self: start; font-size: .9rem; opacity: .85; }
+        strong { justify-self: end; font-size: 1.35rem; }
+        &--over { background: #b9f2c7; color: #124a25; }
+        &--under { background: #ef9a9a; color: #5b1515; }
+        &.is-active { box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 .4rem 1rem rgba(0,0,0,.18); }
+    }
+    &__setup-hint { margin-top: .8rem; color: var(--text-less-prominent); font-size: .85rem; text-align: center; }
+
     &__field { display: grid; gap: .7rem; margin-bottom: 1.4rem; }
     &__field span { font-size: 1.2rem; color: var(--text-less-prominent); }
     &__field select, &__field input { width: 100%; min-height: 4.2rem; padding: .8rem 1rem; color: var(--text-prominent); background: var(--general-main-1); border: 1px solid var(--border-normal); border-radius: .6rem; }
     &__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 
-    // Live digit distribution mirrors the Analysis Tool's five-column layout.
     &__frequency-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin: .1rem 0 .4rem; }
     &__field .manual-trader__frequency-heading > span { color: var(--text-less-prominent); font-size: 1.05rem; }
     &__frequency-heading small { margin-left: auto; color: var(--text-less-prominent); font-size: 1rem; }
@@ -36,75 +93,28 @@
     &__tick-status.is-disconnected { color: #ef4444; background: rgba(239, 68, 68, .12); }
     &__digits { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; }
     &__digit-card {
-        display: flex;
-        min-width: 0;
-        min-height: 10.8rem;
-        align-items: center;
-        flex-direction: column;
-        justify-content: flex-start;
-        gap: .6rem;
-        padding: 1rem .5rem .8rem;
-        border: 1px solid var(--border-normal);
-        border-radius: .8rem;
-        background: var(--general-main-1);
-        color: var(--text-prominent);
-        cursor: pointer;
-        transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+        display: flex; min-width: 0; min-height: 10.8rem; align-items: center; flex-direction: column; justify-content: flex-start; gap: .6rem;
+        padding: 1rem .5rem .8rem; border: 1px solid var(--border-normal); border-radius: .8rem; background: var(--general-main-1);
+        color: var(--text-prominent); cursor: pointer; transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
         &:active { transform: scale(.97); }
-        &.is-selected {
-            border-color: #22d3ee;
-            background: linear-gradient(145deg, rgba(34, 211, 238, .13), rgba(37, 131, 255, .08)), var(--general-main-1);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .055), 0 0 .95rem rgba(34, 211, 238, .2);
-        }
-        &.is-leading { border-color: #22c55e; background: rgba(34, 197, 94, .08); }
-        &.is-leading .manual-trader__digit-circle { border-color: #22c55e; background: rgba(34, 197, 94, .16); color: #4ade80; }
+        &.is-selected { border-color: #22d3ee; background: linear-gradient(145deg, rgba(34,211,238,.13), rgba(37,131,255,.08)), var(--general-main-1); box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 0 .95rem rgba(34,211,238,.2); }
+        &.is-leading { border-color: #22c55e; background: rgba(34,197,94,.08); }
+        &.is-leading .manual-trader__digit-circle { border-color: #22c55e; background: rgba(34,197,94,.16); color: #4ade80; }
         &.is-second { border-color: #2583ff; }
-        &.is-second .manual-trader__digit-circle { border-color: #2583ff; background: rgba(37, 131, 255, .16); color: #60a5fa; }
+        &.is-second .manual-trader__digit-circle { border-color: #2583ff; background: rgba(37,131,255,.16); color: #60a5fa; }
         &.is-lowest { border-color: #ef4444; }
-        &.is-lowest .manual-trader__digit-circle { border-color: #ef4444; background: rgba(239, 68, 68, .14); color: #f87171; }
+        &.is-lowest .manual-trader__digit-circle { border-color: #ef4444; background: rgba(239,68,68,.14); color: #f87171; }
         &.is-second-lowest { border-color: #eab308; }
-        &.is-second-lowest .manual-trader__digit-circle { border-color: #eab308; background: rgba(234, 179, 8, .14); color: #facc15; }
-        &.is-current .manual-trader__digit-circle {
-            animation: manual-trader-tick-pulse 850ms ease-out infinite;
-            box-shadow: 0 0 0 3px rgba(34, 211, 238, .24), 0 0 1.2rem rgba(34, 211, 238, .55);
-        }
-        &.is-current .manual-trader__tick-cursor {
-            position: absolute;
-            left: 50%;
-            bottom: .12rem;
-            width: 0;
-            height: 0;
-            border-left: .42rem solid transparent;
-            border-right: .42rem solid transparent;
-            border-bottom: .72rem solid #22d3ee;
-            transform: translateX(-50%);
-            filter: drop-shadow(0 0 .35rem #22d3ee);
-        }
+        &.is-second-lowest .manual-trader__digit-circle { border-color: #eab308; background: rgba(234,179,8,.14); color: #facc15; }
+        &.is-current .manual-trader__digit-circle { animation: manual-trader-tick-pulse 850ms ease-out infinite; box-shadow: 0 0 0 3px rgba(34,211,238,.24), 0 0 1.2rem rgba(34,211,238,.55); }
+        &.is-current .manual-trader__tick-cursor { position: absolute; left: 50%; bottom: .12rem; width: 0; height: 0; border-left: .42rem solid transparent; border-right: .42rem solid transparent; border-bottom: .72rem solid #22d3ee; transform: translateX(-50%); filter: drop-shadow(0 0 .35rem #22d3ee); }
     }
-    &__digit-circle {
-        position: relative;
-        display: flex;
-        width: 6.2rem;
-        height: 6.2rem;
-        flex: 0 0 6.2rem;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        gap: .05rem;
-        border: 2px solid #9ca3af;
-        border-radius: 50%;
-        background: rgba(37, 131, 255, .12);
-        color: var(--text-prominent);
-        font-size: 2.2rem;
-        font-weight: 800;
-        line-height: 1;
-        transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease;
-    }
+    &__digit-circle { position: relative; display: flex; width: 6.2rem; height: 6.2rem; flex: 0 0 6.2rem; align-items: center; justify-content: center; flex-direction: column; gap: .05rem; border: 2px solid #9ca3af; border-radius: 50%; background: rgba(37,131,255,.12); color: var(--text-prominent); font-size: 2.2rem; font-weight: 800; line-height: 1; transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease; }
     &__field .manual-trader__digit-number { display: block; color: inherit; font-size: 1.7rem; line-height: 1; }
     &__digit-percentage { display: block; color: inherit !important; font-size: .82rem !important; font-weight: 700; line-height: 1; white-space: nowrap; }
     &__field .manual-trader__digit-count { color: var(--text-less-prominent); font-size: .95rem !important; line-height: 1.2; }
     &__digit-bar { display: block; width: 100%; height: .4rem; overflow: hidden; border-radius: 1rem; background: var(--border-normal); }
-    &__digit-bar i { display: block; height: 100%; border-radius: inherit; background: #2583ff; transition: width 420ms cubic-bezier(.2, .75, .25, 1); }
+    &__digit-bar i { display: block; height: 100%; border-radius: inherit; background: #2583ff; transition: width 420ms cubic-bezier(.2,.75,.25,1); }
 
     &__quote { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.4rem; }
     &__quote div { display: grid; gap: .5rem; padding: 1rem; border-radius: .8rem; background: var(--general-main-1); }
@@ -124,22 +134,26 @@
     &__history-result .status-won { color: #16a36a; }
     &__history-result .status-lost { color: var(--brand-red-coral); }
 
-    @keyframes manual-trader-tick-pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.08); }
-        100% { transform: scale(1); }
-    }
+    @keyframes manual-trader-tick-pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
     @media (max-width: 768px) {
-        height: var(--tab-content-height-mobile);
-        min-height: 0;
-        padding: 1.2rem 1.2rem calc(2rem + env(safe-area-inset-bottom));
-        overflow-x: hidden;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+        height: var(--tab-content-height-mobile); min-height: 0; padding: 1.2rem 1.2rem calc(2rem + env(safe-area-inset-bottom));
+        overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch;
         &__layout { grid-template-columns: 1fr; }
         &__header { align-items: flex-start; }
         &__grid { grid-template-columns: 1fr; gap: 0; }
+        &__trade-setup { padding: 1rem; }
+        &__trade-setup-header { margin-bottom: .8rem; }
+        &__contract-switch { font-size: 1.05rem; min-height: 3rem; }
+        &__digit-grid { gap: .4rem; }
+        &__digit-button { min-height: 3.1rem; font-size: 1.2rem; }
+        &__execution-actions { gap: .55rem; }
+        &__execution-button { min-height: 6.4rem; padding: .7rem; }
+        &__execution-button span { font-size: 1.15rem; }
+        &__stake-editor button, &__stake-editor input { min-width: 7rem; font-size: 1.15rem; }
+        &__stake-label { font-size: .9rem; }
+        &__value-row { gap: .6rem; }
+        &__ticks-control { font-size: 1rem; padding-inline: .65rem; }
         &__digits { gap: .6rem; }
         &__digit-card { min-height: 9.2rem; padding: .8rem .2rem; }
         &__digit-circle { width: 4.5rem; height: 4.5rem; flex-basis: 4.5rem; }
@@ -149,8 +163,6 @@
     }
 }
 
-
-// Embed the full Analysis Tool dashboard in Manual Trader's existing scroll area.
 .manual-trader .manual-trader-analysis {
     height: auto;
     min-height: 0;
