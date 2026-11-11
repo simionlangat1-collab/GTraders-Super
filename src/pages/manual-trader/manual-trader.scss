@@ -1,7 +1,14 @@
 .manual-trader {
-    min-height: var(--tab-content-height);
-    padding: 2rem;
+    // Constrain this page to the available tab viewport so its own content can scroll.
+    height: var(--tab-content-height);
+    min-height: 0;
+    box-sizing: border-box;
+    padding: 2rem 2rem 2.5rem;
+    overflow-x: hidden;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
     background: var(--general-main-1);
     color: var(--text-prominent);
 
@@ -82,8 +89,12 @@
     &__history-result .status-won { color: #16a36a; }
     &__history-result .status-lost { color: var(--brand-red-coral); }
     @media (max-width: 768px) {
-        padding: 1.2rem;
-        min-height: var(--tab-content-height-mobile);
+        height: var(--tab-content-height-mobile);
+        min-height: 0;
+        padding: 1.2rem 1.2rem calc(2rem + env(safe-area-inset-bottom));
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         &__layout { grid-template-columns: 1fr; }
         &__header { align-items: flex-start; }
         &__grid { grid-template-columns: 1fr; gap: 0; }
