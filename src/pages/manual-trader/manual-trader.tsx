@@ -23,7 +23,7 @@ const ManualTrader = () => {
     const [symbol, setSymbol] = useState('');
     const [contractType, setContractType] = useState<ManualContractType>('DIGITOVER');
     const [duration, setDuration] = useState(1);
-    const [stake, setStake] = useState('1');
+    const [stake, setStake] = useState('0.00');
     const [prediction, setPrediction] = useState(5);
     const [digitTicks, setDigitTicks] = useState<TDigitTick[]>([]);
     const [tickConnection, setTickConnection] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
