@@ -76,14 +76,12 @@ const ManualTrader = () => {
         return () => window.clearInterval(interval);
     }, [loadSymbols]);
 
-    // Use the same connection-status observable as the working Analysis Tool.
     useEffect(() => {
         const updateSocketReady = (status: string) => {
             setSocketReady(status === CONNECTION_STATUS.OPENED);
         };
         const statusSubscription = connectionStatus$.subscribe(updateSocketReady);
         updateSocketReady(connectionStatus$.value);
-        // Match Analysis Tool: also handle a socket that was already open before this page mounted.
         if (api_base.api?.connection?.readyState === 1) setSocketReady(true);
         return () => statusSubscription.unsubscribe();
     }, []);
@@ -94,8 +92,6 @@ const ManualTrader = () => {
         }
     }, [connection, symbols.length, loadSymbols]);
 
-    // Keep a rolling sample of the latest 1,000 Deriv ticks for the selected market.
-    // Match Analysis Tool's WebSocket readiness check and tick subscription lifecycle.
     useEffect(() => {
         const api = api_base.api as any;
         if (!socketReady || !api || api.connection?.readyState !== 1 || !symbol) {
@@ -246,22 +242,39 @@ const ManualTrader = () => {
                 <div><h2>Manual Trader</h2><p>Trade Volatility Indices with digit contracts and tick durations.</p></div>
                 <span className={`manual-trader__connection ${connection === CONNECTION_STATUS.OPENED ? 'is-ready' : ''}`}>{connection === CONNECTION_STATUS.OPENED ? 'Deriv connected' : connection}</span>
             </header>
-            <TradeControls
-                symbols={symbols} symbol={symbol} contractType={contractType} duration={duration}
-                stake={stake} prediction={prediction}
-                onSymbolChange={setSymbol} onContractChange={setContractType} onDurationChange={setDuration}
-                onStakeChange={setStake} onPredictionChange={setPrediction}
-            />
+
             <ManualTraderAnalysisDashboard
                 ticks={digitTicks}
                 marketName={selectedSymbol?.display_name || symbol}
                 tickConnection={tickConnection}
                 tickError={tickError}
             />
+
+            <TradeControls
+                symbols={symbols}
+                symbol={symbol}
+                contractType={contractType}
+                duration={duration}
+                stake={stake}
+                prediction={prediction}
+                onSymbolChange={setSymbol}
+                onContractChange={setContractType}
+                onDurationChange={setDuration}
+                onStakeChange={setStake}
+                onPredictionChange={setPrediction}
+            />
+
             <div className='manual-trader__layout manual-trader__layout--below-analysis'>
                 <div className='manual-trader__column'>
-                    <TradePanel loading={loading} buying={buying} proposal={proposal} currency={currency}
-                        error={error} onGetProposal={getProposal} onBuy={buy} />
+                    <TradePanel
+                        loading={loading}
+                        buying={buying}
+                        proposal={proposal}
+                        currency={currency}
+                        error={error}
+                        onGetProposal={getProposal}
+                        onBuy={buy}
+                    />
                 </div>
                 <div className='manual-trader__column'>
                     <TradeHistory trades={trades} currency={currency} />
