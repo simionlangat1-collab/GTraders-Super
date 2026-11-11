@@ -148,3 +148,13 @@
         &__field .manual-trader__digit-count { font-size: .85rem !important; }
     }
 }
+
+
+// Embed the full Analysis Tool dashboard in Manual Trader's existing scroll area.
+.manual-trader .manual-trader-analysis {
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+}
