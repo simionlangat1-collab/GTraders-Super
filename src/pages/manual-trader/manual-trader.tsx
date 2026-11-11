@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
+import { manualTradeService } from './services/manual-trade-service';
 import { TradeControls } from './components/trade-controls';
 import { TradeHistory } from './components/trade-history';
 import { ManualTraderAnalysisDashboard } from './components/analysis-dashboard';
@@ -10,6 +11,8 @@ import './manual-trader.scss';
 
 const TICK_WINDOW = 1000;
 type TDigitTick = { quote: number; epoch: number; digit: number };
+type TradeSide = 'over' | 'under';
+type PayoutQuotes = { over: number | null; under: number | null };
 
 const getLastDigit = (quote: number | string, precision?: number) => {
     const numericQuote = Number(quote);
@@ -29,6 +32,10 @@ const ManualTrader = () => {
     const [tickConnection, setTickConnection] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const [socketReady, setSocketReady] = useState(false);
     const [tickError, setTickError] = useState('');
+    const [payoutQuotes, setPayoutQuotes] = useState<PayoutQuotes>({ over: null, under: null });
+    const [buyingSide, setBuyingSide] = useState<TradeSide | null>(null);
+    const [tradeError, setTradeError] = useState('');
+    const buyLock = useRef(false);
     const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
     const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
     const [trades, setTrades] = useState<ManualTradeRecord[]>(() => {
@@ -98,6 +105,7 @@ const ManualTrader = () => {
         let subscriptionId = '';
         setDigitTicks([]);
         setTickError('');
+
         setTickConnection('connecting');
 
         const precision = (api_base.pip_sizes as Record<string, number>)?.[symbol];
@@ -155,6 +163,47 @@ const ManualTrader = () => {
     }, [symbol, socketReady]);
 
     useEffect(() => {
+        let active = true;
+        const amount = Number(stake);
+        if (!socketReady || !api_base.api || !api_base.is_authorized || !symbol || !Number.isFinite(amount) || amount <= 0) {
+            setPayoutQuotes({ over: null, under: null });
+            return () => { active = false; };
+        }
+
+        setPayoutQuotes({ over: null, under: null });
+        const quoteTypes: Record<string, { over: ManualContractType; under: ManualContractType }> = {
+            DIGITOVER: { over: 'DIGITOVER', under: 'DIGITUNDER' },
+            DIGITEVEN: { over: 'DIGITEVEN', under: 'DIGITODD' },
+            DIGITMATCH: { over: 'DIGITMATCH', under: 'DIGITDIFF' },
+            CALL: { over: 'CALL', under: 'PUT' },
+        };
+        const group = contractType === 'DIGITUNDER' ? 'DIGITOVER'
+            : contractType === 'DIGITODD' ? 'DIGITEVEN'
+                : contractType === 'DIGITDIFF' ? 'DIGITMATCH'
+                    : contractType === 'PUT' ? 'CALL' : contractType;
+        const types = quoteTypes[group] || quoteTypes.DIGITOVER;
+        const options = (side: TradeSide) => ({
+            symbol,
+            contractType: types[side],
+            amount,
+            currency,
+            duration,
+            prediction,
+        });
+
+        Promise.all([
+            manualTradeService.getProposal(options('over')),
+            manualTradeService.getProposal(options('under')),
+        ]).then(([over, under]) => {
+            if (active) setPayoutQuotes({ over: over.payout, under: under.payout });
+        }).catch(() => {
+            if (active) setPayoutQuotes({ over: null, under: null });
+        });
+
+        return () => { active = false; };
+    }, [socketReady, symbol, contractType, stake, currency, duration, prediction]);
+
+    useEffect(() => {
         try {
             window.sessionStorage.setItem(historyStorageKey, JSON.stringify(trades));
         } catch {
@@ -163,6 +212,81 @@ const ManualTrader = () => {
     }, [historyStorageKey, trades]);
 
     const selectedSymbol = useMemo(() => symbols.find(item => item.symbol === symbol), [symbols, symbol]);
+
+    const executeTrade = useCallback(async (side: TradeSide) => {
+        if (buyLock.current) return;
+        buyLock.current = true;
+        setBuyingSide(side);
+        setTradeError('');
+        const amount = Number(stake);
+
+        try {
+            if (!api_base.api || !api_base.is_authorized) {
+                throw new Error('Please connect and authorize your Deriv account first.');
+            }
+            if (!symbol) throw new Error('Please select a Volatility market.');
+            if (!Number.isFinite(amount) || amount <= 0) throw new Error('Please set a stake greater than zero.');
+
+            const quoteTypes: Record<string, { over: ManualContractType; under: ManualContractType }> = {
+                DIGITOVER: { over: 'DIGITOVER', under: 'DIGITUNDER' },
+                DIGITEVEN: { over: 'DIGITEVEN', under: 'DIGITODD' },
+                DIGITMATCH: { over: 'DIGITMATCH', under: 'DIGITDIFF' },
+                CALL: { over: 'CALL', under: 'PUT' },
+            };
+            const group = contractType === 'DIGITUNDER' ? 'DIGITOVER'
+                : contractType === 'DIGITODD' ? 'DIGITEVEN'
+                    : contractType === 'DIGITDIFF' ? 'DIGITMATCH'
+                        : contractType === 'PUT' ? 'CALL' : contractType;
+            const selectedContract = quoteTypes[group]?.[side];
+            if (!selectedContract) throw new Error('This contract selection is not supported.');
+
+            const proposal = await manualTradeService.getProposal({
+                symbol,
+                contractType: selectedContract,
+                amount,
+                currency,
+                duration,
+                prediction,
+            });
+            const purchase = await manualTradeService.buy(proposal.id, proposal.ask_price);
+            const contractId = Number(purchase.contract_id);
+            const record: ManualTradeRecord = {
+                contract_id: contractId,
+                contract_type: selectedContract,
+                symbol,
+                symbol_name: selectedSymbol?.display_name || symbol,
+                buy_price: Number(purchase.buy_price ?? proposal.ask_price),
+                payout: proposal.payout,
+                currency,
+                status: 'open',
+                purchase_time: Date.now(),
+            };
+            setContractType(selectedContract);
+            setTrades(previous => [record, ...previous]);
+            void manualTradeService.observeContract(contractId, contract => {
+                const contractStatus = String(contract.status || 'open');
+                const status: ManualTradeRecord['status'] =
+                    contractStatus === 'won' ? 'won'
+                        : contractStatus === 'lost' ? 'lost'
+                            : contractStatus === 'sold' ? 'sold' : 'open';
+                const profit = Number(contract.profit);
+                setTrades(previous => previous.map(item => item.contract_id === contractId ? {
+                    ...item,
+                    status,
+                    ...(Number.isFinite(profit) ? { profit } : {}),
+                    ...(contract.entry_tick !== undefined ? { entry_tick: contract.entry_tick } : {}),
+                    ...(contract.exit_tick !== undefined ? { exit_tick: contract.exit_tick } : {}),
+                } : item));
+            }).catch(error => {
+                setTradeError(error instanceof Error ? error.message : 'Trade opened, but contract updates could not be received.');
+            });
+        } catch (error) {
+            setTradeError(error instanceof Error ? error.message : 'Unable to execute trade. Please try again.');
+        } finally {
+            buyLock.current = false;
+            setBuyingSide(null);
+        }
+    }, [stake, symbol, contractType, currency, duration, prediction, selectedSymbol]);
 
     return (
         <main className='manual-trader'>
@@ -185,6 +309,13 @@ const ManualTrader = () => {
                 duration={duration}
                 stake={stake}
                 prediction={prediction}
+                currency={currency}
+                overPayout={payoutQuotes.over}
+                underPayout={payoutQuotes.under}
+                buyingSide={buyingSide}
+                buyDisabled={!socketReady || !api_base.is_authorized || !symbol || Number(stake) <= 0}
+                tradeError={tradeError}
+                onBuy={executeTrade}
                 onSymbolChange={setSymbol}
                 onContractChange={setContractType}
                 onDurationChange={setDuration}
