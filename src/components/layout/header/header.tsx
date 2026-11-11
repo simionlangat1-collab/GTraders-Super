@@ -21,6 +21,7 @@ const AppHeader = observer(() => {
     const { client } = useStore() ?? {};
     const [authTimeout, setAuthTimeout] = useState(false);
     const [balanceDisplayCurrency, setBalanceDisplayCurrency] = useState<'USD' | 'KES'>('USD');
+    const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
     const [usdKesRate, setUsdKesRate] = useState<number | null>(null);
 
     useEffect(() => {
@@ -254,20 +255,59 @@ const AppHeader = observer(() => {
                 <Wrapper variant='left'>
                     <MobileMenu onLogout={handleLogout} />
                     <AppLogo />
-                    <div className='gk-currency-dropdown'>
-                        <label className='gk-currency-dropdown__label' htmlFor='gk-balance-currency'>
-                            Display
-                        </label>
-                        <select
-                            id='gk-balance-currency'
-                            className='gk-currency-dropdown__select'
-                            aria-label='Balance display currency'
-                            value={balanceDisplayCurrency}
-                            onChange={event => setBalanceDisplayCurrency(event.target.value as 'USD' | 'KES')}
+                    <div className='gk-currency-switcher'>
+                        <button
+                            type='button'
+                            className='gk-currency-switcher__trigger'
+                            aria-label='Choose balance currency'
+                            aria-haspopup='listbox'
+                            aria-expanded={isCurrencyMenuOpen}
+                            onClick={() => setIsCurrencyMenuOpen(prev => !prev)}
                         >
-                            <option value='USD'>USD</option>
-                            <option value='KES'>KSh</option>
-                        </select>
+                            <span>{balanceDisplayCurrency === 'USD' ? 'USD' : 'KSh'}</span>
+                            <span
+                                className={clsx('gk-currency-switcher__arrow', {
+                                    'gk-currency-switcher__arrow--open': isCurrencyMenuOpen,
+                                })}
+                                aria-hidden='true'
+                            >
+                                <svg width='12' height='12' viewBox='0 0 12 12' fill='none'>
+                                    <path d='M2 4L6 8L10 4' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round' />
+                                </svg>
+                            </span>
+                        </button>
+                        {isCurrencyMenuOpen && (
+                            <div className='gk-currency-switcher__menu' role='listbox' aria-label='Balance currency'>
+                                <button
+                                    type='button'
+                                    role='option'
+                                    aria-selected={balanceDisplayCurrency === 'USD'}
+                                    className={clsx('gk-currency-switcher__option', {
+                                        'gk-currency-switcher__option--selected': balanceDisplayCurrency === 'USD',
+                                    })}
+                                    onClick={() => {
+                                        setBalanceDisplayCurrency('USD');
+                                        setIsCurrencyMenuOpen(false);
+                                    }}
+                                >
+                                    USD
+                                </button>
+                                <button
+                                    type='button'
+                                    role='option'
+                                    aria-selected={balanceDisplayCurrency === 'KES'}
+                                    className={clsx('gk-currency-switcher__option', {
+                                        'gk-currency-switcher__option--selected': balanceDisplayCurrency === 'KES',
+                                    })}
+                                    onClick={() => {
+                                        setBalanceDisplayCurrency('KES');
+                                        setIsCurrencyMenuOpen(false);
+                                    }}
+                                >
+                                    KSh
+                                </button>
+                            </div>
+                        )}
                     </div>
                     {isDesktop ? <MenuItems /> : renderAccountSection('left')}
                 </Wrapper>
