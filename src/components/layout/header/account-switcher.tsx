@@ -212,7 +212,7 @@ const AccountSwitcher = observer(({ activeAccount, balanceDisplayCurrency = 'USD
                                               new Intl.NumberFormat('en-KE', {
                                                   minimumFractionDigits: 2,
                                                   maximumFractionDigits: 2,
-                                              }).format(Number(balance) * usdKesRate)
+                                              }).format(Number(String(balance).replace(/,/g, '')) * usdKesRate)
                                             : balance + ' ' + getCurrencyDisplayCode(currency)
                                     )}
                                 </p>
