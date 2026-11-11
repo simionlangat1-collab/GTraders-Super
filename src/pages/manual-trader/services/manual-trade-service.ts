@@ -19,11 +19,11 @@ const waitForMessage = <T,>(
             return;
         }
 
-        let timer: ReturnType<typeof setTimeout>;
+        let timer: ReturnType<typeof setTimeout> | undefined;
         const listener = api.onMessage().subscribe((message: any) => {
             const result = predicate(message?.data);
             if (result !== undefined) {
-                clearTimeout(timer);
+                if (timer) clearTimeout(timer);
                 listener.unsubscribe();
                 resolve(result);
             }
