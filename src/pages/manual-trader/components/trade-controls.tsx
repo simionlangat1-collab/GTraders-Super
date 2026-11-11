@@ -53,9 +53,23 @@ export const TradeControls = (props: Props) => {
                 <label className='manual-trader__field'>
                     <span>Prediction digit (0–9)</span>
                     <div className='manual-trader__digits'>
-                        {Array.from({ length: 10 }, (_, digit) => (
-                            <button type='button' key={digit} className={props.prediction === digit ? 'is-selected' : ''} onClick={() => props.onPredictionChange(digit)}>{digit}</button>
-                        ))}
+                        {Array.from({ length: 10 }, (_, digit) => {
+                            const isSelected = props.prediction === digit;
+                            return (
+                                <button
+                                    type='button'
+                                    key={digit}
+                                    className={`manual-trader__digit-card ${isSelected ? 'is-selected' : ''}`}
+                                    aria-pressed={isSelected}
+                                    aria-label={`Select prediction digit ${digit}`}
+                                    onClick={() => props.onPredictionChange(digit)}
+                                >
+                                    <span className='manual-trader__digit-circle'>
+                                        <span className='manual-trader__digit-number'>{digit}</span>
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </label>
             )}
