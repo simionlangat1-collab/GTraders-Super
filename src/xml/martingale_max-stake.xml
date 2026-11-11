@@ -240,6 +240,7 @@
   <block type="procedures_defnoreturn" id="s`u(+vlS44fI;pul:nfW" collapsed="true" x="0" y="832">
     <mutation>
       <arg name="martingale:resultIsWin" varid="x]b3MHpbtR?cJQDP@,eG"></arg>
+      <arg name="martingale:purchasePrice" varid="gkPurchasePriceAuto"></arg>
     </mutation>
     <field name="NAME">Martingale Core Functionality</field>
     <statement name="STACK">
@@ -299,7 +300,34 @@
   <value name="DELTA"><block type="variables_get" id="gk-cycle-loss-purchase-price">
     <field name="VAR" id="gkPurchasePriceAuto" variabletype="">martingale:purchasePrice</field>
   </block></value>
-  <next><block type="variables_set" id="DA78AxndLk]Q@dIBt7O|"><field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field><value name="VALUE"><block type="math_arithmetic" id="gk-cumulative-recovery"><field name="OP">ADD</field><value name="A"><block type="math_arithmetic"><field name="OP">DIVIDE</field><value name="A"><block type="math_single"><field name="OP">ABS</field><value name="NUM"><shadow type="math_number"><field name="NUM">0</field></shadow><block type="variables_get"><field name="VAR" id="gk-cycle-loss-var" variabletype="">martingale:cycleLoss</field></block></value></block></value><value name="B"><block type="math_arithmetic"><field name="OP">MULTIPLY</field><value name="A"><shadow type="math_number"><field name="NUM">1</field></shadow><block type="variables_get"><field name="VAR" id="[$B]vBH,~wrN`PUt5m/f" variabletype="">Initial Amount</field></block></value><value name="B"><shadow type="math_number"><field name="NUM">1</field></shadow><block type="variables_get"><field name="VAR" id="gk-payout-rate-var" variabletype="">martingale:payoutRate</field></block></value></block></value></block></value><value name="B"><block type="variables_get"><field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Level</field></block></value></block></value></block></next></block>
+  <next><block type="variables_set" id="DA78AxndLk]Q@dIBt7O|">
+  <field name="VAR" id="FRbI:RhI/`[lrO`o;=P," variabletype="">martingale:multiplier</field>
+  <value name="VALUE">
+    <block type="math_arithmetic" id="gk-next-stake-multiplier">
+      <field name="OP">DIVIDE</field>
+      <value name="A">
+        <block type="math_arithmetic" id="gk-last-stake-times-level">
+          <field name="OP">MULTIPLY</field>
+          <value name="A">
+            <block type="variables_get" id="gk-core-purchase-price">
+              <field name="VAR" id="gkPurchasePriceAuto" variabletype="">martingale:purchasePrice</field>
+            </block>
+          </value>
+          <value name="B">
+            <block type="variables_get" id="gk-core-martingale-level">
+              <field name="VAR" id="ipD5?_dQ1Zkvf%v|[?DQ" variabletype="">Martingale Level</field>
+            </block>
+          </value>
+        </block>
+      </value>
+      <value name="B">
+        <block type="variables_get" id="gk-core-initial-amount">
+          <field name="VAR" id="[$B]vBH,~wrN`PUt5m/f" variabletype="">Initial Amount</field>
+        </block>
+      </value>
+    </block>
+  </value>
+</block></next></block>
                 </statement>
               </block>
             </next>
@@ -560,11 +588,17 @@
               <block type="procedures_callnoreturn" id=".HOK{2j(GR=qlV..gc}o">
                 <mutation name="Martingale Core Functionality">
                   <arg name="martingale:resultIsWin"></arg>
+                  <arg name="martingale:purchasePrice"></arg>
                 </mutation>
                 <data>s`u(+vlS44fI;pul:nfW</data>
                 <value name="ARG0">
                   <block type="variables_get" id="pgjZvSeFe;B(ZL|$v(!:">
                     <field name="VAR" id="x]b3MHpbtR?cJQDP@,eG" variabletype="">martingale:resultIsWin</field>
+                  </block>
+                </value>
+                <value name="ARG1">
+                  <block type="variables_get" id="gk-pass-purchase-price-to-core">
+                    <field name="VAR" id="gkPurchasePriceAuto" variabletype="">martingale:purchasePrice</field>
                   </block>
                 </value>
                 <next>
