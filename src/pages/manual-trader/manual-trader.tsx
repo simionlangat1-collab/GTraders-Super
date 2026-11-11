@@ -192,9 +192,9 @@ const ManualTrader = () => {
                 onPredictionChange={setPrediction}
             />
 
-            <ManualTraderDistributionPanels ticks={digitTicks} />
-
             <TradeHistory trades={trades} currency={currency} />
+
+            <ManualTraderDistributionPanels ticks={digitTicks} />
         </main>
     );
 };
