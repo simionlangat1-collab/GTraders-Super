@@ -127,7 +127,7 @@ export const TradeControls = (props: Props) => {
                                     }}
                                 >
                                     {item.display_name}
-                                </button>}
+                                </button>
                             ))}
                         </div>
                     )}
@@ -201,7 +201,7 @@ export const TradeControls = (props: Props) => {
                         </div>
                         <div className='manual-trader__stake-keypad'>
                             {['1', '2', '3', 'backspace', '4', '5', '6', 'spacer', '7', '8', '9', 'spacer', '0', 'decimal', 'ok'].map(key => (
-                                {key === 'spacer' ? <span key={key + '-space'} className='manual-trader__stake-key-spacer' /> : <button
+                                key === 'spacer' ? <span key={key + '-space'} className='manual-trader__stake-key-spacer' /> : <button
                                     type='button'
                                     key={key}
                                     className={`manual-trader__stake-key ${key === 'backspace' ? 'is-backspace' : ''} ${key === 'ok' ? 'is-confirm' : ''} ${key === '0' ? 'is-zero' : ''}`}
