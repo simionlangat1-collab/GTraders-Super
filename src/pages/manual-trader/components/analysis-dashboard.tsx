@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import '../../analysis-tool/analysis-tool.scss';
 
 type TTick = { quote: number; epoch: number; digit: number };
@@ -12,7 +12,6 @@ type Props = {
 const TICK_WINDOW = 1000;
 
 export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnection, tickError }: Props) => {
-    const [overUnderDigit, setOverUnderDigit] = useState(5);
     const frequencies = useMemo(
         () => Array.from({ length: 10 }, (_, digit) => {
             const count = ticks.filter(tick => tick.digit === digit).length;
@@ -29,33 +28,6 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
         [frequencies]
     );
     const latestTick = ticks.length ? ticks[ticks.length - 1] : null;
-    const overUnderStats = useMemo(() => {
-        const overCount = ticks.filter(tick => tick.digit > overUnderDigit).length;
-        const underCount = ticks.filter(tick => tick.digit < overUnderDigit).length;
-        const excludedCount = ticks.filter(tick => tick.digit === overUnderDigit).length;
-        const eligibleCount = overCount + underCount;
-        const overPercentage = eligibleCount ? (overCount / eligibleCount) * 100 : 0;
-        const underPercentage = eligibleCount ? (underCount / eligibleCount) * 100 : 0;
-        const overDisplayPercentage = eligibleCount ? Number(overPercentage.toFixed(1)) : 0;
-        return {
-            overCount, underCount, excludedCount, eligibleCount, overPercentage, underPercentage,
-            overDisplayPercentage,
-            underDisplayPercentage: eligibleCount ? 100 - overDisplayPercentage : 0,
-        };
-    }, [ticks, overUnderDigit]);
-    const evenOddStats = useMemo(() => {
-        const evenCount = ticks.filter(tick => tick.digit % 2 === 0).length;
-        const oddCount = ticks.length - evenCount;
-        const evenPercentage = ticks.length ? (evenCount / ticks.length) * 100 : 0;
-        const evenDisplayPercentage = ticks.length ? Number(evenPercentage.toFixed(1)) : 0;
-        return {
-            evenCount, oddCount, evenPercentage,
-            oddPercentage: ticks.length ? (oddCount / ticks.length) * 100 : 0,
-            evenDisplayPercentage,
-            oddDisplayPercentage: ticks.length ? 100 - evenDisplayPercentage : 0,
-        };
-    }, [ticks]);
-
     return (
         <section className='analysis-tool manual-trader-analysis'>
             <header className='analysis-tool__header'>
