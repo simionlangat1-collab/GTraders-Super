@@ -57,8 +57,8 @@ const ManualTrader = () => {
                 .sort((a: ManualMarketSymbol, b: ManualMarketSymbol) => a.display_name.localeCompare(b.display_name));
             setSymbols(volatility);
             setSymbol(current => volatility.some(item => item.symbol === current) ? current : volatility[0]?.symbol || '');
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'Unable to load Volatility Indices.');
+        } catch {
+            setSymbols([]);
         }
     }, []);
 
