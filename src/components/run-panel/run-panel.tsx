@@ -144,20 +144,6 @@ const DrawerContent = ({ active_index, is_drawer_open, active_tour, is_clear_sta
                 </div>
                 <div id='db-run-panel-tab__journal' label={<Localize i18n_default_text='Journal' />}>
                     <Journal />
-                    <div className='run-panel__footer'>
-                        <Button
-                            id='db-run-panel__clear-button'
-                            className='run-panel__footer-button'
-                            disabled={is_clear_stat_disabled}
-                            onClick={onClearStatClick}
-                            has_effect
-                            secondary
-                        >
-                            <span>
-                                <Localize i18n_default_text='Reset' />
-                            </span>
-                        </Button>
-                    </div>
                 </div>
             </Tabs>
             {((is_drawer_open && active_index !== 2) || active_tour) && <StatisticsSummary {...props} />}
