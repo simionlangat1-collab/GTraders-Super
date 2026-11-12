@@ -32,15 +32,15 @@ export class ManualTradeService {
             duration: options.duration,
             duration_unit: 't',
             underlying_symbol: options.symbol,
-            subscribe: 1,
         };
 
         if (['DIGITOVER', 'DIGITUNDER', 'DIGITMATCH', 'DIGITDIFF'].includes(options.contractType)) {
             request.barrier = options.prediction;
         }
 
-        // The Deriv API send() promise resolves with the matching response.
-        // Consume that response directly instead of waiting for a second
+        // This is a one-time quote for an immediate purchase, so do not
+        // subscribe to ongoing proposal updates that the Manual Trader never uses.
+        // Consume the response directly instead of waiting for a second
         // onMessage event that may already have been emitted or may not carry
         // the passthrough fields used for correlation.
         const response: any = unwrapMessage(await api.send(request));
