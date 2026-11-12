@@ -292,10 +292,6 @@
         &-header {
             font-weight: bold;
         }
-
-        &-item {
-            @include typeface(--small-left-bold-black, none);
-        }
     }
 
     &__popover {
