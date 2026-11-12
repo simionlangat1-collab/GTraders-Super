@@ -87,6 +87,7 @@ const AppWrapper = observer(() => {
     const navigate = useNavigate();
     const [left_tab_shadow, setLeftTabShadow] = useState<boolean>(false);
     const [right_tab_shadow, setRightTabShadow] = useState<boolean>(false);
+    const [freeBotRunRequest, setFreeBotRunRequest] = useState(0);
 
     // Trade type modal state
     const [tradeTypeModalState, setTradeTypeModalState] = useState(getModalState());
@@ -342,6 +343,11 @@ const AppWrapper = observer(() => {
         [active_tab]
     );
 
+    const runFreeBotFromAnalysis = React.useCallback(() => {
+        setFreeBotRunRequest(request => request + 1);
+        handleTabChange(DBOT_TABS.FREE_BOTS);
+    }, [handleTabChange]);
+
     const openGKPioneer = React.useCallback(() => {
         // Do not replace the current Bot Builder workspace while a bot is trading.
         if (run_panel.is_running || run_panel.has_open_contract) {
@@ -417,7 +423,7 @@ const AppWrapper = observer(() => {
                 >
                     <div>
                         {!isDesktop && left_tab_shadow && <span className='tabs-shadow tabs-shadow--left' />}{' '}
-                        <Tabs active_index={active_tab} className='main__tabs' onTabItemClick={handleTabChange} top>
+                        <Tabs active_index={active_tab} className='main__tabs' onTabItemClick={handleTabChange} keep_mounted_indices={[DBOT_TABS.FREE_BOTS]} top>
                             <div
                                 label={
                                     <>
@@ -497,7 +503,7 @@ const AppWrapper = observer(() => {
                                 label={<Localize i18n_default_text='Free Bots' />}
                                 id='id-free-bots'
                             >
-                                <FreeBots onOpenGKPioneer={openGKPioneer} />
+                                <FreeBots onOpenGKPioneer={openGKPioneer} runRequest={freeBotRunRequest} />
                             </div>
                             <div
                                 label={<Localize i18n_default_text='Analysis Tool' />}
@@ -506,7 +512,7 @@ const AppWrapper = observer(() => {
                                 <Suspense
                                     fallback={<ChunkLoader message={localize('Loading Analysis Tool...')} />}
                                 >
-                                    <AnalysisTool />
+                                    <AnalysisTool onRunFreeBot={runFreeBotFromAnalysis} />
                                 </Suspense>
                             </div>
                             <div
