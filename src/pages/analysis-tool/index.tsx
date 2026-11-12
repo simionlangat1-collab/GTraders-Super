@@ -38,7 +38,7 @@ const getLastDigit = (quote: number | string, precision?: number) => {
     return Number((decimals || quoteText).slice(-1));
 };
 
-const AnalysisTool = observer(({ onRunFreeBot }: { onRunFreeBot: () => void }) => {
+const AnalysisTool = observer(({ onRunBot }: { onRunBot: () => void }) => {
     const [markets, setMarkets] = useState<TMarket[]>([]);
     const [marketPrecisions, setMarketPrecisions] = useState<Record<string, number>>({});
     const [socketReady, setSocketReady] = useState(false);
@@ -229,7 +229,7 @@ const AnalysisTool = observer(({ onRunFreeBot }: { onRunFreeBot: () => void }) =
                     <span className='analysis-tool__eyebrow'>GTRADERS SUPER · MARKET INTELLIGENCE</span>
                     <h1>Analysis Tool</h1>
                     <p>Live Deriv digit statistics, built into GTraders Super.</p>
-                    <button type='button' className='analysis-tool__run-bot' onClick={onRunFreeBot} disabled={false} aria-disabled={false}>
+                    <button type='button' className='analysis-tool__run-bot' onClick={onRunBot} disabled={false} aria-disabled={false}>
                         Run Free Bot
                     </button>
                 </div>
