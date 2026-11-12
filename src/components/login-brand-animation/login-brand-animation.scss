@@ -167,3 +167,9 @@
         animation-delay: 0ms !important;
     }
 }
+
+/* Keep the cards still until the user taps to enable synchronized sound. */
+.gk-login-animation:not(.gk-login-animation--started) .gk-login-animation__card,
+.gk-login-animation:not(.gk-login-animation--started) .gk-login-animation__card i {
+    animation-play-state: paused;
+}
