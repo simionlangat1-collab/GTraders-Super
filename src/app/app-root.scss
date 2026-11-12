@@ -339,3 +339,12 @@
     transition: none !important;
   }
 }
+
+
+/* OAuth login return: keep the app's original startup animation from replaying. */
+.gtraders-login-return {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: #17112f;
+}
