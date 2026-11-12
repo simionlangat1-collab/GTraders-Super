@@ -114,7 +114,8 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
     // Keep the G-K Pioneer execution workspace runnable from both Free Bots and Analysis Tool.
     const has_gk_workspace =
         (active_tab === DBOT_TABS.FREE_BOTS && Boolean(execution_workspace)) ||
-        (active_tab === DBOT_TABS.ANALYSIS_TOOL && is_gk_pioneer_mode);
+        (active_tab === DBOT_TABS.ANALYSIS_TOOL &&
+            (Boolean(execution_workspace) || is_gk_pioneer_mode));
     const should_disable_run = !has_gk_workspace && has_no_bots && !is_bot_builder_tab;
 
     const is_disabled = is_stop_button_visible ? false : shouldDisable || should_disable_run;
