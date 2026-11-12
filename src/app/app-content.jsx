@@ -31,6 +31,9 @@ const AppContent = observer(({
 }) => {
     const [is_api_initialized, setIsApiInitialized] = React.useState(false);
     const [is_loading, setIsLoading] = React.useState(true);
+    const isPioneerLoginReturn = React.useRef(
+        sessionStorage.getItem('gk_pioneer_login_return_active') === '1'
+    );
     const [loadingMessage, setLoadingMessage] = React.useState(
         'Preparing live market data...'
     );
@@ -250,11 +253,18 @@ const AppContent = observer(({
     if (common?.error) return null;
 
     return is_loading ? (
-        <ChunkLoader
-            progress={75}
-            isConnected={connectionStatus === CONNECTION_STATUS.OPENED}
-            message={localize(loadingMessage)}
-        />
+        isPioneerLoginReturn.current ? (
+            <div
+                className='gtraders-login-return'
+                aria-label='Preparing your G - T Pioneer dashboard'
+            />
+        ) : (
+            <ChunkLoader
+                progress={75}
+                isConnected={connectionStatus === CONNECTION_STATUS.OPENED}
+                message={localize(loadingMessage)}
+            />
+        )
     ) : (
         <AuthLoadingWrapper>
             <ThemeProvider theme={is_dark_mode_on ? 'dark' : 'light'}>
