@@ -98,6 +98,7 @@ export const useOAuthCallback = (): OAuthCallbackResult => {
 
         // Handle OAuth error response
         if (error) {
+            sessionStorage.removeItem('gk_pioneer_login_animation_pending');
             console.error('OAuth error:', error, error_description);
             setResult({
                 isProcessing: false,
@@ -112,6 +113,7 @@ export const useOAuthCallback = (): OAuthCallbackResult => {
 
         // Validate CSRF token (state parameter)
         if (!state) {
+            sessionStorage.removeItem('gk_pioneer_login_animation_pending');
             console.error('[DEBUG] Missing state parameter in OAuth callback');
             clearAuthData();
             setResult({
@@ -126,6 +128,7 @@ export const useOAuthCallback = (): OAuthCallbackResult => {
         }
 
         if (!validateCSRFToken(state)) {
+            sessionStorage.removeItem('gk_pioneer_login_animation_pending');
             console.error('[DEBUG] CSRF token validation failed - potential security threat');
             clearAuthData();
             setResult({
@@ -142,6 +145,7 @@ export const useOAuthCallback = (): OAuthCallbackResult => {
 
         // Validate that we have the authorization code
         if (!code) {
+            sessionStorage.removeItem('gk_pioneer_login_animation_pending');
             console.error('Missing authorization code in OAuth callback');
             setResult({
                 isProcessing: false,
