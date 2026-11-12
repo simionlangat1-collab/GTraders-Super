@@ -301,7 +301,9 @@ export default class DashboardStore implements IDashboardStore {
     };
 
     initInfoPanel() {
-        if (!localStorage.getItem('dbot_should_show_info')) this.is_info_panel_visible = true;
+        // The default Deriv Bot welcome/info panel is intentionally disabled.
+        // It should not appear automatically when the dashboard is opened.
+        this.is_info_panel_visible = false;
     }
 
     setTourActiveStep = (active_tour_step_number: number) => {
