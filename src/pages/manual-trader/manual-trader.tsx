@@ -40,6 +40,7 @@ const ManualTrader = () => {
     const [tradeResultHighlight, setTradeResultHighlight] = useState<TradeResultHighlight | null>(null);
     const [tradeNotification, setTradeNotification] = useState<TradeNotification | null>(null);
     const notificationTimer = useRef<number | null>(null);
+    const completedContracts = useRef(new Set<number>());
     const buyLock = useRef(false);
     const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
     const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
@@ -286,19 +287,21 @@ const ManualTrader = () => {
                     ...item,
                     status,
                     ...(Number.isFinite(profit) ? { profit } : {}),
-                    ...(contract.entry_tick !== undefined ? { entry_tick: contract.entry_tick } : {}),
-                    ...(contract.exit_tick !== undefined ? { exit_tick: contract.exit_tick } : {}),
+                    ...(contract.entry_spot !== undefined ? { entry_tick: contract.entry_spot } : contract.entry_tick !== undefined ? { entry_tick: contract.entry_tick } : {}),
+                    ...(contract.exit_spot !== undefined ? { exit_tick: contract.exit_spot } : contract.exit_tick !== undefined ? { exit_tick: contract.exit_tick } : {}),
                 } : item));
 
-                if ((status === 'won' || status === 'lost') && Number.isFinite(profit) && contract.exit_tick !== undefined) {
+                const resultSpot = contract.exit_spot ?? contract.exit_tick ?? contract.current_spot;
+                if ((status === 'won' || status === 'lost') && Number.isFinite(profit) && resultSpot !== undefined && !completedContracts.current.has(contractId)) {
+                    completedContracts.current.add(contractId);
                     const exitPrecision = (api_base.pip_sizes as Record<string, number>)?.[symbol];
-                    const resultDigit = getLastDigit(contract.exit_tick, exitPrecision);
-                    const resultKey = `${contractId}-${status}-${String(contract.exit_tick)}-${Date.now()}`;
+                    const resultDigit = getLastDigit(resultSpot, exitPrecision);
+                    const resultKey = `${contractId}-${status}-${String(resultSpot)}-${Date.now()}`;
                     const result = { digit: resultDigit, status, profit, currency, key: resultKey } as TradeResultHighlight;
                     setTradeResultHighlight(result);
                     setTradeNotification({ status, profit, currency, key: resultKey });
                     if (notificationTimer.current !== null) window.clearTimeout(notificationTimer.current);
-                    notificationTimer.current = window.setTimeout(() => setTradeNotification(null), 3500);
+                    notificationTimer.current = window.setTimeout(() => setTradeNotification(null), 5000);
                 }
             }).catch(error => {
                 setTradeError(error instanceof Error ? error.message : 'Trade opened, but contract updates could not be received.');
