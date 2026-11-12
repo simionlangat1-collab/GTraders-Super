@@ -49,6 +49,10 @@ const ErrorComponentWrapper = observer(() => {
 const AppRoot = () => {
     const store = useStore();
     const api_base_initialized = useRef(false);
+    const [isPioneerLoginReturn] = useState(() => {
+        const pendingAt = Number(sessionStorage.getItem('gk_pioneer_login_animation_pending'));
+        return Boolean(pendingAt && Date.now() - pendingAt < 15 * 60 * 1000);
+    });
 
     const [is_api_initialized, setIsApiInitialized] = useState(false);
     const [isConnected, setIsConnected] = useState(
@@ -137,7 +141,12 @@ const AppRoot = () => {
     }, []);
 
     if (!store || !is_api_initialized) {
-        return (
+        return isPioneerLoginReturn ? (
+            <div
+                className='gtraders-login-return'
+                aria-label='Preparing your G - T Pioneer dashboard'
+            />
+        ) : (
             <AppRootLoader
                 progress={startupProgress}
                 message={startupMessage}
@@ -149,13 +158,20 @@ const AppRoot = () => {
     return (
         <Suspense
             fallback={
-                <AppRootLoader
-                    progress={startupProgress}
-                    message={localize(
-                        'Loading GTraders Super dashboard...'
-                    )}
-                    isConnected={isConnected}
-                />
+                isPioneerLoginReturn ? (
+                    <div
+                        className='gtraders-login-return'
+                        aria-label='Preparing your G - T Pioneer dashboard'
+                    />
+                ) : (
+                    <AppRootLoader
+                        progress={startupProgress}
+                        message={localize(
+                            'Loading GTraders Super dashboard...'
+                        )}
+                        isConnected={isConnected}
+                    />
+                )
             }
         >
             <ErrorBoundary root_store={store}>
