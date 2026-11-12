@@ -1,18 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
 import { Outlet } from 'react-router-dom';
 import { api_base } from '@/external/bot-skeleton';
+import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import { useDevice } from '@deriv-com/ui';
 import { crypto_currencies_display_order, fiat_currencies_display_order } from '../shared';
 import Footer from './footer';
 import AppHeader from './header';
 import Body from './main-body';
+import LoginBrandAnimation from '../login-brand-animation';
 import './layout.scss';
 
 const Layout = observer(() => {
     const { isDesktop } = useDevice();
+    const { activeLoginid } = useApiBase();
+    const [isLoginAnimationVisible, setIsLoginAnimationVisible] = useState(false);
+    const finishLoginAnimation = useCallback(() => setIsLoginAnimationVisible(false), []);
+
+    useEffect(() => {
+        if (!activeLoginid) return;
+
+        const pendingAt = Number(sessionStorage.getItem('gk_pioneer_login_animation_pending'));
+        if (!pendingAt) return;
+
+        sessionStorage.removeItem('gk_pioneer_login_animation_pending');
+        // Ignore stale markers left behind if the user abandoned an OAuth attempt.
+        if (Date.now() - pendingAt < 15 * 60 * 1000) {
+            setIsLoginAnimationVisible(true);
+        }
+    }, [activeLoginid]);
     const store = useStore();
     const is_quick_strategy_active = store?.quick_strategy?.is_open;
     const isCallbackPage = window.location.pathname === '/callback';
@@ -149,6 +167,7 @@ const Layout = observer(() => {
             })}
         >
             {!isCallbackPage && <AppHeader isAuthenticating={isAuthenticating || !isInitialAuthCheckComplete} />}
+            {isLoginAnimationVisible && <LoginBrandAnimation onComplete={finishLoginAnimation} />}
             <Body>
                 <Outlet />
             </Body>
