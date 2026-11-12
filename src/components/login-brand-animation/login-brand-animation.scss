@@ -70,16 +70,16 @@
 
     &__stack {
         display: flex;
-        width: min(78vw, 390px);
+        width: min(46vw, 390px);
         flex-direction: column;
-        gap: 13px;
+        gap: 11px;
         perspective: 1100px;
     }
 
     &__card {
         position: relative;
         display: flex;
-        min-height: clamp(62px, 10vh, 86px);
+        min-height: clamp(58px, 6vh, 78px);
         align-items: center;
         justify-content: center;
         overflow: hidden;
