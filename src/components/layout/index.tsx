@@ -17,7 +17,10 @@ const Layout = observer(() => {
     const { isDesktop } = useDevice();
     const { activeLoginid } = useApiBase();
     const [isLoginAnimationVisible, setIsLoginAnimationVisible] = useState(false);
-    const finishLoginAnimation = useCallback(() => setIsLoginAnimationVisible(false), []);
+    const finishLoginAnimation = useCallback(() => {
+        setIsLoginAnimationVisible(false);
+        sessionStorage.removeItem('gk_pioneer_login_return_active');
+    }, []);
 
     useEffect(() => {
         if (!activeLoginid) return;
@@ -25,6 +28,7 @@ const Layout = observer(() => {
         const pendingAt = Number(sessionStorage.getItem('gk_pioneer_login_animation_pending'));
         if (!pendingAt) return;
 
+        sessionStorage.setItem('gk_pioneer_login_return_active', '1');
         sessionStorage.removeItem('gk_pioneer_login_animation_pending');
         // Ignore stale markers left behind if the user abandoned an OAuth attempt.
         if (Date.now() - pendingAt < 15 * 60 * 1000) {
