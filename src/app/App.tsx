@@ -20,6 +20,21 @@ const AppRoot = lazy(() => import('./app-root'));
 // Without these, the app defaults to English. See user-guide/03-white-labeling.md#translations for setup instructions.
 const i18nInstance = initializeI18n({ cdnUrl: '' });
 
+const isPioneerLoginReturn = () => {
+    const pendingAt = Number(sessionStorage.getItem('gk_pioneer_login_animation_pending'));
+    return Boolean(pendingAt && Date.now() - pendingAt < 15 * 60 * 1000);
+};
+
+const RouteLoadingFallback = () =>
+    isPioneerLoginReturn() ? (
+        <div
+            className='gtraders-login-return'
+            aria-label='Preparing your G - T Pioneer dashboard'
+        />
+    ) : (
+        <ChunkLoader message={localize('Please wait while we connect to the server...')} />
+    );
+
 /**
  * Component wrapper to handle language URL parameter
  * Uses the useLanguageFromURL hook to process language switching
@@ -34,9 +49,7 @@ const router = createBrowserRouter(
         <Route
             path='/'
             element={
-                <Suspense
-                    fallback={<ChunkLoader message={localize('Please wait while we connect to the server...')} />}
-                >
+                <Suspense fallback={<RouteLoadingFallback />}>
                     <TranslationProvider defaultLang='EN' i18nInstance={i18nInstance}>
                         <LanguageHandler>
                             <StoreProvider>
