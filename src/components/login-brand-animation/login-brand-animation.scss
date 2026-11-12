@@ -1,0 +1,152 @@
+.gk-login-animation {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+        radial-gradient(ellipse at 23% 53%, rgba(204, 75, 190, 0.38) 0%, rgba(133, 45, 153, 0.18) 27%, transparent 58%),
+        radial-gradient(ellipse at 82% 18%, rgba(120, 72, 177, 0.25) 0%, transparent 48%),
+        linear-gradient(145deg, #17112f 0%, #292044 46%, #17132f 100%);
+    animation: gk-login-background-in 420ms ease-out both;
+
+    &::before,
+    &::after {
+        position: absolute;
+        z-index: -1;
+        content: '';
+        pointer-events: none;
+    }
+
+    &::before {
+        inset: 0;
+        opacity: 0.2;
+        background-image: radial-gradient(rgba(239, 202, 255, 0.72) 0.8px, transparent 0.8px);
+        background-size: 9px 9px;
+        mask-image: linear-gradient(to bottom, #000 0%, transparent 36%, transparent 68%, #000 100%);
+    }
+
+    &::after {
+        inset: 0;
+        opacity: 0.13;
+        background: repeating-linear-gradient(0deg, transparent 0 18px, rgba(255, 255, 255, 0.08) 19px, transparent 20px);
+        mask-image: linear-gradient(to bottom, transparent, #000 18%, transparent 82%, #000);
+    }
+
+    &__ambient {
+        position: absolute;
+        z-index: -1;
+        width: min(78vw, 520px);
+        height: min(78vw, 520px);
+        border-radius: 50%;
+        filter: blur(76px);
+        pointer-events: none;
+
+        &--top {
+            top: -28%;
+            right: -24%;
+            background: rgba(145, 91, 205, 0.2);
+        }
+
+        &--bottom {
+            bottom: -30%;
+            left: -24%;
+            background: rgba(222, 65, 178, 0.22);
+        }
+    }
+
+    &__digital-dust {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        opacity: 0.12;
+        background-image: radial-gradient(rgba(255, 210, 255, 0.8) 0.7px, transparent 0.8px);
+        background-size: 13px 13px;
+        mask-image: linear-gradient(to bottom, #000, transparent 42%, transparent 58%, #000);
+    }
+
+    &__stack {
+        display: flex;
+        width: min(78vw, 390px);
+        flex-direction: column;
+        gap: 13px;
+        perspective: 1100px;
+    }
+
+    &__card {
+        position: relative;
+        display: flex;
+        min-height: clamp(62px, 10vh, 86px);
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1.5px solid rgba(239, 211, 255, 0.9);
+        border-radius: 13px;
+        background: linear-gradient(112deg, rgba(108, 66, 142, 0.56), rgba(177, 115, 196, 0.32) 52%, rgba(72, 48, 111, 0.48));
+        box-shadow:
+            0 0 9px rgba(223, 176, 255, 0.3),
+            inset 0 0 13px rgba(246, 220, 255, 0.14),
+            0 9px 26px rgba(12, 7, 30, 0.22);
+        color: #fff;
+        font-family: inherit;
+        font-size: clamp(25px, 5vw, 36px);
+        font-weight: 700;
+        letter-spacing: 0.035em;
+        text-shadow: 0 0 12px rgba(246, 224, 255, 0.46);
+        opacity: 0;
+        transform: rotateX(-78deg) translateY(22px) scale(0.94);
+        transform-origin: center center;
+        backface-visibility: hidden;
+        animation: gk-login-card-flip 660ms cubic-bezier(0.2, 0.78, 0.24, 1) forwards;
+
+        span {
+            position: relative;
+            z-index: 2;
+        }
+
+        i {
+            position: absolute;
+            top: -45%;
+            bottom: -45%;
+            left: -48%;
+            width: 34%;
+            transform: skewX(-24deg);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.12), transparent);
+            filter: blur(1px);
+            animation: gk-login-card-shine 640ms ease-out both;
+        }
+
+        &--1 { animation-delay: 120ms; i { animation-delay: 520ms; } }
+        &--2 { animation-delay: 430ms; i { animation-delay: 760ms; } }
+        &--3 { animation-delay: 740ms; i { animation-delay: 1000ms; } }
+        &--4 { animation-delay: 1050ms; i { animation-delay: 1240ms; } }
+    }
+}
+
+@keyframes gk-login-background-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes gk-login-card-flip {
+    0% { opacity: 0; transform: rotateX(-78deg) translateY(22px) scale(0.94); }
+    72% { opacity: 1; transform: rotateX(8deg) translateY(-2px) scale(1.01); }
+    100% { opacity: 1; transform: rotateX(0) translateY(0) scale(1); }
+}
+
+@keyframes gk-login-card-shine {
+    0% { left: -48%; opacity: 0; }
+    18% { opacity: 1; }
+    100% { left: 125%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gk-login-animation *,
+    .gk-login-animation {
+        animation-duration: 1ms !important;
+        animation-delay: 0ms !important;
+    }
+}
