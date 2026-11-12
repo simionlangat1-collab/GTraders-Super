@@ -32,7 +32,11 @@ const AppContent = observer(({
     const [is_api_initialized, setIsApiInitialized] = React.useState(false);
     const [is_loading, setIsLoading] = React.useState(true);
     const isPioneerLoginReturn = React.useRef(
-        sessionStorage.getItem('gk_pioneer_login_return_active') === '1'
+        sessionStorage.getItem('gk_pioneer_login_return_active') === '1' ||
+        Boolean(
+            Number(sessionStorage.getItem('gk_pioneer_login_animation_pending')) &&
+            Date.now() - Number(sessionStorage.getItem('gk_pioneer_login_animation_pending')) < 15 * 60 * 1000
+        )
     );
     const [loadingMessage, setLoadingMessage] = React.useState(
         'Preparing live market data...'
