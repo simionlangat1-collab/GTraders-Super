@@ -47,9 +47,11 @@
     }
 
     .analysis-tool__digit-circle.is-trade-result {
+        /* One on/off pulse per iteration: exactly two flashes after settlement. */
         animation-duration: 520ms;
         animation-timing-function: ease-in-out;
         animation-iteration-count: 2;
+        animation-fill-mode: forwards;
     }
 
     .analysis-tool__digit-circle.is-trade-result-win {
@@ -60,18 +62,15 @@
         animation-name: manual-trader-trade-loss !important;
     }
 
+    /* The result digit stays fully filled; each 520ms iteration flashes once. */
     @keyframes manual-trader-trade-win {
-        0%, 100% { opacity: 1; transform: scale(1); box-shadow: inherit; }
-        25% { opacity: .42; transform: scale(1.06); border-color: #d4a017; background: rgba(212,160,23,.18); color: #d4a017; box-shadow: 0 0 0 .35rem rgba(212,160,23,.42), 0 0 2.2rem rgba(212,160,23,1); }
-        50% { opacity: 1; transform: scale(1); box-shadow: inherit; }
-        75% { opacity: .42; transform: scale(1.06); border-color: #d4a017; background: rgba(212,160,23,.18); color: #d4a017; box-shadow: 0 0 0 .35rem rgba(212,160,23,.42), 0 0 2.2rem rgba(212,160,23,1); }
+        0%, 100% { opacity: 1; transform: scale(1); background: #d4a017; border-color: #f5cf55; color: #ffffff; box-shadow: 0 0 0 .2rem rgba(212,160,23,.42), 0 0 1.8rem rgba(212,160,23,.85); }
+        50% { opacity: .28; transform: scale(1); background: #d4a017; border-color: #d4a017; color: #ffffff; box-shadow: none; }
     }
 
     @keyframes manual-trader-trade-loss {
-        0%, 100% { opacity: 1; transform: scale(1); box-shadow: inherit; }
-        25% { opacity: .42; transform: scale(1.06); border-color: #ef4444; background: rgba(239,68,68,.18); color: #ef4444; box-shadow: 0 0 0 .35rem rgba(239,68,68,.42), 0 0 2.2rem rgba(239,68,68,1); }
-        50% { opacity: 1; transform: scale(1); box-shadow: inherit; }
-        75% { opacity: .42; transform: scale(1.06); border-color: #ef4444; background: rgba(239,68,68,.18); color: #ef4444; box-shadow: 0 0 0 .35rem rgba(239,68,68,.42), 0 0 2.2rem rgba(239,68,68,1); }
+        0%, 100% { opacity: 1; transform: scale(1); background: #dc2626; border-color: #fb7185; color: #ffffff; box-shadow: 0 0 0 .2rem rgba(239,68,68,.42), 0 0 1.8rem rgba(239,68,68,.85); }
+        50% { opacity: .28; transform: scale(1); background: #dc2626; border-color: #dc2626; color: #ffffff; box-shadow: none; }
     }
 
     @keyframes manual-trader-notification-in {
@@ -676,6 +675,20 @@
     .manual-trader__market-value {
         transition: none !important;
     }
+}
+
+/* Settled contract result: fill the complete digit circle, not only its ring. */
+.manual-trader .manual-trader-analysis .analysis-tool__digit-circle.is-trade-result-win {
+    background: #d4a017;
+    border-color: #f5cf55;
+    color: #ffffff;
+    box-shadow: 0 0 0 .2rem rgba(212,160,23,.35), 0 0 1.4rem rgba(212,160,23,.65);
+}
+.manual-trader .manual-trader-analysis .analysis-tool__digit-circle.is-trade-result-loss {
+    background: #dc2626;
+    border-color: #fb7185;
+    color: #ffffff;
+    box-shadow: 0 0 0 .2rem rgba(239,68,68,.35), 0 0 1.4rem rgba(239,68,68,.65);
 }
 
 /* Dynamic frequency-rank circle rings — Manual Trader presentation only. */
