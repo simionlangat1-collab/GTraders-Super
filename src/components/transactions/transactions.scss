@@ -17,12 +17,15 @@
     }
 
     .download__container {
-        &__view-detail-button {
-            margin-inline-start: 12px;
+        &__view-detail-button,
+        &__reset-button {
+            flex: 1 1 0;
+            min-width: 0;
+            width: 100%;
         }
 
-        &__reset-button {
-            margin-inline-start: 12px;
+        &__view-detail-button {
+            height: 3.2rem;
         }
     }
 
@@ -30,6 +33,18 @@
         &__button-container {
             display: flex;
             align-items: center;
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+
+            > .run-panel__info {
+                flex: 1 1 0;
+                min-width: 0;
+
+                .download__button {
+                    width: 100%;
+                }
+            }
         }
     }
 
@@ -276,6 +291,10 @@
     &__info {
         &-header {
             font-weight: bold;
+        }
+
+        &-item {
+            @include typeface(--small-left-bold-black, none);
         }
     }
 
