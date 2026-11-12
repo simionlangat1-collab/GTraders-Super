@@ -46,6 +46,8 @@ type TDrawerContent = {
     active_index: number;
     is_drawer_open: boolean;
     active_tour: string;
+    is_clear_stat_disabled: boolean;
+    onClearStatClick: () => void;
     setActiveTabIndex: () => void;
 };
 
@@ -115,20 +117,7 @@ export const StatisticsSummary = ({
     </div>
 );
 
-const DrawerHeader = ({ is_clear_stat_disabled, is_mobile, is_drawer_open, onClearStatClick }: TDrawerHeader) =>
-    is_mobile &&
-    is_drawer_open && (
-        <Button
-            id='db-run-panel__clear-button'
-            className='run-panel__clear-button'
-            disabled={is_clear_stat_disabled}
-            text={localize('Reset')}
-            onClick={onClearStatClick}
-            secondary
-        />
-    );
-
-const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTabIndex, ...props }: TDrawerContent) => {
+const DrawerContent = ({ active_index, is_drawer_open, active_tour, is_clear_stat_disabled, onClearStatClick, setActiveTabIndex, ...props }: TDrawerContent) => {
     const { isDesktop } = useDevice();
     // Use the useBlockScroll hook to prevent body scrolling when drawer is open on mobile
 
@@ -155,29 +144,26 @@ const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTab
                 </div>
                 <div id='db-run-panel-tab__journal' label={<Localize i18n_default_text='Journal' />}>
                     <Journal />
+                    <div className='run-panel__footer'>
+                        <Button
+                            id='db-run-panel__clear-button'
+                            className='run-panel__footer-button'
+                            disabled={is_clear_stat_disabled}
+                            onClick={onClearStatClick}
+                            has_effect
+                            secondary
+                        >
+                            <span>
+                                <Localize i18n_default_text='Reset' />
+                            </span>
+                        </Button>
+                    </div>
                 </div>
             </Tabs>
             {((is_drawer_open && active_index !== 2) || active_tour) && <StatisticsSummary {...props} />}
         </>
     );
 };
-
-const DrawerFooter = ({ is_clear_stat_disabled, onClearStatClick }: TDrawerFooter) => (
-    <div className='run-panel__footer'>
-        <Button
-            id='db-run-panel__clear-button'
-            className='run-panel__footer-button'
-            disabled={is_clear_stat_disabled}
-            onClick={onClearStatClick}
-            has_effect
-            secondary
-        >
-            <span>
-                <Localize i18n_default_text='Reset' />
-            </span>
-        </Button>
-    </div>
-);
 
 const MobileDrawerFooter = () => {
     return (
@@ -296,16 +282,7 @@ const RunPanel = observer(() => {
             total_stake={total_stake}
             won_contracts={won_contracts}
             active_tour={active_tour}
-        />
-    );
-
-    const footer = <DrawerFooter is_clear_stat_disabled={is_clear_stat_disabled} onClearStatClick={onClearStatClick} />;
-
-    const header = (
-        <DrawerHeader
             is_clear_stat_disabled={is_clear_stat_disabled}
-            is_mobile={!isDesktop}
-            is_drawer_open={is_drawer_open}
             onClearStatClick={onClearStatClick}
         />
     );
@@ -326,8 +303,6 @@ const RunPanel = observer(() => {
                         'run-panel__container--gk-pioneer': Boolean(run_panel.execution_workspace),
                     })}
                     contentClassName='run-panel__content'
-                    header={header}
-                    footer={isDesktop && footer}
                     is_open={is_drawer_open}
                     toggleDrawer={toggleDrawer}
                     width={366}
