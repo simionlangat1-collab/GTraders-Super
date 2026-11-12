@@ -88,6 +88,8 @@ const AppWrapper = observer(() => {
     const [left_tab_shadow, setLeftTabShadow] = useState<boolean>(false);
     const [right_tab_shadow, setRightTabShadow] = useState<boolean>(false);
     const [freeBotRunRequest, setFreeBotRunRequest] = useState(0);
+    const freeBotReturnPending = React.useRef(false);
+    const freeBotRunPanelOpened = React.useRef(false);
 
     // Trade type modal state
     const [tradeTypeModalState, setTradeTypeModalState] = useState(getModalState());
@@ -344,9 +346,27 @@ const AppWrapper = observer(() => {
     );
 
     const runFreeBotFromAnalysis = React.useCallback(() => {
+        freeBotReturnPending.current = true;
+        freeBotRunPanelOpened.current = false;
         setFreeBotRunRequest(request => request + 1);
         handleTabChange(DBOT_TABS.FREE_BOTS);
     }, [handleTabChange]);
+
+    // Keep Free Bots as the underlying page after the trading drawer is closed.
+    React.useEffect(() => {
+        if (!freeBotReturnPending.current) return;
+
+        if (is_drawer_open) {
+            freeBotRunPanelOpened.current = true;
+            return;
+        }
+
+        if (freeBotRunPanelOpened.current) {
+            freeBotReturnPending.current = false;
+            freeBotRunPanelOpened.current = false;
+            handleTabChange(DBOT_TABS.FREE_BOTS);
+        }
+    }, [is_drawer_open, handleTabChange]);
 
     const openGKPioneer = React.useCallback(() => {
         // Do not replace the current Bot Builder workspace while a bot is trading.
