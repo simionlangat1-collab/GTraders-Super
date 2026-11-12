@@ -31,6 +31,7 @@ type TTabsProps = {
     is_full_width?: boolean;
     is_overflow_hidden?: boolean;
     is_scrollable?: boolean;
+    keep_mounted_indices?: number[];
     onTabItemClick?: (active_tab_index: number) => void;
     should_update_hash?: boolean;
     single_tab_has_no_label?: boolean;
@@ -56,6 +57,7 @@ const Tabs = ({
     is_full_width = false,
     is_overflow_hidden = false,
     is_scrollable = false,
+    keep_mounted_indices = [],
     onTabItemClick,
     should_update_hash = false,
     single_tab_has_no_label = false,
@@ -222,6 +224,13 @@ const Tabs = ({
             >
                 {React.Children.map(children, (child, index) => {
                     if (!child) return null;
+                    if (keep_mounted_indices.includes(index)) {
+                        return (
+                            <div key={`persistent-tab-${index}`} style={{ display: index === active_tab_index ? 'block' : 'none' }}>
+                                {child.props.children}
+                            </div>
+                        );
+                    }
                     if (index !== active_tab_index) {
                         return undefined;
                     }
