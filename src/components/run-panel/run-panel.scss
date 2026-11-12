@@ -456,3 +456,26 @@
         }
     }
 }
+
+/* Keep the Journal list scrollable so the Reset control stays visible beneath it. */
+.run-panel__content > .dc-tabs {
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.run-panel__content .dc-tabs__content:has(> .journal) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.run-panel__content .dc-tabs__content:has(> .journal) > .journal {
+    flex: 1 1 0;
+    min-height: 0;
+    height: auto !important;
+}
+
+.run-panel__content .dc-tabs__content:has(> .journal) > .run-panel__footer {
+    flex: 0 0 auto;
+}
