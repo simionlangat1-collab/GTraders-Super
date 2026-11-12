@@ -396,25 +396,31 @@ const AppWrapper = observer(() => {
             if (cancelled) return;
             gkPioneerLoadStarted.current = true;
 
-            void quick_strategy.onSubmit(
-                {
-                    symbol: '1HZ10V',
-                    tradetype: 'overunder',
-                    type: 'both',
-                    last_digit_prediction: 2,
-                    size: 2.5,
-                    stake: 10,
-                    durationtype: 't',
-                    duration: 1,
-                    profit: 10,
-                    loss: 10,
-                    boolean_max_stake: false,
-                    max_stake: 10,
-                    action: 'EDIT',
-                } as any,
-                workspace,
-                'MARTINGALE'
-            );
+            void quick_strategy
+                .onSubmit(
+                    {
+                        symbol: '1HZ10V',
+                        tradetype: 'overunder',
+                        type: 'both',
+                        last_digit_prediction: 2,
+                        size: 2.5,
+                        stake: 10,
+                        durationtype: 't',
+                        duration: 1,
+                        profit: 10,
+                        loss: 10,
+                        boolean_max_stake: false,
+                        max_stake: 10,
+                        action: 'EDIT',
+                    } as any,
+                    workspace,
+                    'MARTINGALE'
+                )
+                .then(() => {
+                    // Register the initialized G-K Pioneer workspace so the
+                    // Run Panel can execute it from Free Bots or Analysis Tool.
+                    run_panel.setExecutionWorkspace(workspace);
+                });
         });
 
         return () => {
