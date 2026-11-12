@@ -213,6 +213,11 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
                             onStopBotClick();
                             return;
                         }
+                        // Switch to the Trading Bot (Free Bots) interface before starting from Analysis Tool.
+                        // The Run Panel drawer will remain layered over this underlying interface.
+                        if (active_tab === DBOT_TABS.ANALYSIS_TOOL && execution_workspace) {
+                            dashboard.setActiveTab(DBOT_TABS.FREE_BOTS);
+                        }
                         onRunButtonClick(execution_workspace || undefined);
                         /* [AI] - Analytics event tracking removed - see migrate-docs/MONITORING_PACKAGES.md for re-implementation guide */
                         /* [/AI] */
