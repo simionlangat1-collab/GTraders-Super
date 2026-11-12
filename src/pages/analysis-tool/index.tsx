@@ -230,7 +230,7 @@ const AnalysisTool = observer(({ onRunBot }: { onRunBot: () => void }) => {
                     <h1>Analysis Tool</h1>
                     <p>Live Deriv digit statistics, built into GTraders Super.</p>
                     <button type='button' className='analysis-tool__run-bot' onClick={onRunBot} disabled={false} aria-disabled={false}>
-                        Run Free Bot
+                        Run Bot
                     </button>
                 </div>
                 <div className={`analysis-tool__status analysis-tool__status--${connection}`}>
