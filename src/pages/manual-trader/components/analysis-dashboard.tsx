@@ -84,7 +84,7 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
                                 tradeResultHighlight?.digit === item.digit && tradeResultHighlight.status === 'won' ? 'is-trade-win' : '',
                                 tradeResultHighlight?.digit === item.digit && tradeResultHighlight.status === 'lost' ? 'is-trade-loss' : '',
                             ].filter(Boolean).join(' ')}
-                            key={item.digit}
+                            key={tradeResultHighlight?.digit === item.digit ? tradeResultHighlight.key : item.digit}
                         >
                             <div className={`analysis-tool__digit-circle ${tradeResultHighlight?.digit === item.digit ? `is-trade-result is-trade-result-${tradeResultHighlight.status}` : ''}`}>
                                 <span className='analysis-tool__digit-number'>{item.digit}</span>
