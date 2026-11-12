@@ -229,7 +229,7 @@ const AnalysisTool = observer(({ onRunFreeBot }: { onRunFreeBot: () => void }) =
                     <span className='analysis-tool__eyebrow'>GTRADERS SUPER · MARKET INTELLIGENCE</span>
                     <h1>Analysis Tool</h1>
                     <p>Live Deriv digit statistics, built into GTraders Super.</p>
-                    <button type='button' className='analysis-tool__run-bot' onClick={onRunFreeBot}>
+                    <button type='button' className='analysis-tool__run-bot' onClick={onRunFreeBot} disabled={false} aria-disabled={false}>
                         Run Free Bot
                     </button>
                 </div>
