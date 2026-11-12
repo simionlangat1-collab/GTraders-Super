@@ -56,7 +56,7 @@ const TransactionItem = ({ row = false, onClickTransaction, active_transaction_i
 const Transactions = observer(({ is_drawer_open }: TTransactions) => {
     const [active_transaction_id, setActiveTransactionId] = React.useState<number | null>(null);
     const { run_panel, transactions } = useStore();
-    const { contract_stage } = run_panel;
+    const { contract_stage, is_clear_stat_disabled, onClearStatClick } = run_panel;
     const { transactions: transaction_list, toggleTransactionDetailsModal, recoverPendingContracts } = transactions;
     const { isDesktop } = useDevice();
 
@@ -114,6 +114,15 @@ const Transactions = observer(({ is_drawer_open }: TTransactions) => {
                     secondary
                 >
                     <Localize i18n_default_text='View Detail' />
+                </Button>
+                <Button
+                    id='download__container__reset-button'
+                    className='download__container__reset-button'
+                    disabled={is_clear_stat_disabled}
+                    onClick={onClearStatClick}
+                    secondary
+                >
+                    <Localize i18n_default_text='Reset' />
                 </Button>
             </div>
             <div className='transactions__header'>
