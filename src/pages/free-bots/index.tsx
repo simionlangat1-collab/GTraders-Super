@@ -41,7 +41,7 @@ const emptyAnalysis: TAnalysis = {
     latestDigit: null,
 };
 
-const FreeBots = ({ onOpenGKPioneer }: { onOpenGKPioneer: () => void }) => {
+const FreeBots = ({ onOpenGKPioneer, runRequest = 0 }: { onOpenGKPioneer: () => void; runRequest?: number }) => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
     const engineRef = useRef<XvtSniperEngine | null>(null);
     const [isBotOpen, setIsBotOpen] = useState(false);
@@ -241,6 +241,13 @@ const FreeBots = ({ onOpenGKPioneer }: { onOpenGKPioneer: () => void }) => {
             setStatus('Bot could not start.');
         }
     };
+
+    useEffect(() => {
+        if (runRequest > 0 && !isRunning) {
+            setIsBotOpen(true);
+            void startBot();
+        }
+    }, [runRequest]);
 
     const stopBot = () => {
         engineRef.current?.stop();
