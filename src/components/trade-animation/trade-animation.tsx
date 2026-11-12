@@ -110,7 +110,8 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
 
     // Disable the RUN button if:
     // 1. There are no active or saved bots AND the user is not in the bot builder tab
-    const has_gk_workspace = active_tab === DBOT_TABS.FREE_BOTS && Boolean(execution_workspace);
+    // Keep the G-K Pioneer execution workspace runnable from both Free Bots and Analysis Tool.
+    const has_gk_workspace = [DBOT_TABS.FREE_BOTS, DBOT_TABS.ANALYSIS_TOOL].includes(active_tab) && Boolean(execution_workspace);
     const should_disable_run = !has_gk_workspace && has_no_bots && !is_bot_builder_tab;
 
     const is_disabled = is_stop_button_visible ? false : shouldDisable || should_disable_run;
