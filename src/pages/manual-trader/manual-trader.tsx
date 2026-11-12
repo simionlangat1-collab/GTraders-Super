@@ -13,6 +13,8 @@ const TICK_WINDOW = 1000;
 type TDigitTick = { quote: number; epoch: number; digit: number };
 type TradeSide = 'over' | 'under';
 type PayoutQuotes = { over: number | null; under: number | null };
+type TradeResultHighlight = { digit: number; status: 'won' | 'lost'; profit: number; currency: string; key: string };
+type TradeNotification = { status: 'won' | 'lost'; profit: number; currency: string; key: string };
 
 const getLastDigit = (quote: number | string, precision?: number) => {
     const numericQuote = Number(quote);
@@ -35,6 +37,9 @@ const ManualTrader = () => {
     const [payoutQuotes, setPayoutQuotes] = useState<PayoutQuotes>({ over: null, under: null });
     const [buyingSide, setBuyingSide] = useState<TradeSide | null>(null);
     const [tradeError, setTradeError] = useState('');
+    const [tradeResultHighlight, setTradeResultHighlight] = useState<TradeResultHighlight | null>(null);
+    const [tradeNotification, setTradeNotification] = useState<TradeNotification | null>(null);
+    const notificationTimer = useRef<number | null>(null);
     const buyLock = useRef(false);
     const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
     const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
@@ -213,6 +218,10 @@ const ManualTrader = () => {
 
     const selectedSymbol = useMemo(() => symbols.find(item => item.symbol === symbol), [symbols, symbol]);
 
+    useEffect(() => () => {
+        if (notificationTimer.current !== null) window.clearTimeout(notificationTimer.current);
+    }, []);
+
     const executeTrade = useCallback(async (side: TradeSide) => {
         if (buyLock.current) return;
         buyLock.current = true;
@@ -280,6 +289,17 @@ const ManualTrader = () => {
                     ...(contract.entry_tick !== undefined ? { entry_tick: contract.entry_tick } : {}),
                     ...(contract.exit_tick !== undefined ? { exit_tick: contract.exit_tick } : {}),
                 } : item));
+
+                if ((status === 'won' || status === 'lost') && Number.isFinite(profit) && contract.exit_tick !== undefined) {
+                    const exitPrecision = (api_base.pip_sizes as Record<string, number>)?.[symbol];
+                    const resultDigit = getLastDigit(contract.exit_tick, exitPrecision);
+                    const resultKey = `${contractId}-${status}-${String(contract.exit_tick)}-${Date.now()}`;
+                    const result = { digit: resultDigit, status, profit, currency, key: resultKey } as TradeResultHighlight;
+                    setTradeResultHighlight(result);
+                    setTradeNotification({ status, profit, currency, key: resultKey });
+                    if (notificationTimer.current !== null) window.clearTimeout(notificationTimer.current);
+                    notificationTimer.current = window.setTimeout(() => setTradeNotification(null), 3500);
+                }
             }).catch(error => {
                 setTradeError(error instanceof Error ? error.message : 'Trade opened, but contract updates could not be received.');
             });
@@ -301,6 +321,16 @@ const ManualTrader = () => {
 
     return (
         <main className='manual-trader'>
+            {tradeNotification && (
+                <div
+                    className={`manual-trader__trade-notification manual-trader__trade-notification--${tradeNotification.status}`}
+                    role='status'
+                    aria-live='polite'
+                >
+                    {tradeNotification.status === 'won' ? '+' : '-'} {Math.abs(tradeNotification.profit).toFixed(2)} {tradeNotification.currency} {tradeNotification.status === 'won' ? 'Win' : 'Loss'}
+                </div>
+            )}
+
             <header className='manual-trader__header'>
                 <div><h2>Manual Trader</h2><p>Trade Volatility Indices with digit contracts and tick durations.</p></div>
                 <span className={`manual-trader__connection ${connection === CONNECTION_STATUS.OPENED ? 'is-ready' : ''}`}>{connection === CONNECTION_STATUS.OPENED ? 'Deriv connected' : connection}</span>
@@ -311,6 +341,7 @@ const ManualTrader = () => {
                 marketName={selectedSymbol?.display_name || symbol}
                 tickConnection={tickConnection}
                 tickError={tickError}
+                tradeResultHighlight={tradeResultHighlight}
             />
 
             <TradeControls
