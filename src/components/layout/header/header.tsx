@@ -147,14 +147,18 @@ const AppHeader = observer(() => {
             const oauthUrl = await generateOAuthURL();
 
             if (oauthUrl) {
-                // Redirect to OAuth URL
+                // Remember that this login should receive the separate G - T Pioneer welcome animation
+                // after Deriv OAuth returns and the account is successfully authorized.
+                sessionStorage.setItem('gk_pioneer_login_animation_pending', String(Date.now()));
                 window.location.replace(oauthUrl);
             } else {
                 console.error('Failed to generate OAuth URL');
+                sessionStorage.removeItem('gk_pioneer_login_animation_pending');
                 setIsAuthorizing(false);
             }
         } catch (error) {
             console.error('Login redirection failed:', error);
+            sessionStorage.removeItem('gk_pioneer_login_animation_pending');
             // Reset authorizing state if redirection fails
             setIsAuthorizing(false);
         }
