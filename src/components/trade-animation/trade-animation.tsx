@@ -22,8 +22,9 @@ type TTradeAnimation = {
 };
 
 const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnimation) => {
-    const { dashboard, run_panel, summary_card, blockly_store } = useStore();
+    const { dashboard, run_panel, summary_card, blockly_store, quick_strategy } = useStore();
     const { active_tab } = dashboard;
+    const { is_gk_pioneer_mode } = quick_strategy;
     const { has_active_bot, has_saved_bots } = blockly_store;
     const { isMobile } = useDevice();
 
@@ -111,7 +112,9 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
     // Disable the RUN button if:
     // 1. There are no active or saved bots AND the user is not in the bot builder tab
     // Keep the G-K Pioneer execution workspace runnable from both Free Bots and Analysis Tool.
-    const has_gk_workspace = [DBOT_TABS.FREE_BOTS, DBOT_TABS.ANALYSIS_TOOL].includes(active_tab) && Boolean(execution_workspace);
+    const has_gk_workspace =
+        (active_tab === DBOT_TABS.FREE_BOTS && Boolean(execution_workspace)) ||
+        (active_tab === DBOT_TABS.ANALYSIS_TOOL && is_gk_pioneer_mode);
     const should_disable_run = !has_gk_workspace && has_no_bots && !is_bot_builder_tab;
 
     const is_disabled = is_stop_button_visible ? false : shouldDisable || should_disable_run;
