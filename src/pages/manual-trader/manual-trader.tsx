@@ -345,6 +345,7 @@ const ManualTrader = () => {
                 tickConnection={tickConnection}
                 tickError={tickError}
                 tradeResultHighlight={tradeResultHighlight}
+                barrierDigit={prediction}
             />
 
             <TradeControls
