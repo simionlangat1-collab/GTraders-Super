@@ -35,23 +35,11 @@ type TStatisticsSummary = {
     total_profit: number;
     won_contracts: number;
 };
-type TDrawerHeader = {
-    is_clear_stat_disabled: boolean;
-    is_mobile: boolean;
-    is_drawer_open: boolean;
-    onClearStatClick: () => void;
-};
-
 type TDrawerContent = {
     active_index: number;
     is_drawer_open: boolean;
     active_tour: string;
     setActiveTabIndex: () => void;
-};
-
-type TDrawerFooter = {
-    is_clear_stat_disabled: boolean;
-    onClearStatClick: () => void;
 };
 
 type TStatisticsInfoModal = {
@@ -115,19 +103,6 @@ export const StatisticsSummary = ({
     </div>
 );
 
-const DrawerHeader = ({ is_clear_stat_disabled, is_mobile, is_drawer_open, onClearStatClick }: TDrawerHeader) =>
-    is_mobile &&
-    is_drawer_open && (
-        <Button
-            id='db-run-panel__clear-button'
-            className='run-panel__clear-button'
-            disabled={is_clear_stat_disabled}
-            text={localize('Reset')}
-            onClick={onClearStatClick}
-            secondary
-        />
-    );
-
 const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTabIndex, ...props }: TDrawerContent) => {
     const { isDesktop } = useDevice();
     // Use the useBlockScroll hook to prevent body scrolling when drawer is open on mobile
@@ -161,23 +136,6 @@ const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTab
         </>
     );
 };
-
-const DrawerFooter = ({ is_clear_stat_disabled, onClearStatClick }: TDrawerFooter) => (
-    <div className='run-panel__footer'>
-        <Button
-            id='db-run-panel__clear-button'
-            className='run-panel__footer-button'
-            disabled={is_clear_stat_disabled}
-            onClick={onClearStatClick}
-            has_effect
-            secondary
-        >
-            <span>
-                <Localize i18n_default_text='Reset' />
-            </span>
-        </Button>
-    </div>
-);
 
 const MobileDrawerFooter = () => {
     return (
@@ -255,8 +213,6 @@ const RunPanel = observer(() => {
         active_index,
         is_drawer_open,
         is_statistics_info_modal_open,
-        is_clear_stat_disabled,
-        onClearStatClick,
         onMount,
         onRunButtonClick, // eslint-disable-line @typescript-eslint/no-unused-vars
         onUnmount,
@@ -299,17 +255,6 @@ const RunPanel = observer(() => {
         />
     );
 
-    const footer = <DrawerFooter is_clear_stat_disabled={is_clear_stat_disabled} onClearStatClick={onClearStatClick} />;
-
-    const header = (
-        <DrawerHeader
-            is_clear_stat_disabled={is_clear_stat_disabled}
-            is_mobile={!isDesktop}
-            is_drawer_open={is_drawer_open}
-            onClearStatClick={onClearStatClick}
-        />
-    );
-
     const show_run_panel = [BOT_BUILDER, CHART].includes(active_tab) || active_tour;
     if ((!show_run_panel && isDesktop) || active_tour === 'bot_builder') return null;
 
@@ -323,8 +268,6 @@ const RunPanel = observer(() => {
                         'run-panel__container--tour-active': isDesktop && active_tour,
                     })}
                     contentClassName='run-panel__content'
-                    header={header}
-                    footer={isDesktop && footer}
                     is_open={is_drawer_open}
                     toggleDrawer={toggleDrawer}
                     width={366}
