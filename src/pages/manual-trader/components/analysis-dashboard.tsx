@@ -7,11 +7,12 @@ type Props = {
     marketName: string;
     tickConnection: 'connecting' | 'connected' | 'disconnected';
     tickError?: string;
+    tradeResultHighlight?: { digit: number; status: 'won' | 'lost'; key: string } | null;
 };
 
 const TICK_WINDOW = 1000;
 
-export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnection, tickError }: Props) => {
+export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnection, tickError, tradeResultHighlight }: Props) => {
     const frequencies = useMemo(
         () => Array.from({ length: 10 }, (_, digit) => {
             const count = ticks.filter(tick => tick.digit === digit).length;
@@ -80,10 +81,12 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
                                 ticks.length && item.digit === rankedDigits[0].digit ? 'is-lowest' : '',
                                 ticks.length > 1 && item.digit === rankedDigits[1].digit ? 'is-second-lowest' : '',
                                 latestTick?.digit === item.digit ? 'is-current' : '',
+                                tradeResultHighlight?.digit === item.digit && tradeResultHighlight.status === 'won' ? 'is-trade-win' : '',
+                                tradeResultHighlight?.digit === item.digit && tradeResultHighlight.status === 'lost' ? 'is-trade-loss' : '',
                             ].filter(Boolean).join(' ')}
                             key={item.digit}
                         >
-                            <div className='analysis-tool__digit-circle'>
+                            <div className={`analysis-tool__digit-circle ${tradeResultHighlight?.digit === item.digit ? `is-trade-result is-trade-result-${tradeResultHighlight.status}` : ''}`}>
                                 <span className='analysis-tool__digit-number'>{item.digit}</span>
                                 <strong className='analysis-tool__digit-percentage'>{item.percentage.toFixed(1)}%</strong>
                                 {latestTick?.digit === item.digit && <span className='analysis-tool__tick-cursor' aria-label='Latest tick' />}
