@@ -677,3 +677,22 @@
         transition: none !important;
     }
 }
+
+/* Dynamic frequency-rank circle rings — Manual Trader presentation only. */
+.manual-trader .manual-trader-analysis .analysis-tool__digit-card.is-leading .analysis-tool__digit-circle:not(.is-barrier) {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, .22), 0 0 .95rem rgba(34, 197, 94, .22);
+}
+.manual-trader .manual-trader-analysis .analysis-tool__digit-card.is-second .analysis-tool__digit-circle:not(.is-barrier) {
+    border-color: #2583ff;
+    box-shadow: 0 0 0 1px rgba(37, 131, 255, .22), 0 0 .95rem rgba(37, 131, 255, .22);
+}
+.manual-trader .manual-trader-analysis .analysis-tool__digit-card.is-lowest .analysis-tool__digit-circle:not(.is-barrier) {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, .22), 0 0 .95rem rgba(239, 68, 68, .22);
+}
+.manual-trader .manual-trader-analysis .analysis-tool__digit-card.is-second-lowest .analysis-tool__digit-circle:not(.is-barrier) {
+    border-color: #eab308;
+    box-shadow: 0 0 0 1px rgba(234, 179, 8, .22), 0 0 .95rem rgba(234, 179, 8, .22);
+}
+
