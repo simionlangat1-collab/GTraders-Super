@@ -44,6 +44,8 @@ const emptyAnalysis: TAnalysis = {
 const FreeBots = ({ onOpenGKPioneer, runRequest = 0 }: { onOpenGKPioneer: () => void; runRequest?: number }) => {
     const { connectionStatus, isAuthorized, authData } = useApiBase();
     const engineRef = useRef<XvtSniperEngine | null>(null);
+    const runRequestHandledRef = useRef(0);
+    const startBotRef = useRef<() => Promise<void>>(async () => {});
     const [isBotOpen, setIsBotOpen] = useState(false);
     const [symbols, setSymbols] = useState<TMarketOption[]>([]);
     const [symbol, setSymbol] = useState('');
@@ -242,12 +244,15 @@ const FreeBots = ({ onOpenGKPioneer, runRequest = 0 }: { onOpenGKPioneer: () => 
         }
     };
 
+    startBotRef.current = startBot;
+
     useEffect(() => {
-        if (runRequest > 0 && !isRunning) {
+        if (runRequest > 0 && runRequest !== runRequestHandledRef.current) {
+            runRequestHandledRef.current = runRequest;
             setIsBotOpen(true);
-            void startBot();
+            if (!isRunning) void startBotRef.current();
         }
-    }, [runRequest]);
+    }, [runRequest, isRunning]);
 
     const stopBot = () => {
         engineRef.current?.stop();
