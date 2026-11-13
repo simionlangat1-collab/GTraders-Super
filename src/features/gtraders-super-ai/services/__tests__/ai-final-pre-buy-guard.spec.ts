@@ -5,6 +5,7 @@ const validInput = (): AIFinalPreBuyInput => ({
     accountType: 'demo',
     hasOpenContract: false,
     hasQualifiedOpportunity: true,
+    liveTickStreamHealthy: true,
     riskSettings: {
         stake: 1,
         targetProfit: 10,
