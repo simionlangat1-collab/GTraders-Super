@@ -179,6 +179,7 @@ const GTradersSuperAI = () => {
             setMarketOpportunity(selected
                 ? {
                     ...selected.opportunity,
+                    explanation: selected.economics.explanation,
                     symbol: selected.market.symbol,
                     displayName: selected.market.displayName,
                     askPrice: selected.askPrice,
@@ -510,7 +511,7 @@ const GTradersSuperAI = () => {
                                             </>
                                         )}
                                         <span>
-                                            Proposal quote and break-even check passed. This is still a research candidate only: no order has been placed or authorized.
+                                            Market Scanner never places an order. Any selected candidate still requires separate demo execution validation before automated trading can be enabled.
                                         </span>
                                     </section>
                                 )}
