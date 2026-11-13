@@ -62,6 +62,8 @@ const GTradersSuperAI = () => {
     const [isExecuting, setIsExecuting] = useState(false);
     const [executionMessage, setExecutionMessage] = useState('');
     const [preparedOpportunity, setPreparedOpportunity] = useState<SelectedMarketOpportunity | null>(null);
+    const [isBotRunning, setIsBotRunning] = useState(false);
+    const botStopRequested = useRef(false);
     const executionLock = useRef(false);
 
     useEffect(() => {
@@ -431,6 +433,143 @@ const GTradersSuperAI = () => {
         }
     };
 
+    const runBot = async () => {
+        if (isBotRunning) {
+            botStopRequested.current = true;
+            setIsBotRunning(false);
+            setExecutionMessage('STOP BOT requested — no new demo purchase will be started.');
+            return;
+        }
+
+        if (!riskInputsReady || !riskAssessment?.allowed || !isConnected || account?.account_type !== 'demo') {
+            setExecutionMessage('RUN BOT is blocked until the verified DEMO account, risk controls and session checks are ready.');
+            return;
+        }
+
+        botStopRequested.current = false;
+        setIsBotRunning(true);
+        setExecutionMessage('RUN BOT started — scanning for the latest qualified demo opportunity…');
+
+        try {
+            if (!sessionLedger || !sessionSnapshot || ledgerError) {
+                throw new Error('The AI session ledger is unavailable. Demo execution is disabled.');
+            }
+
+            const freshAccount = await getFreshDemoBalance();
+            setAccount(freshAccount);
+
+            if (botStopRequested.current) {
+                setExecutionMessage('BOT STOPPED before a trade was prepared.');
+                return;
+            }
+
+            const candidate = await scanMarkets(freshAccount.balance);
+            if (!candidate || !candidate.contractType || candidate.barrier === null) {
+                setExecutionMessage('NO TRADE — the fresh market scan produced no fully qualified candidate.');
+                return;
+            }
+
+            if (botStopRequested.current) {
+                setExecutionMessage('BOT STOPPED before confirmation. The scanned candidate was not purchased.');
+                return;
+            }
+
+            setPreparedOpportunity(candidate);
+            setExecutionMessage(`AI selected: ${candidate.displayName} · ${candidate.contractLabel} · digit ${candidate.prediction.predictedDigit}. Revalidating before the demo purchase…`);
+
+            const beforeScan = sessionLedger.getSnapshot();
+            if (beforeScan.openContractId !== null || beforeScan.executionUncertain) {
+                throw new Error('An earlier purchase is unresolved. No additional purchase is allowed.');
+            }
+
+            const preBuyAccount = await getFreshDemoBalance();
+            setAccount(preBuyAccount);
+
+            if (botStopRequested.current) {
+                setPreparedOpportunity(null);
+                setExecutionMessage('BOT STOPPED before the final purchase gate.');
+                return;
+            }
+
+            const candidateProposal = await requestFreshAIProposal(
+                <T,>(payload: Record<string, unknown>) => connection.requestData<T>(payload),
+                {
+                    amount: stake,
+                    currency: preBuyAccount.currency,
+                    contractType: candidate.contractType,
+                    barrier: candidate.barrier,
+                    symbol: candidate.symbol,
+                }
+            );
+
+            const finalAccount = await getFreshDemoBalance();
+            setAccount(finalAccount);
+            const latestSession = sessionLedger.getSnapshot();
+
+            const gateInput = {
+                connectionStatus: connection.getStatus(),
+                accountType: finalAccount.account_type,
+                hasOpenContract: latestSession.openContractId !== null || latestSession.executionUncertain,
+                hasQualifiedOpportunity: candidate.decision === 'MARKET_CANDIDATE' &&
+                    candidate.prediction.decision === 'PREDICTION_CANDIDATE' &&
+                    doesAIPredictionSupportContract(candidate.contractType, candidate.barrier, candidate.prediction.predictedDigit),
+                liveTickStreamHealthy: liveTickStream.isHealthy(),
+                riskSettings: { stake, targetProfit, stopLoss, maxConsecutiveLosses },
+                riskSnapshot: { balance: finalAccount.balance, sessionProfitLoss: latestSession.sessionProfitLoss, consecutiveLosses: latestSession.consecutiveLosses },
+                expectedContract: { amount: stake, currency: finalAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol },
+                proposal: candidateProposal,
+                confidenceLowerBound: candidate.confidenceLowerBound,
+            };
+
+            if (botStopRequested.current) {
+                setPreparedOpportunity(null);
+                setExecutionMessage('BOT STOPPED before the final execution gate.');
+                return;
+            }
+
+            const result = await executeAIDemoTrade(gateInput, {
+                request: payload => connection.requestData(payload),
+                waitForSettlement: contractId => connection.waitForContractSettlement(contractId),
+                onPurchaseIntent: () => {
+                    sessionLedger.reservePurchase();
+                    setSessionSnapshot(sessionLedger.getSnapshot());
+                },
+                onPurchased: contractId => {
+                    sessionLedger.markPurchase(contractId);
+                    setSessionSnapshot(sessionLedger.getSnapshot());
+                },
+                onPurchaseUncertain: () => {
+                    sessionLedger.markPurchaseUncertain();
+                    setSessionSnapshot(sessionLedger.getSnapshot());
+                },
+            });
+
+            if (result.status === 'BLOCKED' || result.status === 'EXECUTION_ABORTED' || result.status === 'PURCHASE_UNCERTAIN' || result.status === 'SETTLEMENT_PENDING') {
+                setExecutionMessage(result.status === 'BLOCKED' ? result.gate.explanation : result.message);
+                setSessionSnapshot(sessionLedger.getSnapshot());
+                return;
+            }
+
+            const settledSession = sessionLedger.recordSettlement(result.contractId, result.profit);
+            setSessionSnapshot(settledSession);
+            const balanceAfter = await connection.requestData<{ balance: AIAccountSnapshot }>({ balance: 1 });
+            if (balanceAfter.balance?.loginid !== finalAccount.loginid || balanceAfter.balance.currency !== finalAccount.currency ||
+                !Number.isFinite(Number(balanceAfter.balance.balance))) {
+                throw new Error('The contract settled, but the post-settlement balance could not be reconciled. The verified contract P/L remains in the session ledger.');
+            }
+
+            setAccount({ ...finalAccount, balance: Number(balanceAfter.balance.balance) });
+            setExecutionMessage(`DEMO BOT TRADE SETTLED — ${result.settlementStatus.toUpperCase()}. Realized P/L: ${result.profit.toFixed(2)} ${finalAccount.currency}. Session P/L: ${settledSession.sessionProfitLoss.toFixed(2)} ${finalAccount.currency}. The bot remains stopped after this controlled demo trade.`);
+            setPreparedOpportunity(null);
+        } catch (error) {
+            setExecutionMessage(error instanceof Error ? error.message : 'Bot execution stopped safely.');
+        } finally {
+            botStopRequested.current = false;
+            setIsBotRunning(false);
+            setPreparedOpportunity(null);
+        }
+    };
+
     const resumeSettlementMonitoring = async () => {
         if (executionLock.current || !sessionLedger) return;
         const openContractId = sessionLedger.getSnapshot().openContractId;
@@ -653,19 +792,16 @@ const GTradersSuperAI = () => {
                                     <span role='status'>Live tick stream: {liveTickStatus.toUpperCase()} · {liveTickStream.isHealthy() ? 'evidence current' : 'NO TRADE until revalidated'}</span>
                                 </div>
                                 <p>Prepare only scans and displays a candidate. Confirmation rescans the markets, requests a brand-new proposal, refreshes account balance and runs the final safety gate before one demo purchase.</p>
-                                <button type='button' onClick={prepareDemoTrade}
-                                    disabled={!riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting}>
-                                    {isExecuting ? 'Working…' : 'Prepare Demo Trade'}
+                                <button type='button' onClick={runBot}
+                                    className={`gtraders-ai-execution__run-button${isBotRunning ? ' gtraders-ai-execution__run-button--stop' : ''}`}
+                                    disabled={!isBotRunning && (!riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting)}>
+                                    {isBotRunning ? '■ Stop Bot' : '▶ Run Bot'}
                                 </button>
                                 {preparedOpportunity && (
                                     <div className='gtraders-ai-execution__candidate'>
-                                        <strong>Prepared candidate: {preparedOpportunity.displayName}</strong>
+                                        <strong>AI-selected candidate: {preparedOpportunity.displayName}</strong>
                                         <span>{preparedOpportunity.contractLabel} {preparedOpportunity.barrier} · predicted last digit {preparedOpportunity.prediction.predictedDigit}</span>
-                                        <span>Preparation quote is display-only and will never be purchased.</span>
-                                        <button type='button' onClick={confirmDemoTrade}
-                                            disabled={isExecuting || !riskAssessment?.allowed || account.account_type !== 'demo' || !liveTickStream.isHealthy()}>
-                                            Confirm ONE Demo Purchase
-                                        </button>
+                                        <span>Run Bot uses this selection only after a fresh confirmation scan and final safety gate.</span>
                                     </div>
                                 )}
                                 {sessionSnapshot && sessionSnapshot.openContractId !== null && (
@@ -814,6 +950,32 @@ const GTradersSuperAI = () => {
                                 <p className='gtraders-ai-scanner__disclaimer'>
                                     Market activity ranking is context only. Contract selection is separately tested against a fair baseline on an untouched holdout; it is still research, not a profitability guarantee.
                                 </p>
+                            </section>
+                        )}
+
+                        {isConnected && marketOpportunity && (
+                            <section className='gtraders-ai-selected' aria-live='polite'>
+                                <div className='gtraders-ai-selected__heading'>
+                                    <strong>Selected by AI</strong>
+                                    <span>Live scanner results · automatically populated</span>
+                                </div>
+                                <div className='gtraders-ai-selected__grid'>
+                                    <div className='gtraders-ai-selected__card'>
+                                        <span>Market</span>
+                                        <strong>{marketOpportunity.displayName}</strong>
+                                        <small>{marketOpportunity.symbol}</small>
+                                    </div>
+                                    <div className='gtraders-ai-selected__card'>
+                                        <span>Contract</span>
+                                        <strong>{marketOpportunity.contractLabel}</strong>
+                                        <small>{marketOpportunity.contractType} · 1 tick</small>
+                                    </div>
+                                    <div className='gtraders-ai-selected__card'>
+                                        <span>Digit</span>
+                                        <strong>{marketOpportunity.prediction.predictedDigit}</strong>
+                                        <small>AI estimated last digit</small>
+                                    </div>
+                                </div>
                             </section>
                         )}
 
