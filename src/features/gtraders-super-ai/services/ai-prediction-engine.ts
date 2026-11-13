@@ -156,3 +156,33 @@ export const generateAIPrediction = (
         explanation: 'Research candidate only: the recent-window model passed the configured chronological holdout comparison. Historical share is not a calibrated next-tick probability and this result does not authorize an order.',
     };
 };
+
+
+export interface AIFreshMarketPredictionInput {
+    symbol: string;
+    digitSequence: number[];
+    dataQuality: number;
+}
+
+export interface AIFreshMarketPrediction<T extends AIFreshMarketPredictionInput> {
+    market: T;
+    prediction: AIPredictionResult;
+}
+
+/**
+ * Rebuilds every prediction from the tick histories returned by the current
+ * scan. This function deliberately has no cache or previous-result fallback:
+ * a missing/invalid current sequence becomes NO TRADE through the prediction
+ * engine rather than reusing an earlier market prediction.
+ */
+export const evaluateFreshMarketPredictions = <T extends AIFreshMarketPredictionInput>(
+    freshMarkets: T[],
+    options: AIPredictionEngineOptions = {}
+): Array<AIFreshMarketPrediction<T>> => freshMarkets.map(market => ({
+    market,
+    prediction: generateAIPrediction(
+        market.digitSequence,
+        market.dataQuality,
+        options
+    ),
+}));
