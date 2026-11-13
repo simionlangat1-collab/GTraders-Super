@@ -366,3 +366,94 @@
         }
     }
 }
+
+
+.gtraders-ai-statistics {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+
+    > p {
+        margin: 0;
+        color: #9fb2ca;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    &__heading {
+        display: grid;
+        gap: 0.3rem;
+
+        strong {
+            color: #f8fbff;
+            font-size: 1.05rem;
+        }
+
+        span {
+            color: #aebfd5;
+            font-size: 0.9rem;
+        }
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    &__digit {
+        display: grid;
+        gap: 0.35rem;
+        min-width: 0;
+
+        > div:first-child {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            strong {
+                color: #dbeafe;
+                font-size: 0.95rem;
+            }
+
+            span {
+                color: #67e8f9;
+                font-size: 0.9rem;
+                font-weight: 700;
+            }
+        }
+
+        small {
+            color: #91a6c0;
+            font-size: 0.75rem;
+        }
+    }
+
+    &__track {
+        overflow: hidden;
+        height: 0.45rem;
+        border-radius: 1rem;
+        background: rgba(148, 163, 184, 0.16);
+
+        > span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #2583ff, #22d3ee);
+        }
+    }
+
+    &__summary {
+        display: grid;
+        gap: 0.3rem;
+        padding: 0.75rem;
+        border-radius: 0.65rem;
+        background: rgba(8, 18, 34, 0.45);
+
+        span {
+            color: #c2d3e8;
+            font-size: 0.85rem;
+        }
+    }
+}
