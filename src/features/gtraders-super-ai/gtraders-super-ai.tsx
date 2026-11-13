@@ -7,7 +7,7 @@ import {
 import { AIMarketScanner, AIMarketHistory, isVolatilityIndexMarket } from './services/ai-market-scanner';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
-import { AIContractOpportunity, evaluateAIContractOpportunity } from './services/ai-contract-scanner';
+import { AIContractOpportunity, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -17,7 +17,14 @@ const connectionStatusLabel: Record<AIConnectionStatus, string> = {
     error: 'Connection needs attention',
 };
 
-type SelectedMarketOpportunity = AIContractOpportunity & { symbol: string; displayName: string };
+type SelectedMarketOpportunity = AIContractOpportunity & {
+    symbol: string;
+    displayName: string;
+    askPrice: number;
+    payout: number;
+    breakEvenProbability: number;
+    confidenceMargin: number;
+};
 
 const GTradersSuperAI = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -72,10 +79,19 @@ const GTradersSuperAI = () => {
             setScannerError('Market scanning is blocked until the AI risk preflight passes.');
             return;
         }
+        if (!account) {
+            setScannerError('Connect the AI account before requesting market proposals.');
+            return;
+        }
 
+        const scanStake = Number(stakeInput);
+        const scanCurrency = account.currency;
         setScannerError('');
         setScannerOutcomeMessage('');
+        setMarketResults([]);
+        setMarketStatistics(null);
         setMarketOpportunity(null);
+        setAvailableMarketCount(0);
         setScannedAt(null);
         setIsScanning(true);
         try {
@@ -87,8 +103,6 @@ const GTradersSuperAI = () => {
             setAvailableMarketCount(volatilityMarkets.length);
 
             if (!volatilityMarkets.length) {
-                setMarketResults([]);
-                setMarketStatistics(null);
                 setScannerOutcomeMessage(
                     'NO TRADE — no eligible Volatility Index markets were returned by Deriv.'
                 );
@@ -115,15 +129,66 @@ const GTradersSuperAI = () => {
                 .filter(item => item.opportunity.decision === 'MARKET_CANDIDATE')
                 .sort((a, b) => b.opportunity.edge - a.opportunity.edge);
 
-            const selected = qualifying[0];
+            // Request live quotes only for the ten strongest research candidates.
+            // Proposal requests price the contract; they do not buy or subscribe.
+            const quoteResults = await Promise.allSettled(
+                qualifying.slice(0, 10).map(async candidate => {
+                    if (
+                        !candidate.opportunity.contractType ||
+                        candidate.opportunity.barrier === null
+                    ) {
+                        throw new Error('The candidate is missing its contract details.');
+                    }
+
+                    const response = await connection.requestData<{
+                        proposal?: {
+                            ask_price?: number | string;
+                            payout?: number | string;
+                        };
+                    }>({
+                        proposal: 1,
+                        amount: scanStake,
+                        basis: 'stake',
+                        contract_type: candidate.opportunity.contractType,
+                        currency: scanCurrency,
+                        duration: 1,
+                        duration_unit: 't',
+                        barrier: String(candidate.opportunity.barrier),
+                        underlying_symbol: candidate.market.symbol,
+                    });
+                    const askPrice = Number(response.proposal?.ask_price);
+                    const payout = Number(response.proposal?.payout);
+                    const economics = evaluateAIProposalEconomics(
+                        candidate.opportunity.confidenceLowerBound,
+                        { askPrice, payout }
+                    );
+
+                    return { ...candidate, askPrice, payout, economics };
+                })
+            );
+
+            const approvedQuotes = quoteResults.flatMap(result =>
+                result.status === 'fulfilled' && result.value.economics.allowed
+                    ? [result.value]
+                    : []
+            );
+            const selected = approvedQuotes.sort(
+                (a, b) => b.economics.confidenceMargin - a.economics.confidenceMargin
+            )[0];
+
             setMarketOpportunity(selected
                 ? {
                     ...selected.opportunity,
                     symbol: selected.market.symbol,
                     displayName: selected.market.displayName,
+                    askPrice: selected.askPrice,
+                    payout: selected.payout,
+                    breakEvenProbability: selected.economics.breakEvenProbability,
+                    confidenceMargin: selected.economics.confidenceMargin,
                 }
                 : null);
-            const statisticsMarket = selected?.market ?? results[0];
+
+            const statisticsMarket = selected?.market ?? qualifying[0]?.market ?? results[0];
             setMarketStatistics(
                 statisticsMarket
                     ? analyseMarketDigits(statisticsMarket.digitSequence)
@@ -132,7 +197,9 @@ const GTradersSuperAI = () => {
             setScannerOutcomeMessage(
                 selected
                     ? ''
-                    : 'NO TRADE — none of the scanned Volatility markets passed the independent Over/Under holdout test. The AI will not force a selection.'
+                    : qualifying.length
+                        ? 'NO TRADE — the evidence-qualified candidates did not pass the live proposal payout/breakeven check. The AI will not force a selection.'
+                        : 'NO TRADE — none of the scanned Volatility markets passed the independent Over/Under holdout test. The AI will not force a selection.'
             );
             setScannedAt(Date.now());
 
@@ -146,7 +213,7 @@ const GTradersSuperAI = () => {
         }
     };
 
-    const disconnectAI = () => {
+        const disconnectAI = () => {
         connection.disconnect();
         setAccount(null);
         setConnectionError('');
@@ -428,6 +495,10 @@ const GTradersSuperAI = () => {
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
                                                     <span>Adjusted lower confidence bound: {(marketOpportunity.confidenceLowerBound * 100).toFixed(1)}%</span>
+                                                    <span>Live stake quote: {marketOpportunity.askPrice.toFixed(2)} {account.currency}</span>
+                                                    <span>Potential payout: {marketOpportunity.payout.toFixed(2)} {account.currency}</span>
+                                                    <span>Break-even win rate: {(marketOpportunity.breakEvenProbability * 100).toFixed(1)}%</span>
+                                                    <span>Confidence margin above break-even: {(marketOpportunity.confidenceMargin * 100).toFixed(2)} pp</span>
                                                     <span>Training / holdout ticks: {marketOpportunity.trainingSampleSize} / {marketOpportunity.holdoutSampleSize}</span>
                                                 </div>
                                                 <span>{marketOpportunity.explanation}</span>
@@ -439,7 +510,7 @@ const GTradersSuperAI = () => {
                                             </>
                                         )}
                                         <span>
-                                            Research candidate only. Live proposal pricing and payout/breakeven checks are not yet connected. No order can be placed from this result.
+                                            Proposal quote and break-even check passed. This is still a research candidate only: no order has been placed or authorized.
                                         </span>
                                     </section>
                                 )}
