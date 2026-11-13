@@ -56,7 +56,10 @@
     bottom: 10rem;
     z-index: 901;
     width: min(36rem, calc(100vw - 3.2rem));
-    overflow: hidden;
+    max-height: calc(100vh - 11rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border: 1px solid rgba(76, 170, 255, 0.34);
     border-radius: 1.6rem;
     color: #eaf2ff;
