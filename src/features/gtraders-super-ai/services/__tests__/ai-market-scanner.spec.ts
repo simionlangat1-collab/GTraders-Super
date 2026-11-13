@@ -86,6 +86,15 @@ describe('isVolatilityIndexMarket', () => {
         })).toBe(true);
 
         expect(isVolatilityIndexMarket({
+            symbol: 'R_100_CLOSED',
+            display_name: 'Volatility 100 Index',
+            market: 'synthetic_index',
+            submarket: 'random_index',
+            pip: 2,
+            exchange_is_open: 0,
+        })).toBe(false);
+
+        expect(isVolatilityIndexMarket({
             symbol: 'CRASH500',
             display_name: 'Crash 500 Index',
             market: 'synthetic_index',
@@ -101,4 +110,20 @@ describe('isVolatilityIndexMarket', () => {
             pip: 4,
         })).toBe(false);
     });
+});
+
+it('marks history with missing or unusable timestamps as poor quality', async () => {
+    const request = jest.fn(async () => ({
+        history: {
+            prices: Array(500).fill('123.45'),
+            times: Array(500).fill(0),
+        },
+        pip_size: 2,
+    }));
+    const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
+
+    const history = await scanner.getTickHistory('R_100', 500);
+
+    expect(history.ticks).toBe(500);
+    expect(history.dataQuality).toBe(0);
 });
