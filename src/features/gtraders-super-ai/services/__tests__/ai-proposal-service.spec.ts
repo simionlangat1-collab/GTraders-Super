@@ -26,7 +26,17 @@ describe('requestFreshAIProposal', () => {
             barrier: '2',
             underlying_symbol: 'R_100',
         });
-        expect(result).toMatchObject({\n            id: 'proposal-123',\n            askPrice: 1,\n            payout: 1.9,\n            amount: 1,\n            currency: 'USD',\n            contractType: 'DIGITOVER',\n            barrier: 2,\n            symbol: 'R_100',\n        });\n        expect(Number.isFinite(result.requestedAt)).toBe(true);
+        expect(result).toMatchObject({
+            id: 'proposal-123',
+            askPrice: 1,
+            payout: 1.9,
+            amount: 1,
+            currency: 'USD',
+            contractType: 'DIGITOVER',
+            barrier: 2,
+            symbol: 'R_100',
+        });
+        expect(Number.isFinite(result.requestedAt)).toBe(true);
     });
 
     it('requests a separate quote each time instead of reusing a cached proposal', async () => {
