@@ -54,7 +54,8 @@ const validDigits = (input: number[]): number[] =>
 export const generateAIPrediction = (
     input: number[],
     dataQuality: number,
-    options: AIPredictionEngineOptions = {}
+    options: AIPredictionEngineOptions = {},
+    tickTimestamps?: number[]
 ): AIPredictionResult => {
     const isArrayInput = Array.isArray(input);
     const digits = isArrayInput ? validDigits(input) : [];
@@ -88,6 +89,15 @@ export const generateAIPrediction = (
     if (!isArrayInput || digits.length !== input.length) {
         return noTrade('tick history contains invalid last digits.');
     }
+    if (
+        !Array.isArray(tickTimestamps) ||
+        tickTimestamps.length !== digits.length ||
+        tickTimestamps.some((timestamp, index) =>
+            !Number.isFinite(timestamp) || (index > 0 && timestamp < tickTimestamps[index - 1])
+        )
+    ) {
+        return noTrade('real tick timestamps are missing, misaligned, or out of chronological order.');
+    }
     if (!Number.isFinite(dataQuality) || dataQuality < minimumDataQuality || dataQuality > 100) {
         return noTrade('market data quality is below the required threshold.');
     }
@@ -98,6 +108,8 @@ export const generateAIPrediction = (
         return noTrade('the training window or untouched holdout is too small.');
     }
 
+    const trainingCutoffIndex = trainingSampleSize - 1;
+    const trainingCutoffTimestamp = tickTimestamps[trainingCutoffIndex];
     const observations = [];
     for (let index = trainingSampleSize; index < digits.length; index += 1) {
         const history = digits.slice(0, index);
@@ -107,14 +119,16 @@ export const generateAIPrediction = (
             return noTrade('walk-forward predictions could not be generated.');
         }
         observations.push({
-            settledAt: index,
+            settledAt: tickTimestamps[index],
+            observationIndex: index,
             modelPredictionCorrect: candidatePrediction === digits[index],
             baselinePredictionCorrect: baselinePrediction === digits[index],
         });
     }
 
     const validation = validateAIModelOutOfSample({
-        trainingCutoff: trainingSampleSize - 1,
+        trainingCutoffTimestamp,
+        trainingCutoffIndex,
         marketSampleSize: digits.length,
         dataQuality,
         observations,
