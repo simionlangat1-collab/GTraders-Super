@@ -219,6 +219,10 @@ const ManualTrader = () => {
 
     const selectedSymbol = useMemo(() => symbols.find(item => item.symbol === symbol), [symbols, symbol]);
 
+    const clearTradeResultHighlight = useCallback((key: string) => {
+        setTradeResultHighlight(current => current?.key === key ? null : current);
+    }, []);
+
     useEffect(() => () => {
         if (notificationTimer.current !== null) window.clearTimeout(notificationTimer.current);
     }, []);
@@ -345,6 +349,7 @@ const ManualTrader = () => {
                 tickConnection={tickConnection}
                 tickError={tickError}
                 tradeResultHighlight={tradeResultHighlight}
+                onTradeResultAnimationEnd={clearTradeResultHighlight}
                 barrierDigit={prediction}
             />
 
