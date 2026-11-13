@@ -24,11 +24,14 @@ export interface AIMarketHistory {
 
 interface ActiveSymbolsResponse {
     active_symbols?: Array<{
-        symbol: string;
-        display_name: string;
+        symbol?: string;
+        display_name?: string;
+        underlying_symbol?: string;
+        underlying_symbol_name?: string;
         market?: string;
         submarket?: string;
         pip?: number;
+        pip_size?: number;
         exchange_is_open?: number;
     }>;
 }
@@ -52,21 +55,28 @@ export class AIMarketScanner {
     constructor(private readonly request: AIMarketRequest) {}
 
     async getAvailableMarkets(): Promise<AIMarketSymbol[]> {
+        // The connected Deriv v1 API no longer accepts the legacy product_type
+        // filter and uses underlying_symbol/name in place of symbol/display_name.
         const response = await this.request<ActiveSymbolsResponse>({
             active_symbols: 'brief',
-            product_type: 'basic',
         });
 
         return (response.active_symbols ?? [])
-            .filter(item => item.symbol && item.display_name)
-            .map(item => ({
-                symbol: item.symbol,
-                display_name: item.display_name,
-                market: item.market ?? 'Other',
-                submarket: item.submarket ?? 'Other',
-                pip: Number(item.pip ?? 0),
-                exchange_is_open: item.exchange_is_open,
-            }));
+            .map(item => {
+                const symbol = item.underlying_symbol ?? item.symbol;
+                const displayName = item.underlying_symbol_name ?? item.display_name;
+                if (!symbol || !displayName) return null;
+
+                return {
+                    symbol,
+                    display_name: displayName,
+                    market: item.market ?? 'Other',
+                    submarket: item.submarket ?? 'Other',
+                    pip: Number(item.pip_size ?? item.pip ?? 0),
+                    exchange_is_open: item.exchange_is_open,
+                };
+            })
+            .filter((item): item is AIMarketSymbol => item !== null);
     }
 
     async getTickHistory(symbol: string, count = 500): Promise<AIMarketHistory> {
