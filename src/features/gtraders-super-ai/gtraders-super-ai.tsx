@@ -689,7 +689,7 @@ const GTradersSuperAI = () => {
                                     </div>
                                     <button
                                         type='button'
-                                        onClick={scanMarkets}
+                                        onClick={() => scanMarkets()}
                                         disabled={isScanning || isExecuting || !riskInputsReady || !riskAssessment?.allowed}
                                     >
                                         {isScanning ? 'Scanning markets…' : 'Market Scanner'}
