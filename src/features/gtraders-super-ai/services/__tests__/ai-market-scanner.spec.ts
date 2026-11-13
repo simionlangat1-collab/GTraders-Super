@@ -31,7 +31,7 @@ describe('AIMarketScanner', () => {
         ]);
     });
 
-    it('retains the observed last-digit sequence and counts from tick history', async () => {
+    it('retains the observed last-digit sequence using Deriv tick precision', async () => {
         const request = jest.fn(async () => ({
             history: {
                 prices: ['123.41', '123.45', '123.49'],
@@ -55,5 +55,22 @@ describe('AIMarketScanner', () => {
                 style: 'ticks',
             })
         );
+    });
+
+    it('infers precision from original price strings when pip_size is missing', async () => {
+        const request = jest.fn(async () => ({
+            history: {
+                prices: ['123.417', '123.425', '123.439'],
+                times: [1000, 1001, 1002],
+            },
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
+
+        const history = await scanner.getTickHistory('R_100', 3);
+
+        expect(history.digitSequence).toEqual([7, 5, 9]);
+        expect(history.digitCounts[7]).toBe(1);
+        expect(history.digitCounts[5]).toBe(1);
+        expect(history.digitCounts[9]).toBe(1);
     });
 });
