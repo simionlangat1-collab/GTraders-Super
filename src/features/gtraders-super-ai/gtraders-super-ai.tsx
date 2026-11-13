@@ -490,8 +490,9 @@ const GTradersSuperAI = () => {
                                                 <strong>{marketOpportunity.displayName}</strong>
                                                 <span>Market symbol: {marketOpportunity.symbol}</span>
                                                 <div className='gtraders-ai-statistics__summary'>
-                                                    <span>Selected contract: {marketOpportunity.contractLabel} {marketOpportunity.barrier}</span>
-                                                    <span>Contract code: {marketOpportunity.contractType}</span>
+                                                    <span>Contract type: {marketOpportunity.contractLabel}</span>
+                                                    <span>Digit barrier: {marketOpportunity.barrier}</span>
+                                                    <span>Contract code: {marketOpportunity.contractType} · 1 tick</span>
                                                     <span>Training win rate: {(marketOpportunity.trainingWinRate * 100).toFixed(1)}%</span>
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
