@@ -46,6 +46,10 @@ interface TickHistoryResponse {
 
 export type AIMarketRequest = <T>(payload: Record<string, unknown>) => Promise<T>;
 
+/** Limits the AI scanner to Volatility synthetic indices, excluding other synthetic products. */
+export const isVolatilityIndexMarket = (market: AIMarketSymbol): boolean =>
+    /volatility/i.test(market.display_name) && /synthetic/i.test(market.market);
+
 const MAX_DIGIT_PRECISION = 10;
 
 const inferPricePrecision = (prices: Array<string | number>): number =>
