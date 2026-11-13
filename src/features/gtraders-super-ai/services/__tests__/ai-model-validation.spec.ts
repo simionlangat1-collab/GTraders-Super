@@ -39,6 +39,20 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.validationPassed).toBe(false);
     });
 
+    it('rejects duplicate or out-of-order holdout timestamps', () => {
+        const observations = makeObservations(250, () => true);
+        observations[120].settledAt = observations[119].settledAt;
+        const result = validateAIModelOutOfSample({
+            trainingCutoff: 1000,
+            marketSampleSize: 500,
+            dataQuality: 100,
+            observations,
+        });
+
+        expect(result.rejectedObservations).toBe(1);
+        expect(result.evidence.validationPassed).toBe(false);
+    });
+
     it('rejects a holdout that does not beat the matched baseline', () => {
         const result = validateAIModelOutOfSample({
             trainingCutoff: 1000,
