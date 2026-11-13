@@ -101,7 +101,10 @@ export class AIDerivConnection {
         this.messageListeners.forEach(listener => listener(message));
     };
 
-    private handleClose = (): void => {
+    private handleClose = (closedSocket: WebSocket): void => {
+        // A late close event from an older socket must not clear a newer connection.
+        if (this.socket !== closedSocket) return;
+
         this.rejectPendingRequests('AI Deriv connection closed.');
         this.socket = null;
         this.account = null;
@@ -225,8 +228,10 @@ export class AIDerivConnection {
             const socket = new WebSocket(websocketUrl);
             attemptSocket = socket;
             this.socket = socket;
-            socket.addEventListener('message', this.handleMessage);
-            socket.addEventListener('close', this.handleClose);
+            socket.addEventListener('message', event => {
+                if (this.socket === socket) this.handleMessage(event);
+            });
+            socket.addEventListener('close', () => this.handleClose(socket));
 
             await new Promise<void>((resolve, reject) => {
                 const openTimeout = setTimeout(() => {
