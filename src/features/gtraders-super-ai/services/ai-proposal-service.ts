@@ -14,7 +14,7 @@ export interface AIFreshProposal {
     payout: number;
 }
 
-export type AIProposalRequest = <T>(payload: Record<string, unknown>) => Promise<T>;
+export type AIProposalRequest = (payload: Record<string, unknown>) => Promise<unknown>;
 
 /**
  * Requests a new, one-tick proposal from Deriv for the exact current candidate.
@@ -36,13 +36,14 @@ export const requestFreshAIProposal = async (
         throw new Error('A fresh proposal cannot be requested with incomplete or invalid contract details.');
     }
 
-    const response = await request<{
+    const rawResponse = await request({
         proposal?: {
             id?: string | number;
             ask_price?: number | string;
             payout?: number | string;
         };
-    }>({
+    });
+    const response = rawResponse as {
         proposal: 1,
         amount: input.amount,
         basis: 'stake',
