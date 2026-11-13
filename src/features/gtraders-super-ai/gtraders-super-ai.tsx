@@ -948,36 +948,36 @@ const GTradersSuperAI = () => {
                             </section>
                         )}
 
-                        {isConnected && (
+                        {isConnected && marketOpportunity && (
                             <section className='gtraders-ai-selected' aria-live='polite'>
                                 <div className='gtraders-ai-selected__heading'>
                                     <strong>Selected by AI</strong>
-                                    <span>{marketOpportunity ? 'Live scanner results · automatically populated' : scannedAt ? 'NO QUALIFIED MARKET · values shown as null' : 'Waiting for Market Scanner · values shown as null'}</span>
+                                    <span>Live scanner results · automatically populated</span>
                                 </div>
                                 <div className='gtraders-ai-selected__grid'>
                                     <div className='gtraders-ai-selected__card'>
                                         <span>Market</span>
-                                        <strong>{marketOpportunity ? marketOpportunity.displayName : 'null'}</strong>
-                                        <small>{marketOpportunity ? marketOpportunity.symbol : 'No tradable market selected'}</small>
+                                        <strong>{marketOpportunity.displayName}</strong>
+                                        <small>{marketOpportunity.symbol}</small>
                                     </div>
                                     <div className='gtraders-ai-selected__card'>
                                         <span>Contract</span>
-                                        <strong>{marketOpportunity ? marketOpportunity.contractLabel : 'null'}</strong>
-                                        <small>{marketOpportunity ? `${marketOpportunity.contractType} · 1 tick` : 'No qualified contract'}</small>
+                                        <strong>{marketOpportunity.contractLabel}</strong>
+                                        <small>{marketOpportunity.contractType} · 1 tick</small>
                                     </div>
                                     <div className='gtraders-ai-selected__card'>
                                         <span>Digit</span>
-                                        <strong>{marketOpportunity ? marketOpportunity.prediction.predictedDigit : 'null'}</strong>
-                                        <small>{marketOpportunity ? 'AI estimated last digit' : 'No validated prediction'}</small>
+                                        <strong>{marketOpportunity.prediction.predictedDigit}</strong>
+                                        <small>AI estimated last digit</small>
                                     </div>
                                 </div>
                             </section>
                         )}
 
-                        {isConnected && (
+                        {isConnected && marketOpportunity && (
                             <button type='button' onClick={runBot}
                                 className={`gtraders-ai-execution__run-button${isBotRunning ? ' gtraders-ai-execution__run-button--stop' : ''}`}
-                                disabled={!isBotRunning && (!marketOpportunity || !riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting)}>
+                                disabled={!isBotRunning && (!riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting)}>
                                 {isBotRunning ? '■ Stop Bot' : '▶ Run Bot'}
                             </button>
                         )}
