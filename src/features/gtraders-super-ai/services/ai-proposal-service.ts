@@ -36,7 +36,9 @@ export const requestFreshAIProposal = async (
         throw new Error('A fresh proposal cannot be requested with incomplete or invalid contract details.');
     }
 
-    // Timestamp before the network round-trip so network delay counts against freshness.\n    const requestedAt = Date.now();\n    const rawResponse = await request({
+    // Timestamp before the network round-trip so network delay counts against freshness.
+    const requestedAt = Date.now();
+    const rawResponse = await request({
         proposal: 1,
         amount: input.amount,
         basis: 'stake',
