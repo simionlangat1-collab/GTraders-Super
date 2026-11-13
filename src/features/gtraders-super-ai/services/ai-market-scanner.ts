@@ -153,7 +153,9 @@ export class AIMarketScanner {
         const priceIntegrityQuality = rawPrices.length
             ? (prices.length / rawPrices.length) * 100
             : 0;
-        const timestampIntegrityQuality = rawPrices.length && timestampsAreOrdered
+        const hasValidTimeRange =
+            validTimes.length > 1 && firstTickAt > 0 && lastTickAt > firstTickAt;
+        const timestampIntegrityQuality = rawPrices.length && timestampsAreOrdered && hasValidTimeRange
             ? (validTimes.length / rawPrices.length) * 100
             : 0;
         const dataQuality = Math.min(
