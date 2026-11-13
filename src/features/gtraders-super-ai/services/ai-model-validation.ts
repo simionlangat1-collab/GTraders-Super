@@ -1,7 +1,7 @@
 import { AITradeEvidence } from './ai-trade-decision';
 
 export interface AIValidationObservation {
-    /** Timestamp when this prediction was evaluated/settled, in Unix milliseconds. */
+    /** Timestamp when this prediction was evaluated/settled, in Unix seconds. */
     settledAt: number;
     /** Original zero-based tick position; strictly after the training cutoff. */
     observationIndex: number;
@@ -12,7 +12,7 @@ export interface AIValidationObservation {
 }
 
 export interface AIModelValidationInput {
-    /** End of the model-training period, in Unix milliseconds. */
+    /** Timestamp of the final training tick, in Unix seconds. */
     trainingCutoffTimestamp: number;
     trainingCutoffIndex: number;
     /** Recent valid market observations used to assess data sufficiency. */
