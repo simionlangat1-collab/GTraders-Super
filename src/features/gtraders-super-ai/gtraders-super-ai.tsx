@@ -7,7 +7,7 @@ import {
 import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
-import { generateAIPrediction } from './services/ai-prediction-engine';
+import { AIContractOpportunity, evaluateAIContractOpportunity } from './services/ai-contract-scanner';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -16,6 +16,8 @@ const connectionStatusLabel: Record<AIConnectionStatus, string> = {
     connected: 'Private Deriv connection active',
     error: 'Connection needs attention',
 };
+
+type SelectedMarketOpportunity = AIContractOpportunity & { symbol: string; displayName: string };
 
 const GTradersSuperAI = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +29,8 @@ const GTradersSuperAI = () => {
     const [marketResults, setMarketResults] = useState<AIMarketHistory[]>([]);
     const [availableMarketCount, setAvailableMarketCount] = useState(0);
     const [marketStatistics, setMarketStatistics] = useState<AIMarketStatistics | null>(null);
+    const [marketOpportunity, setMarketOpportunity] = useState<SelectedMarketOpportunity | null>(null);
+    const [scannerOutcomeMessage, setScannerOutcomeMessage] = useState('');
     const [isScanning, setIsScanning] = useState(false);
     const [scannerError, setScannerError] = useState('');
     const [scannedAt, setScannedAt] = useState<number | null>(null);
@@ -60,22 +64,79 @@ const GTradersSuperAI = () => {
     };
 
     const scanMarkets = async () => {
+        if (!riskInputsReady) {
+            setScannerError('Enter your stake, target profit and stop loss before scanning.');
+            return;
+        }
+        if (!riskAssessment?.allowed) {
+            setScannerError('Market scanning is blocked until the AI risk preflight passes.');
+            return;
+        }
+
         setScannerError('');
+        setScannerOutcomeMessage('');
+        setMarketOpportunity(null);
         setIsScanning(true);
         try {
             const scanner = new AIMarketScanner(<T,>(payload: Record<string, unknown>) =>
                 connection.requestData<T>(payload)
             );
             const availableMarkets = await scanner.getAvailableMarkets();
-            setAvailableMarketCount(availableMarkets.length);
-            const results = await scanner.scanMarkets(availableMarkets, {
+            const volatilityMarkets = availableMarkets.filter(market =>
+                /volatility/i.test(market.display_name) &&
+                /synthetic/i.test(market.market)
+            );
+            setAvailableMarketCount(volatilityMarkets.length);
+
+            if (!volatilityMarkets.length) {
+                setMarketResults([]);
+                setMarketStatistics(null);
+                setScannerOutcomeMessage(
+                    'NO TRADE — no eligible Volatility Index markets were returned by Deriv.'
+                );
+                setScannedAt(Date.now());
+                return;
+            }
+
+            const results = await scanner.scanMarkets(volatilityMarkets, {
                 maxMarkets: 30,
                 historyCount: 500,
                 concurrency: 3,
             });
             setMarketResults(results);
-            setMarketStatistics(results.length ? analyseMarketDigits(results[0].digitSequence) : null);
+
+            const qualifying = results
+                .map(market => ({
+                    market,
+                    opportunity: evaluateAIContractOpportunity(
+                        market.digitSequence,
+                        market.dataQuality
+                    ),
+                }))
+                .filter(item => item.opportunity.decision === 'TRADE_CANDIDATE')
+                .sort((a, b) => b.opportunity.edge - a.opportunity.edge);
+
+            const selected = qualifying[0];
+            setMarketOpportunity(selected
+                ? {
+                    ...selected.opportunity,
+                    symbol: selected.market.symbol,
+                    displayName: selected.market.displayName,
+                }
+                : null);
+            const statisticsMarket = selected?.market ?? results[0];
+            setMarketStatistics(
+                statisticsMarket
+                    ? analyseMarketDigits(statisticsMarket.digitSequence)
+                    : null
+            );
+            setScannerOutcomeMessage(
+                selected
+                    ? ''
+                    : 'NO TRADE — none of the scanned Volatility markets passed the independent Over/Under holdout test. The AI will not force a selection.'
+            );
             setScannedAt(Date.now());
+
             if (!results.length) {
                 setScannerError('No market history was returned. Please try scanning again.');
             }
@@ -114,9 +175,6 @@ const GTradersSuperAI = () => {
             { stake, targetProfit, stopLoss, maxConsecutiveLosses },
             { balance: account.balance, sessionProfitLoss: 0, consecutiveLosses: 0 }
         )
-        : null;
-    const predictionResult = marketResults.length
-        ? generateAIPrediction(marketResults[0].digitSequence, marketResults[0].dataQuality)
         : null;
 
     return (
@@ -270,14 +328,14 @@ const GTradersSuperAI = () => {
                                 <div className='gtraders-ai-scanner__heading'>
                                     <div>
                                         <strong>Independent Market Scanner</strong>
-                                        <span>{availableMarketCount} markets discovered · scanning up to 30</span>
+                                        <span>{availableMarketCount} Volatility Index markets found · scanning up to 30</span>
                                     </div>
                                     <button
                                         type='button'
                                         onClick={scanMarkets}
-                                        disabled={isScanning}
+                                        disabled={isScanning || !riskInputsReady || !riskAssessment?.allowed}
                                     >
-                                        {isScanning ? 'Scanning…' : 'Scan markets'}
+                                        {isScanning ? 'Scanning markets…' : 'Market Scanner'}
                                     </button>
                                 </div>
                                 {scannerError && (
@@ -354,36 +412,40 @@ const GTradersSuperAI = () => {
                                         <p>{marketStatistics.interpretation}</p>
                                     </div>
                                 )}
-                                {predictionResult && (
+                                {scannedAt && (
                                     <section className='gtraders-ai-prediction' aria-live='polite'>
                                         <div className='gtraders-ai-statistics__heading'>
-                                            <strong>AI Prediction Research Gate · {marketResults[0].displayName}</strong>
-                                            <span>Walk-forward test · recent-window model vs expanding-history baseline</span>
+                                            <strong>AI Market Selection</strong>
+                                            <span>Volatility market scan · training selection · untouched chronological holdout</span>
                                         </div>
-                                        <strong>
-                                            {predictionResult.decision === 'PREDICTION_CANDIDATE'
-                                                ? `Candidate digit: ${predictionResult.predictedDigit}`
-                                                : 'NO TRADE'}
-                                        </strong>
-                                        <span>{predictionResult.explanation}</span>
-                                        <div className='gtraders-ai-statistics__summary'>
-                                            <span>Training ticks: {predictionResult.trainingSampleSize}</span>
-                                            <span>Unseen holdout: {predictionResult.holdoutSampleSize}</span>
-                                            <span>Model hit rate: {(predictionResult.modelWinRate * 100).toFixed(1)}%</span>
-                                            <span>Matched baseline: {(predictionResult.baselineWinRate * 100).toFixed(1)}%</span>
-                                            <span>95% lower bound: {(predictionResult.confidenceLowerBound * 100).toFixed(1)}%</span>
-                                        </div>
-                                        {predictionResult.decision === 'PREDICTION_CANDIDATE' && (
-                                            <span>
-                                                Recent historical share: {(predictionResult.historicalShare! * 100).toFixed(1)}%.
-                                                This is not a calibrated next-tick probability.
-                                            </span>
+                                        {marketOpportunity ? (
+                                            <>
+                                                <strong>{marketOpportunity.displayName}</strong>
+                                                <span>Market symbol: {marketOpportunity.symbol}</span>
+                                                <div className='gtraders-ai-statistics__summary'>
+                                                    <span>Selected contract: {marketOpportunity.contractLabel} {marketOpportunity.barrier}</span>
+                                                    <span>Contract code: {marketOpportunity.contractType}</span>
+                                                    <span>Training win rate: {(marketOpportunity.trainingWinRate * 100).toFixed(1)}%</span>
+                                                    <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
+                                                    <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
+                                                    <span>95% lower confidence bound: {(marketOpportunity.confidenceLowerBound * 100).toFixed(1)}%</span>
+                                                    <span>Training / holdout ticks: {marketOpportunity.trainingSampleSize} / {marketOpportunity.holdoutSampleSize}</span>
+                                                </div>
+                                                <span>{marketOpportunity.explanation}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <strong>NO TRADE</strong>
+                                                <span>{scannerOutcomeMessage || 'No market passed the required evidence checks.'}</span>
+                                            </>
                                         )}
+                                        <span>
+                                            Research candidate only. Live proposal pricing and payout/breakeven checks are not yet connected. No order can be placed from this result.
+                                        </span>
                                     </section>
                                 )}
                                 <p className='gtraders-ai-scanner__disclaimer'>
-                                    Ranking reflects observed data availability and tick frequency only. It is not a prediction, trade signal or guarantee
-                                    of profitability.
+                                    Market activity ranking is context only. Contract selection is separately tested against a fair baseline on an untouched holdout; it is still research, not a profitability guarantee.
                                 </p>
                             </section>
                         )}
