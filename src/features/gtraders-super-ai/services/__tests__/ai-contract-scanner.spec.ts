@@ -1,4 +1,4 @@
-import { evaluateAIContractOpportunity } from '../ai-contract-scanner';
+import { evaluateAIContractOpportunity, evaluateAIProposalEconomics } from '../ai-contract-scanner';
 
 describe('evaluateAIContractOpportunity', () => {
     it('selects an Over/Under contract from training and validates it on later unseen ticks', () => {
@@ -45,5 +45,47 @@ describe('evaluateAIContractOpportunity', () => {
 
         expect(result.decision).toBe('NO_TRADE');
         expect(result.contractType).toBeNull();
+    });
+});
+
+describe('evaluateAIProposalEconomics', () => {
+    it('accepts only when the conservative confidence bound exceeds live break-even', () => {
+        const result = evaluateAIProposalEconomics(0.85, {
+            askPrice: 1,
+            payout: 1.25,
+        });
+
+        expect(result.allowed).toBe(true);
+        expect(result.breakEvenProbability).toBe(0.8);
+        expect(result.confidenceMargin).toBeCloseTo(0.05);
+    });
+
+    it('rejects a confidence bound equal to or below break-even', () => {
+        expect(evaluateAIProposalEconomics(0.8, {
+            askPrice: 1,
+            payout: 1.25,
+        }).allowed).toBe(false);
+
+        expect(evaluateAIProposalEconomics(0.79, {
+            askPrice: 1,
+            payout: 1.25,
+        }).allowed).toBe(false);
+    });
+
+    it('rejects missing, invalid or unprofitable proposal quotes', () => {
+        expect(evaluateAIProposalEconomics(0.9, {
+            askPrice: 0,
+            payout: 1.2,
+        }).allowed).toBe(false);
+
+        expect(evaluateAIProposalEconomics(0.9, {
+            askPrice: 1,
+            payout: 1,
+        }).allowed).toBe(false);
+
+        expect(evaluateAIProposalEconomics(Number.NaN, {
+            askPrice: 1,
+            payout: 1.5,
+        }).allowed).toBe(false);
     });
 });
