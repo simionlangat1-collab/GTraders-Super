@@ -710,7 +710,7 @@
 }
 
 /* Final settlement highlight must win over live-tick and frequency-rank styles. */
-.manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-win:not(.is-barrier) {
+.manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-win {
     background: #d4a017 !important;
     border-color: #f5cf55 !important;
     color: #ffffff !important;
@@ -718,7 +718,7 @@
     box-shadow: 0 0 0 .2rem rgba(212,160,23,.42), 0 0 1.8rem rgba(212,160,23,.9) !important;
     animation: manual-trader-trade-win 520ms ease-in-out 2 forwards !important;
 }
-.manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-loss:not(.is-barrier) {
+.manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-loss {
     background: #dc2626 !important;
     border-color: #fb7185 !important;
     color: #ffffff !important;
