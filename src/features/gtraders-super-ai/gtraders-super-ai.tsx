@@ -351,18 +351,22 @@ const GTradersSuperAI = () => {
             setAccount(preBuyAccount);
             const proposal = await requestFreshAIProposal(
                 <T,>(payload: Record<string, unknown>) => connection.requestData<T>(payload),
-                { amount: stake, currency: preBuyAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol }
+                { amount: stake, currency: finalAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol }
             );
+            // Refresh the authenticated balance after the proposal round-trip,
+            // so the final gate sees the latest available account funds.
+            const finalAccount = await getFreshDemoBalance();
+            setAccount(finalAccount);
             const latestSession = sessionLedger.getSnapshot();
             const gateInput = {
                 connectionStatus: connection.getStatus(),
-                accountType: preBuyAccount.account_type,
+                accountType: finalAccount.account_type,
                 hasOpenContract: latestSession.openContractId !== null || latestSession.executionUncertain,
                 hasQualifiedOpportunity: candidate.decision === 'MARKET_CANDIDATE' &&
                     candidate.prediction.decision === 'PREDICTION_CANDIDATE' &&
                     doesAIPredictionSupportContract(candidate.contractType, candidate.barrier, candidate.prediction.predictedDigit),
                 riskSettings: { stake, targetProfit, stopLoss, maxConsecutiveLosses },
-                riskSnapshot: { balance: preBuyAccount.balance, sessionProfitLoss: latestSession.sessionProfitLoss, consecutiveLosses: latestSession.consecutiveLosses },
+                riskSnapshot: { balance: finalAccount.balance, sessionProfitLoss: latestSession.sessionProfitLoss, consecutiveLosses: latestSession.consecutiveLosses },
                 expectedContract: { amount: stake, currency: preBuyAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol },
                 proposal,
                 confidenceLowerBound: candidate.confidenceLowerBound,
@@ -399,12 +403,12 @@ const GTradersSuperAI = () => {
             const settledSession = sessionLedger.recordSettlement(result.contractId, result.profit);
             setSessionSnapshot(settledSession);
             const balanceAfter = await connection.requestData<{ balance: AIAccountSnapshot }>({ balance: 1 });
-            if (balanceAfter.balance?.loginid !== preBuyAccount.loginid || balanceAfter.balance.currency !== preBuyAccount.currency ||
+            if (balanceAfter.balance?.loginid !== finalAccount.loginid || balanceAfter.balance.currency !== finalAccount.currency ||
                 !Number.isFinite(Number(balanceAfter.balance.balance))) {
                 throw new Error('The contract settled, but the post-settlement balance could not be reconciled. The verified contract P/L remains in the session ledger.');
             }
-            setAccount({ ...preBuyAccount, balance: Number(balanceAfter.balance.balance) });
-            setExecutionMessage(`DEMO CONTRACT SETTLED — ${result.settlementStatus.toUpperCase()}. Realized P/L: ${result.profit.toFixed(2)} ${preBuyAccount.currency}. Session P/L: ${settledSession.sessionProfitLoss.toFixed(2)} ${preBuyAccount.currency}. Consecutive losses: ${settledSession.consecutiveLosses}. Stake unchanged; no Martingale.`);
+            setAccount({ ...finalAccount, balance: Number(balanceAfter.balance.balance) });
+            setExecutionMessage(`DEMO CONTRACT SETTLED — ${result.settlementStatus.toUpperCase()}. Realized P/L: ${result.profit.toFixed(2)} ${finalAccount.currency}. Session P/L: ${settledSession.sessionProfitLoss.toFixed(2)} ${finalAccount.currency}. Consecutive losses: ${settledSession.consecutiveLosses}. Stake unchanged; no Martingale.`);
             setPreparedOpportunity(null);
         } catch (error) {
             if (sessionLedger) setSessionSnapshot(sessionLedger.getSnapshot());
