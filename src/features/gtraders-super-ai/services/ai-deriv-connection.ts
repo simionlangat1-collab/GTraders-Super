@@ -12,6 +12,13 @@ export interface AIAccountSnapshot {
     account_type: 'demo' | 'real' | 'unknown';
 }
 
+export interface AIContractSettlement {
+    contractId: number;
+    profit: number;
+    status: string;
+    isSold: boolean;
+}
+
 interface DerivAPIError {
     code?: string;
     message?: string;
@@ -319,6 +326,79 @@ export class AIDerivConnection {
             throw error instanceof Error ? error : new Error('AI Deriv connection failed.');
         }
     }
+
+
+    /**
+     * Subscribes to one purchased contract and resolves only after Deriv reports
+     * a terminal status with a finite realized profit. The caller must retain an
+     * open-contract lock if this method times out or the connection drops.
+     */
+    waitForContractSettlement = async (
+        contractId: number,
+        timeoutMs = 45000
+    ): Promise<AIContractSettlement> => {
+        if (!Number.isInteger(contractId) || contractId <= 0) {
+            throw new Error('A valid Deriv contract ID is required for settlement monitoring.');
+        }
+        if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            throw new Error('A valid settlement timeout is required.');
+        }
+
+        const initial = await this.request<DerivMessage>({
+            proposal_open_contract: 1,
+            contract_id: contractId,
+            subscribe: 1,
+        });
+
+        return new Promise<AIContractSettlement>((resolve, reject) => {
+            let finished = false;
+            const subscriptionId = (initial.subscription as { id?: string } | undefined)?.id;
+            let timeout: ReturnType<typeof setTimeout>;
+
+            const unsubscribe = this.onMessage(message => inspect(message));
+            const cleanup = () => {
+                clearTimeout(timeout);
+                unsubscribe();
+                if (subscriptionId) {
+                    void this.request({ forget: subscriptionId }).catch(() => undefined);
+                }
+            };
+            const finish = (error?: Error, settlement?: AIContractSettlement) => {
+                if (finished) return;
+                finished = true;
+                cleanup();
+                if (error) reject(error);
+                else if (settlement) resolve(settlement);
+                else reject(new Error('Deriv settlement could not be verified.'));
+            };
+            const inspect = (message: DerivMessage) => {
+                const open = message.proposal_open_contract as {
+                    contract_id?: number | string;
+                    is_sold?: number | string;
+                    status?: string;
+                    profit?: number | string;
+                } | undefined;
+                if (!open || Number(open.contract_id) !== contractId) return;
+
+                const status = String(open.status ?? '').toLowerCase();
+                const isSold = Number(open.is_sold) === 1;
+                if (!isSold && !['won', 'lost', 'sold'].includes(status)) return;
+
+                const profit = Number(open.profit);
+                if (!Number.isFinite(profit)) {
+                    finish(new Error('Deriv reported a final contract without a valid realized profit.'));
+                    return;
+                }
+                finish(undefined, { contractId, profit, status, isSold });
+            };
+
+            timeout = setTimeout(
+                () => finish(new Error('Timed out waiting for verified contract settlement.')),
+                timeoutMs
+            );
+            inspect(initial);
+        });
+    };
 
     disconnect = (): void => {
         this.connectionAttempt += 1;
