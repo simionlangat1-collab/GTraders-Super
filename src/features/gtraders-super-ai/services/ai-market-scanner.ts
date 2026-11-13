@@ -21,6 +21,7 @@ export interface AIMarketHistory {
     dataQuality: number;
     isFresh: boolean;
     dataQualityReason: string;
+    scanError?: string;
     activityScore: number;
 }
 
@@ -254,9 +255,15 @@ export class AIMarketScanner {
 
             settled.forEach((result, index) => {
                 if (result.status === 'fulfilled') {
+                    results.push({ ...result.value, displayName: batch[index].display_name });
+                } else {
+                    const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
                     results.push({
-                        ...result.value,
-                        displayName: batch[index].display_name,
+                        symbol: batch[index].symbol, displayName: batch[index].display_name, ticks: 0,
+                        firstTickAt: 0, lastTickAt: 0, averageAbsoluteMove: 0, ticksPerMinute: 0,
+                        observedRange: 0, digitCounts: Array<number>(10).fill(0), digitSequence: [],
+                        dataQuality: 0, isFresh: false, dataQualityReason: 'Tick-history request failed.',
+                        scanError: reason, activityScore: 0,
                     });
                 }
             });
