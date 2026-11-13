@@ -175,6 +175,7 @@ export const generateAIPrediction = (
 export interface AIFreshMarketPredictionInput {
     symbol: string;
     digitSequence: number[];
+    tickTimestamps: number[];
     dataQuality: number;
 }
 
@@ -197,6 +198,7 @@ export const evaluateFreshMarketPredictions = <T extends AIFreshMarketPrediction
     prediction: generateAIPrediction(
         market.digitSequence,
         market.dataQuality,
-        options
+        options,
+        market.tickTimestamps
     ),
 }));
