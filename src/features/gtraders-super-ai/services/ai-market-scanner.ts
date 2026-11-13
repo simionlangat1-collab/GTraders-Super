@@ -184,6 +184,27 @@ export class AIMarketScanner {
         };
     }
 
+    /**
+     * Performs a genuinely fresh discovery pass for each call. No market list or
+     * tick history is cached, so the autonomous runner can invoke this before
+     * every proposed entry and never rely on the previous trade's snapshot.
+     */
+    async scanFreshVolatilityMarkets(
+        options: { maxMarkets?: number; historyCount?: number; concurrency?: number } = {}
+    ): Promise<{ availableMarketCount: number; markets: AIMarketSymbol[]; histories: AIMarketHistory[] }> {
+        const discoveredMarkets = await this.getAvailableMarkets();
+        const volatilityMarkets = discoveredMarkets.filter(isVolatilityIndexMarket);
+        const histories = volatilityMarkets.length
+            ? await this.scanMarkets(volatilityMarkets, options)
+            : [];
+
+        return {
+            availableMarketCount: volatilityMarkets.length,
+            markets: volatilityMarkets,
+            histories,
+        };
+    }
+
     async scanMarkets(
         markets: AIMarketSymbol[],
         options: { maxMarkets?: number; historyCount?: number; concurrency?: number } = {}
