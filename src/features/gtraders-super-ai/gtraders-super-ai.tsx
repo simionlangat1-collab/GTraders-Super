@@ -173,7 +173,7 @@ const GTradersSuperAI = () => {
                     market.digitSequence,
                     market.dataQuality,
                     {
-                        candidateWindow: 50,
+                        candidateWindows: [20, 30, 50, 75, 100],
                         trainingFraction: 0.6,
                         minimumMarketSample: 500,
                         minimumDataQuality: 95,
