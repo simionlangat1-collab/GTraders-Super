@@ -493,12 +493,18 @@ const GTradersSuperAI = () => {
             </button>
 
             {isOpen && (
+                <div
+                    className='gtraders-ai-overlay'
+                    role='presentation'
+                    onClick={() => setIsOpen(false)}
+                >
                 <section
                     id='gtraders-ai-panel'
                     className='gtraders-ai-panel'
                     role='dialog'
-                    aria-modal='false'
+                    aria-modal='true'
                     aria-labelledby='gtraders-ai-title'
+                    onClick={event => event.stopPropagation()}
                 >
                     <header className='gtraders-ai-panel__header'>
                         <div>
@@ -830,6 +836,7 @@ const GTradersSuperAI = () => {
                         <span className='gtraders-ai-panel__demo'>DEMO-FIRST DEVELOPMENT</span>
                     </div>
                 </section>
+                </div>
             )}
         </>
     );
