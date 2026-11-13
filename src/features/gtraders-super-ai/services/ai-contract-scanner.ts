@@ -1,0 +1,201 @@
+export type AIContractType = 'DIGITOVER' | 'DIGITUNDER';
+
+export interface AIContractOpportunity {
+    decision: 'TRADE_CANDIDATE' | 'NO_TRADE';
+    contractType: AIContractType | null;
+    contractLabel: 'Over' | 'Under' | null;
+    barrier: number | null;
+    baselineWinRate: number;
+    trainingWinRate: number;
+    holdoutWinRate: number;
+    confidenceLowerBound: number;
+    edge: number;
+    marketSampleSize: number;
+    trainingSampleSize: number;
+    holdoutSampleSize: number;
+    dataQuality: number;
+    explanation: string;
+}
+
+export interface AIContractEvaluationOptions {
+    trainingFraction?: number;
+    minimumMarketSample?: number;
+    minimumDataQuality?: number;
+    minimumHoldoutSample?: number;
+}
+
+interface ContractRule {
+    contractType: AIContractType;
+    contractLabel: 'Over' | 'Under';
+    barrier: number;
+    baselineWinRate: number;
+    wins: (digit: number) => boolean;
+}
+
+const contractRules: ContractRule[] = [
+    ...Array.from({ length: 9 }, (_, barrier) => ({
+        contractType: 'DIGITOVER' as const,
+        contractLabel: 'Over' as const,
+        barrier,
+        baselineWinRate: (9 - barrier) / 10,
+        wins: (digit: number) => digit > barrier,
+    })),
+    ...Array.from({ length: 9 }, (_, index) => {
+        const barrier = index + 1;
+        return {
+            contractType: 'DIGITUNDER' as const,
+            contractLabel: 'Under' as const,
+            barrier,
+            baselineWinRate: barrier / 10,
+            wins: (digit: number) => digit < barrier,
+        };
+    }),
+];
+
+const wilsonLowerBound = (wins: number, sampleSize: number): number => {
+    if (sampleSize <= 0) return 0;
+    const z = 1.645;
+    const proportion = wins / sampleSize;
+    const zSquared = z * z;
+    const denominator = 1 + zSquared / sampleSize;
+    const centre = proportion + zSquared / (2 * sampleSize);
+    const margin = z * Math.sqrt(
+        (proportion * (1 - proportion) / sampleSize) +
+        (zSquared / (4 * sampleSize * sampleSize))
+    );
+    return Math.max(0, (centre - margin) / denominator);
+};
+
+const countWins = (digits: number[], rule: ContractRule): number =>
+    digits.reduce((total, digit) => total + (rule.wins(digit) ? 1 : 0), 0);
+
+const noTrade = (
+    digits: number[],
+    dataQuality: number,
+    trainingSampleSize: number,
+    holdoutSampleSize: number,
+    explanation: string
+): AIContractOpportunity => ({
+    decision: 'NO_TRADE',
+    contractType: null,
+    contractLabel: null,
+    barrier: null,
+    baselineWinRate: 0,
+    trainingWinRate: 0,
+    holdoutWinRate: 0,
+    confidenceLowerBound: 0,
+    edge: 0,
+    marketSampleSize: digits.length,
+    trainingSampleSize,
+    holdoutSampleSize,
+    dataQuality,
+    explanation: `NO TRADE — ${explanation}`,
+});
+
+/**
+ * Selects one Over/Under barrier using training data, then tests that fixed
+ * selection on a strictly later untouched holdout. Fair digit baselines are
+ * used for comparison (Over b: (9-b)/10; Under b: b/10).
+ *
+ * A passing result is a research candidate only. It does not include live
+ * proposal pricing, payout/breakeven validation, or order authorization.
+ */
+export const evaluateAIContractOpportunity = (
+    input: number[],
+    dataQuality: number,
+    options: AIContractEvaluationOptions = {}
+): AIContractOpportunity => {
+    const digits = Array.isArray(input) ? input : [];
+    const trainingFraction = options.trainingFraction ?? 0.6;
+    const minimumMarketSample = options.minimumMarketSample ?? 500;
+    const minimumDataQuality = options.minimumDataQuality ?? 95;
+    const minimumHoldoutSample = options.minimumHoldoutSample ?? 200;
+    const trainingSampleSize = Number.isFinite(trainingFraction)
+        ? Math.floor(digits.length * trainingFraction)
+        : 0;
+    const holdoutSampleSize = digits.length - trainingSampleSize;
+
+    if (!Array.isArray(input) || digits.some(
+        digit => !Number.isInteger(digit) || digit < 0 || digit > 9
+    )) {
+        return noTrade([], Number.isFinite(dataQuality) ? dataQuality : 0, 0, 0,
+            'tick history contains invalid last digits.');
+    }
+    if (!Number.isFinite(dataQuality) || dataQuality < minimumDataQuality || dataQuality > 100) {
+        return noTrade(digits, dataQuality, trainingSampleSize, holdoutSampleSize,
+            'market data quality is below the required threshold.');
+    }
+    if (
+        !Number.isFinite(trainingFraction) ||
+        trainingFraction <= 0 ||
+        trainingFraction >= 1 ||
+        digits.length < minimumMarketSample ||
+        trainingSampleSize < 300 ||
+        holdoutSampleSize < minimumHoldoutSample
+    ) {
+        return noTrade(digits, dataQuality, trainingSampleSize, holdoutSampleSize,
+            'there is not enough valid history for separate training and unseen holdout periods.');
+    }
+
+    const trainingDigits = digits.slice(0, trainingSampleSize);
+    const holdoutDigits = digits.slice(trainingSampleSize);
+    const rankedRules = contractRules.map(rule => {
+        const trainingWinRate = countWins(trainingDigits, rule) / trainingSampleSize;
+        return {
+            rule,
+            trainingWinRate,
+            trainingEdge: trainingWinRate - rule.baselineWinRate,
+        };
+    }).sort((a, b) =>
+        b.trainingEdge - a.trainingEdge ||
+        b.trainingWinRate - a.trainingWinRate ||
+        a.rule.barrier - b.rule.barrier
+    );
+
+    const selected = rankedRules[0];
+    if (!selected || selected.trainingEdge <= 0) {
+        return noTrade(digits, dataQuality, trainingSampleSize, holdoutSampleSize,
+            'no Over/Under barrier showed a positive training-period edge over its fair baseline.');
+    }
+
+    const holdoutWins = countWins(holdoutDigits, selected.rule);
+    const holdoutWinRate = holdoutWins / holdoutSampleSize;
+    const confidenceLowerBound = wilsonLowerBound(holdoutWins, holdoutSampleSize);
+    const validated = confidenceLowerBound > selected.rule.baselineWinRate;
+
+    if (!validated) {
+        return {
+            decision: 'NO_TRADE',
+            contractType: null,
+            contractLabel: null,
+            barrier: null,
+            baselineWinRate: selected.rule.baselineWinRate,
+            trainingWinRate: selected.trainingWinRate,
+            holdoutWinRate,
+            confidenceLowerBound,
+            edge: confidenceLowerBound - selected.rule.baselineWinRate,
+            marketSampleSize: digits.length,
+            trainingSampleSize,
+            holdoutSampleSize,
+            dataQuality,
+            explanation: 'NO TRADE — the training-selected contract did not beat its fair baseline with the required one-sided 95% holdout confidence.',
+        };
+    }
+
+    return {
+        decision: 'TRADE_CANDIDATE',
+        contractType: selected.rule.contractType,
+        contractLabel: selected.rule.contractLabel,
+        barrier: selected.rule.barrier,
+        baselineWinRate: selected.rule.baselineWinRate,
+        trainingWinRate: selected.trainingWinRate,
+        holdoutWinRate,
+        confidenceLowerBound,
+        edge: confidenceLowerBound - selected.rule.baselineWinRate,
+        marketSampleSize: digits.length,
+        trainingSampleSize,
+        holdoutSampleSize,
+        dataQuality,
+        explanation: 'Research candidate only: the contract was selected before the holdout and its one-sided 95% lower confidence bound beat the fair digit baseline. Check live proposal pricing and breakeven before any demo execution; this result never authorizes an order.',
+    };
+};
