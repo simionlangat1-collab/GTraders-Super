@@ -4,7 +4,7 @@ import {
     AIAccountSnapshot,
     AIConnectionStatus,
 } from './services/ai-deriv-connection';
-import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
+import { AIMarketScanner, AIMarketHistory, isVolatilityIndexMarket } from './services/ai-market-scanner';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
 import { AIContractOpportunity, evaluateAIContractOpportunity } from './services/ai-contract-scanner';
@@ -83,10 +83,7 @@ const GTradersSuperAI = () => {
                 connection.requestData<T>(payload)
             );
             const availableMarkets = await scanner.getAvailableMarkets();
-            const volatilityMarkets = availableMarkets.filter(market =>
-                /volatility/i.test(market.display_name) &&
-                /synthetic/i.test(market.market)
-            );
+            const volatilityMarkets = availableMarkets.filter(isVolatilityIndexMarket);
             setAvailableMarketCount(volatilityMarkets.length);
 
             if (!volatilityMarkets.length) {
