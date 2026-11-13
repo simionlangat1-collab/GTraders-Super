@@ -792,11 +792,6 @@ const GTradersSuperAI = () => {
                                     <span role='status'>Live tick stream: {liveTickStatus.toUpperCase()} · {liveTickStream.isHealthy() ? 'evidence current' : 'NO TRADE until revalidated'}</span>
                                 </div>
                                 <p>Prepare only scans and displays a candidate. Confirmation rescans the markets, requests a brand-new proposal, refreshes account balance and runs the final safety gate before one demo purchase.</p>
-                                <button type='button' onClick={runBot}
-                                    className={`gtraders-ai-execution__run-button${isBotRunning ? ' gtraders-ai-execution__run-button--stop' : ''}`}
-                                    disabled={!isBotRunning && (!riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting)}>
-                                    {isBotRunning ? '■ Stop Bot' : '▶ Run Bot'}
-                                </button>
                                 {preparedOpportunity && (
                                     <div className='gtraders-ai-execution__candidate'>
                                         <strong>AI-selected candidate: {preparedOpportunity.displayName}</strong>
@@ -977,6 +972,14 @@ const GTradersSuperAI = () => {
                                     </div>
                                 </div>
                             </section>
+                        )}
+
+                        {isConnected && marketOpportunity && (
+                            <button type='button' onClick={runBot}
+                                className={`gtraders-ai-execution__run-button${isBotRunning ? ' gtraders-ai-execution__run-button--stop' : ''}`}
+                                disabled={!isBotRunning && (!riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting)}>
+                                {isBotRunning ? '■ Stop Bot' : '▶ Run Bot'}
+                            </button>
                         )}
 
                         {!isConnected && (
