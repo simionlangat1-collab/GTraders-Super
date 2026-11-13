@@ -61,10 +61,15 @@ const inverseNormalCdf = (probability: number): number => {
         (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 };
 
+/** One-sided family-wise 95% critical value for a pre-declared comparison family. */
+export const getFamilyWiseConfidenceZ = (comparisonCount = 1): number => {
+    const count = Number.isFinite(comparisonCount) ? Math.max(1, Math.floor(comparisonCount)) : 1;
+    return inverseNormalCdf(1 - 0.05 / count);
+};
+
 /** One-sided family-wise 95% Wilson lower confidence bound. */
 const wilsonLowerBound = (wins: number, sampleSize: number, z: number): number => {
     if (sampleSize <= 0) return 0;
-    const z = 1.645;
     const proportion = wins / sampleSize;
     const zSquared = z * z;
     const denominator = 1 + zSquared / sampleSize;
@@ -123,10 +128,7 @@ export const validateAIModelOutOfSample = (
     const sampleSize = eligible.length;
     const observedWinRate = sampleSize ? modelWins / sampleSize : 0;
     const baselineWinRate = sampleSize ? baselineWins / sampleSize : 0;
-    const comparisonCount = Number.isFinite(input.multipleComparisonCount)
-        ? Math.max(1, Math.floor(input.multipleComparisonCount!))
-        : 1;
-    const confidenceZ = inverseNormalCdf(1 - 0.05 / comparisonCount);
+    const confidenceZ = getFamilyWiseConfidenceZ(input.multipleComparisonCount);
     const confidenceLowerBound = wilsonLowerBound(modelWins, sampleSize, confidenceZ);
 
     // A contaminated or malformed holdout is never marked validated.
