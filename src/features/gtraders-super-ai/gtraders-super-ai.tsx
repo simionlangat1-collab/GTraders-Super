@@ -7,7 +7,7 @@ import {
 import { AIMarketScanner, AIMarketHistory, isVolatilityIndexMarket } from './services/ai-market-scanner';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
-import { AIContractOpportunity, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
+import { AIContractOpportunity, doesAIPredictionSupportContract, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
 import { AIPredictionResult, generateAIPrediction } from './services/ai-prediction-engine';
 import './gtraders-super-ai.scss';
 
@@ -148,14 +148,11 @@ const GTradersSuperAI = () => {
             // Reject conflicting signals: the predicted digit itself must satisfy
             // the selected Over/Under barrier before the market can be shortlisted.
             const qualifying = predictionQualified
-                .filter(item => {
-                    const predictedDigit = item.prediction.predictedDigit;
-                    const barrier = item.opportunity.barrier;
-                    if (predictedDigit === null || barrier === null) return false;
-                    return item.opportunity.contractType === 'DIGITOVER'
-                        ? predictedDigit > barrier
-                        : predictedDigit < barrier;
-                })
+                .filter(item => doesAIPredictionSupportContract(
+                    item.opportunity.contractType,
+                    item.opportunity.barrier,
+                    item.prediction.predictedDigit
+                ))
                 .sort((a, b) => b.opportunity.edge - a.opportunity.edge);
 
             // Request live quotes only for the ten strongest research candidates.
