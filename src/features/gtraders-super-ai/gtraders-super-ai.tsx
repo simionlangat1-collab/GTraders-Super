@@ -8,6 +8,7 @@ import { AIMarketScanner, AIMarketHistory, isVolatilityIndexMarket } from './ser
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
 import { AIContractOpportunity, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
+import { AIPredictionResult, generateAIPrediction } from './services/ai-prediction-engine';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -24,6 +25,7 @@ type SelectedMarketOpportunity = AIContractOpportunity & {
     payout: number;
     breakEvenProbability: number;
     confidenceMargin: number;
+    prediction: AIPredictionResult;
 };
 
 const GTradersSuperAI = () => {
@@ -117,16 +119,31 @@ const GTradersSuperAI = () => {
             });
             setMarketResults(results);
 
-            const qualifying = results
-                .map(market => ({
-                    market,
-                    opportunity: evaluateAIContractOpportunity(
-                        market.digitSequence,
-                        market.dataQuality,
-                        { multipleComparisonCount: results.length }
-                    ),
-                }))
-                .filter(item => item.opportunity.decision === 'MARKET_CANDIDATE')
+            const evaluatedMarkets = results.map(market => ({
+                market,
+                opportunity: evaluateAIContractOpportunity(
+                    market.digitSequence,
+                    market.dataQuality,
+                    { multipleComparisonCount: results.length }
+                ),
+                prediction: generateAIPrediction(
+                    market.digitSequence,
+                    market.dataQuality,
+                    {
+                        candidateWindow: 50,
+                        trainingFraction: 0.6,
+                        minimumMarketSample: 500,
+                        minimumDataQuality: 95,
+                    }
+                ),
+            }));
+            const contractQualified = evaluatedMarkets.filter(
+                item => item.opportunity.decision === 'MARKET_CANDIDATE'
+            );
+            // Both independent gates must pass: an Over/Under edge and a
+            // separately validated next-digit research prediction.
+            const qualifying = contractQualified
+                .filter(item => item.prediction.decision === 'PREDICTION_CANDIDATE')
                 .sort((a, b) => b.opportunity.edge - a.opportunity.edge);
 
             // Request live quotes only for the ten strongest research candidates.
@@ -186,6 +203,7 @@ const GTradersSuperAI = () => {
                     payout: selected.payout,
                     breakEvenProbability: selected.economics.breakEvenProbability,
                     confidenceMargin: selected.economics.confidenceMargin,
+                    prediction: selected.prediction,
                 }
                 : null);
 
@@ -198,9 +216,11 @@ const GTradersSuperAI = () => {
             setScannerOutcomeMessage(
                 selected
                     ? ''
-                    : qualifying.length
-                        ? 'NO TRADE — the evidence-qualified candidates did not pass the live proposal payout/breakeven check. The AI will not force a selection.'
-                        : 'NO TRADE — none of the scanned Volatility markets passed the independent Over/Under holdout test. The AI will not force a selection.'
+                    : !contractQualified.length
+                        ? 'NO TRADE — none of the scanned Volatility markets passed the independent Over/Under holdout test. The AI will not force a selection.'
+                        : !qualifying.length
+                            ? 'NO TRADE — an Over/Under pattern was found, but the separate last-digit prediction model did not beat its matched baseline on unseen ticks. The AI will not force a selection.'
+                            : 'NO TRADE — the evidence-qualified candidates did not pass the live proposal payout/breakeven check. The AI will not force a selection.'
             );
             setScannedAt(Date.now());
 
@@ -493,6 +513,11 @@ const GTradersSuperAI = () => {
                                                     <span>Contract type: {marketOpportunity.contractLabel}</span>
                                                     <span>Digit barrier: {marketOpportunity.barrier}</span>
                                                     <span>Contract code: {marketOpportunity.contractType} · 1 tick</span>
+                                                    <span>AI estimated next last digit: {marketOpportunity.prediction.predictedDigit}</span>
+                                                    <span>Recent-window historical share: {((marketOpportunity.prediction.historicalShare ?? 0) * 100).toFixed(1)}% (not a calibrated probability)</span>
+                                                    <span>Prediction holdout accuracy: {(marketOpportunity.prediction.modelWinRate * 100).toFixed(1)}%</span>
+                                                    <span>Matched baseline accuracy: {(marketOpportunity.prediction.baselineWinRate * 100).toFixed(1)}%</span>
+                                                    <span>Prediction confidence lower bound: {(marketOpportunity.prediction.confidenceLowerBound * 100).toFixed(1)}%</span>
                                                     <span>Training win rate: {(marketOpportunity.trainingWinRate * 100).toFixed(1)}%</span>
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
