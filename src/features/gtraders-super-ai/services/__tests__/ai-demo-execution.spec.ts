@@ -6,6 +6,7 @@ const gateInput = (): AIFinalPreBuyInput => ({
     accountType: 'demo',
     hasOpenContract: false,
     hasQualifiedOpportunity: true,
+    liveTickStreamHealthy: true,
     riskSettings: { stake: 1, targetProfit: 10, stopLoss: 5, maxConsecutiveLosses: 3 },
     riskSnapshot: { balance: 100, sessionProfitLoss: 0, consecutiveLosses: 0 },
     expectedContract: {
