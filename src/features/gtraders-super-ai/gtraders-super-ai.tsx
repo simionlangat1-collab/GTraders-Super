@@ -351,7 +351,7 @@ const GTradersSuperAI = () => {
             setAccount(preBuyAccount);
             const proposal = await requestFreshAIProposal(
                 <T,>(payload: Record<string, unknown>) => connection.requestData<T>(payload),
-                { amount: stake, currency: finalAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol }
+                { amount: stake, currency: preBuyAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol }
             );
             // Refresh the authenticated balance after the proposal round-trip,
             // so the final gate sees the latest available account funds.
@@ -367,7 +367,7 @@ const GTradersSuperAI = () => {
                     doesAIPredictionSupportContract(candidate.contractType, candidate.barrier, candidate.prediction.predictedDigit),
                 riskSettings: { stake, targetProfit, stopLoss, maxConsecutiveLosses },
                 riskSnapshot: { balance: finalAccount.balance, sessionProfitLoss: latestSession.sessionProfitLoss, consecutiveLosses: latestSession.consecutiveLosses },
-                expectedContract: { amount: stake, currency: preBuyAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol },
+                expectedContract: { amount: stake, currency: finalAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol },
                 proposal,
                 confidenceLowerBound: candidate.confidenceLowerBound,
             };
