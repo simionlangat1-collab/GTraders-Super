@@ -9,6 +9,7 @@ import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-st
 import { assessAIRisk } from './services/ai-risk-manager';
 import { AIContractOpportunity, doesAIPredictionSupportContract, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
 import { AIPredictionResult, generateAIPrediction } from './services/ai-prediction-engine';
+import { requestFreshAIProposal } from './services/ai-proposal-service';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -21,6 +22,7 @@ const connectionStatusLabel: Record<AIConnectionStatus, string> = {
 type SelectedMarketOpportunity = AIContractOpportunity & {
     symbol: string;
     displayName: string;
+    proposalId: string;
     askPrice: number;
     payout: number;
     breakEvenProbability: number;
@@ -168,30 +170,23 @@ const GTradersSuperAI = () => {
                         throw new Error('The candidate is missing its contract details.');
                     }
 
-                    const response = await connection.requestData<{
-                        proposal?: {
-                            ask_price?: number | string;
-                            payout?: number | string;
-                        };
-                    }>({
-                        proposal: 1,
-                        amount: scanStake,
-                        basis: 'stake',
-                        contract_type: candidate.opportunity.contractType,
-                        currency: scanCurrency,
-                        duration: 1,
-                        duration_unit: 't',
-                        barrier: String(candidate.opportunity.barrier),
-                        underlying_symbol: candidate.market.symbol,
-                    });
-                    const askPrice = Number(response.proposal?.ask_price);
-                    const payout = Number(response.proposal?.payout);
+                    const proposal = await requestFreshAIProposal(
+                        <T,>(payload: Record<string, unknown>) => connection.requestData<T>(payload),
+                        {
+                            amount: scanStake,
+                            currency: scanCurrency,
+                            contractType: candidate.opportunity.contractType,
+                            barrier: candidate.opportunity.barrier,
+                            symbol: candidate.market.symbol,
+                        }
+                    );
+                    const { askPrice, payout } = proposal;
                     const economics = evaluateAIProposalEconomics(
                         candidate.opportunity.confidenceLowerBound,
                         { askPrice, payout }
                     );
 
-                    return { ...candidate, askPrice, payout, economics };
+                    return { ...candidate, proposalId: proposal.id, askPrice, payout, economics };
                 })
             );
 
@@ -210,6 +205,7 @@ const GTradersSuperAI = () => {
                     explanation: selected.economics.explanation,
                     symbol: selected.market.symbol,
                     displayName: selected.market.displayName,
+                    proposalId: selected.proposalId,
                     askPrice: selected.askPrice,
                     payout: selected.payout,
                     breakEvenProbability: selected.economics.breakEvenProbability,
@@ -542,6 +538,7 @@ const GTradersSuperAI = () => {
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
                                                     <span>Adjusted lower confidence bound: {(marketOpportunity.confidenceLowerBound * 100).toFixed(1)}%</span>
+                                                    <span>Fresh proposal ID: {marketOpportunity.proposalId}</span>
                                                     <span>Live stake quote: {marketOpportunity.askPrice.toFixed(2)} {account?.currency ?? ''}</span>
                                                     <span>Potential payout: {marketOpportunity.payout.toFixed(2)} {account?.currency ?? ''}</span>
                                                     <span>Break-even win rate: {(marketOpportunity.breakEvenProbability * 100).toFixed(1)}%</span>
