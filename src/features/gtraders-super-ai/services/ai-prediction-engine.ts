@@ -56,9 +56,16 @@ export const generateAIPrediction = (
     dataQuality: number,
     options: AIPredictionEngineOptions = {}
 ): AIPredictionResult => {
-    const digits = validDigits(input);
-    const candidateWindow = Math.max(20, Math.min(500, Math.floor(options.candidateWindow ?? 50)));
-    const trainingFraction = options.trainingFraction ?? 0.6;
+    const isArrayInput = Array.isArray(input);
+    const digits = isArrayInput ? validDigits(input) : [];
+    const requestedWindow = options.candidateWindow ?? 50;
+    const candidateWindow = Number.isFinite(requestedWindow)
+        ? Math.max(20, Math.min(500, Math.floor(requestedWindow)))
+        : 50;
+    const requestedTrainingFraction = options.trainingFraction ?? 0.6;
+    const trainingFraction = Number.isFinite(requestedTrainingFraction)
+        ? requestedTrainingFraction
+        : 0.6;
     const minimumMarketSample = options.minimumMarketSample ?? 500;
     const minimumDataQuality = options.minimumDataQuality ?? 95;
     const trainingSampleSize = Math.floor(digits.length * trainingFraction);
@@ -78,7 +85,7 @@ export const generateAIPrediction = (
         explanation: `NO TRADE — ${explanation}`,
     });
 
-    if (!Array.isArray(input) || digits.length !== input.length) {
+    if (!isArrayInput || digits.length !== input.length) {
         return noTrade('tick history contains invalid last digits.');
     }
     if (!Number.isFinite(dataQuality) || dataQuality < minimumDataQuality || dataQuality > 100) {
