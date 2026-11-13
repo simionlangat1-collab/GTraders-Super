@@ -14,6 +14,7 @@ export interface AIMarketHistory {
     firstTickAt: number;
     lastTickAt: number;
     averageAbsoluteMove: number;
+    ticksPerMinute: number;
     observedRange: number;
     digitCounts: number[];
     dataQuality: number;
@@ -96,9 +97,13 @@ export class AIMarketScanner {
             : 0;
         const firstTickAt = times.length ? Number(times[0]) : 0;
         const lastTickAt = times.length ? Number(times[times.length - 1]) : 0;
+        const elapsedMinutes = lastTickAt > firstTickAt
+            ? (lastTickAt - firstTickAt) / 60
+            : 0;
+        const ticksPerMinute = elapsedMinutes > 0 ? moves.length / elapsedMinutes : 0;
         const dataQuality = Math.min(100, Math.round((prices.length / 500) * 100));
         const activityScore = Math.round(
-            Math.min(100, dataQuality * 0.6 + (moves.length ? 40 : 0))
+            dataQuality * 0.65 + Math.min(35, (ticksPerMinute / 30) * 35)
         );
 
         return {
@@ -108,6 +113,7 @@ export class AIMarketScanner {
             firstTickAt,
             lastTickAt,
             averageAbsoluteMove,
+            ticksPerMinute,
             observedRange,
             digitCounts,
             dataQuality,
