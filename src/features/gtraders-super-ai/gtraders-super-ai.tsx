@@ -7,6 +7,7 @@ import {
 import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
+import { generateAIPrediction } from './services/ai-prediction-engine';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -113,6 +114,9 @@ const GTradersSuperAI = () => {
             { stake, targetProfit, stopLoss, maxConsecutiveLosses },
             { balance: account.balance, sessionProfitLoss: 0, consecutiveLosses: 0 }
         )
+        : null;
+    const predictionResult = marketResults.length
+        ? generateAIPrediction(marketResults[0].digitSequence, marketResults[0].dataQuality)
         : null;
 
     return (
@@ -349,6 +353,33 @@ const GTradersSuperAI = () => {
                                         </div>
                                         <p>{marketStatistics.interpretation}</p>
                                     </div>
+                                )}
+                                {predictionResult && (
+                                    <section className='gtraders-ai-prediction' aria-live='polite'>
+                                        <div className='gtraders-ai-statistics__heading'>
+                                            <strong>AI Prediction Research Gate · {marketResults[0].displayName}</strong>
+                                            <span>Walk-forward test · recent-window model vs expanding-history baseline</span>
+                                        </div>
+                                        <strong>
+                                            {predictionResult.decision === 'PREDICTION_CANDIDATE'
+                                                ? `Candidate digit: ${predictionResult.predictedDigit}`
+                                                : 'NO TRADE'}
+                                        </strong>
+                                        <span>{predictionResult.explanation}</span>
+                                        <div className='gtraders-ai-statistics__summary'>
+                                            <span>Training ticks: {predictionResult.trainingSampleSize}</span>
+                                            <span>Unseen holdout: {predictionResult.holdoutSampleSize}</span>
+                                            <span>Model hit rate: {(predictionResult.modelWinRate * 100).toFixed(1)}%</span>
+                                            <span>Matched baseline: {(predictionResult.baselineWinRate * 100).toFixed(1)}%</span>
+                                            <span>95% lower bound: {(predictionResult.confidenceLowerBound * 100).toFixed(1)}%</span>
+                                        </div>
+                                        {predictionResult.decision === 'PREDICTION_CANDIDATE' && (
+                                            <span>
+                                                Recent historical share: {(predictionResult.historicalShare! * 100).toFixed(1)}%.
+                                                This is not a calibrated next-tick probability.
+                                            </span>
+                                        )}
+                                    </section>
                                 )}
                                 <p className='gtraders-ai-scanner__disclaimer'>
                                     Ranking reflects observed data availability and tick frequency only. It is not a prediction, trade signal or guarantee
