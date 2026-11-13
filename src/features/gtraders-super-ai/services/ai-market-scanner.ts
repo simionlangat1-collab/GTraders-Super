@@ -46,6 +46,18 @@ interface TickHistoryResponse {
 
 export type AIMarketRequest = <T>(payload: Record<string, unknown>) => Promise<T>;
 
+const MAX_DIGIT_PRECISION = 10;
+
+const inferPricePrecision = (prices: Array<string | number>): number =>
+    Math.min(
+        MAX_DIGIT_PRECISION,
+        prices.reduce((maximum, price) => {
+            const value = String(price);
+            const decimalPart = value.includes('.') ? value.split('.')[1] : '';
+            return Math.max(maximum, decimalPart.length);
+        }, 0)
+    );
+
 /**
  * Read-only market discovery and tick-history scanner.
  * Scores observed data activity and quality only; it does not predict outcomes
@@ -88,15 +100,28 @@ export class AIMarketScanner {
             style: 'ticks',
         });
 
-        const prices = (response.history?.prices ?? []).map(Number).filter(Number.isFinite);
+        const rawPrices = response.history?.prices ?? [];
+        const priceRecords = rawPrices
+            .map(rawPrice => ({ rawPrice, price: Number(rawPrice) }))
+            .filter(record => Number.isFinite(record.price));
+        const prices = priceRecords.map(record => record.price);
         const times = response.history?.times ?? [];
         const digitCounts = Array<number>(10).fill(0);
         const digitSequence: number[] = [];
+        const reportedPrecision = response.pip_size;
+        const decimals =
+            Number.isInteger(reportedPrecision) &&
+            reportedPrecision! >= 0 &&
+            reportedPrecision! <= MAX_DIGIT_PRECISION
+                ? reportedPrecision!
+                : inferPricePrecision(priceRecords.map(record => record.rawPrice));
 
-        prices.forEach(price => {
-            const decimals = Math.max(0, response.pip_size ?? 2);
-            const scaled = Math.round(price * Math.pow(10, decimals));
-            const lastDigit = Math.abs(scaled) % 10;
+        priceRecords.forEach(({ price }) => {
+            // Formatting at the reported tick precision avoids floating-point
+            // multiplication changing the final digit. If pip_size is absent,
+            // precision is inferred from the original price strings.
+            const scaledPrice = Math.abs(price).toFixed(decimals).replace('.', '');
+            const lastDigit = Number(scaledPrice[scaledPrice.length - 1]);
             digitCounts[lastDigit] += 1;
             digitSequence.push(lastDigit);
         });
