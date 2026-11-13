@@ -144,6 +144,10 @@ export class AIDerivConnection {
         });
     };
 
+    /** Sends a request through the AI module's private authenticated socket only. */
+    requestData = <T = DerivMessage>(payload: Record<string, unknown>): Promise<T> =>
+        this.request<T>(payload);
+
     connect = async (): Promise<AIAccountSnapshot> => {
         if (this.status === 'connected' && this.account) return this.account;
         if (this.connectPromise) return this.connectPromise;
