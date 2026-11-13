@@ -19,6 +19,8 @@ export interface AIMarketHistory {
     digitCounts: number[];
     digitSequence: number[];
     dataQuality: number;
+    isFresh: boolean;
+    dataQualityReason: string;
     activityScore: number;
 }
 
@@ -70,7 +72,10 @@ const inferPricePrecision = (prices: Array<string | number>): number =>
  * or authorize trades.
  */
 export class AIMarketScanner {
-    constructor(private readonly request: AIMarketRequest) {}
+    constructor(
+        private readonly request: AIMarketRequest,
+        private readonly nowSeconds: () => number = () => Date.now() / 1000
+    ) {}
 
     async getAvailableMarkets(): Promise<AIMarketSymbol[]> {
         // The connected Deriv v1 API no longer accepts the legacy product_type
@@ -112,10 +117,16 @@ export class AIMarketScanner {
             .filter(record => Number.isFinite(record.price));
         const prices = priceRecords.map(record => record.price);
         const times = response.history?.times ?? [];
-        const validTimes = times.map(Number).filter(Number.isFinite);
-        const timestampsAreOrdered = validTimes.every(
-            (time, index) => index === 0 || time >= validTimes[index - 1]
+        const numericTimes = times.map(Number);
+        const timestampsAreAligned = times.length === rawPrices.length;
+        const timestampsAreFinite =
+            timestampsAreAligned && numericTimes.every(Number.isFinite);
+        // Deriv timestamps have second-level precision, so equal adjacent
+        // timestamps are allowed; decreasing timestamps are not.
+        const timestampsAreOrdered = timestampsAreFinite && numericTimes.every(
+            (time, index) => index === 0 || time >= numericTimes[index - 1]
         );
+        const validTimes = timestampsAreFinite ? numericTimes : [];
         const digitCounts = Array<number>(10).fill(0);
         const digitSequence: number[] = [];
         const reportedPrecision = response.pip_size;
@@ -156,14 +167,33 @@ export class AIMarketScanner {
         const hasValidTimeRange =
             validTimes.length > 1 && firstTickAt > 0 && lastTickAt > firstTickAt;
         const timestampIntegrityQuality = rawPrices.length && timestampsAreOrdered && hasValidTimeRange
-            ? (validTimes.length / rawPrices.length) * 100
+            ? 100
             : 0;
-        const dataQuality = Math.min(
-            100,
-            sampleDepthQuality,
-            priceIntegrityQuality,
-            timestampIntegrityQuality
-        );
+        const now = this.nowSeconds();
+        const isFresh = Number.isFinite(now) &&
+            lastTickAt > 0 &&
+            lastTickAt <= now + 5 &&
+            now - lastTickAt <= 60;
+        const dataQuality = isFresh
+            ? Math.min(100, sampleDepthQuality, priceIntegrityQuality, timestampIntegrityQuality)
+            : 0;
+        const dataQualityReason = !rawPrices.length
+            ? 'No tick prices were returned.'
+            : !timestampsAreAligned
+                ? 'Tick prices and timestamps do not align.'
+                : !timestampsAreFinite
+                    ? 'Tick timestamps contain invalid values.'
+                    : !timestampsAreOrdered
+                        ? 'Tick timestamps are out of order.'
+                        : !hasValidTimeRange
+                            ? 'A valid increasing timestamp range is missing.'
+                            : !isFresh
+                                ? 'The latest tick is stale or unexpectedly future-dated.'
+                                : prices.length !== rawPrices.length
+                                    ? 'One or more tick prices are invalid.'
+                                    : dataQuality < 95
+                                        ? 'Tick sample depth is below the required quality threshold.'
+                                        : 'Tick history passed freshness and integrity checks.';
         const activityScore = Math.round(
             dataQuality * 0.65 + Math.min(35, (ticksPerMinute / 30) * 35)
         );
@@ -180,6 +210,8 @@ export class AIMarketScanner {
             digitCounts,
             digitSequence,
             dataQuality,
+            isFresh,
+            dataQualityReason,
             activityScore,
         };
     }
