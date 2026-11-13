@@ -1,4 +1,4 @@
-import { AIMarketScanner, AIMarketRequest } from '../ai-market-scanner';
+import { AIMarketScanner, AIMarketRequest, isVolatilityIndexMarket } from '../ai-market-scanner';
 
 describe('AIMarketScanner', () => {
     it('uses the Deriv v1 active-symbol fields and does not send legacy filters', async () => {
@@ -72,5 +72,33 @@ describe('AIMarketScanner', () => {
         expect(history.digitCounts[7]).toBe(1);
         expect(history.digitCounts[5]).toBe(1);
         expect(history.digitCounts[9]).toBe(1);
+    });
+});
+
+describe('isVolatilityIndexMarket', () => {
+    it('includes Volatility synthetic indices only', () => {
+        expect(isVolatilityIndexMarket({
+            symbol: 'R_100',
+            display_name: 'Volatility 100 Index',
+            market: 'synthetic_index',
+            submarket: 'random_index',
+            pip: 2,
+        })).toBe(true);
+
+        expect(isVolatilityIndexMarket({
+            symbol: 'CRASH500',
+            display_name: 'Crash 500 Index',
+            market: 'synthetic_index',
+            submarket: 'crash_index',
+            pip: 2,
+        })).toBe(false);
+
+        expect(isVolatilityIndexMarket({
+            symbol: 'frxEURUSD',
+            display_name: 'EUR/USD',
+            market: 'forex',
+            submarket: 'major_pairs',
+            pip: 4,
+        })).toBe(false);
     });
 });
