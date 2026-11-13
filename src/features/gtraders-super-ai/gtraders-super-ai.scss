@@ -681,3 +681,260 @@
     background: rgba(34, 211, 238, 0.08);
     overflow-wrap: anywhere;
 }
+
+
+/* Premium mobile-first scanner presentation inspired by the supplied reference.
+   Presentation only: all existing scanner, account and risk logic remains unchanged. */
+.gtraders-ai-panel {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(52rem, calc(100vw - 2.4rem));
+    max-height: min(88dvh, 76rem);
+    transform: translate(-50%, -50%);
+    border: 1px solid #e4e8ef;
+    border-radius: 2rem;
+    color: #172033;
+    background: #ffffff;
+    box-shadow: 0 0 0 100vmax rgba(7, 15, 32, 0.68),
+        0 2rem 5rem rgba(4, 12, 28, 0.28);
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+
+    &__header {
+        align-items: center;
+        padding: 1.5rem 1.8rem;
+        border-bottom: 1px solid #edf0f5;
+        background: #ffffff;
+
+        h2 {
+            margin: 0.25rem 0 0;
+            color: #172033;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+    }
+
+    &__eyebrow {
+        color: #64748b;
+        font-size: 0.9rem;
+        letter-spacing: 0.14em;
+    }
+
+    &__close {
+        color: #64748b;
+        background: #f1f5f9;
+    }
+
+    &__body {
+        gap: 1.2rem;
+        padding: 1.5rem;
+        background: #ffffff;
+
+        p {
+            color: #64748b;
+        }
+    }
+
+    &__status {
+        padding: 0.9rem 1rem;
+        border: 1px solid #e8edf3;
+        border-radius: 1rem;
+        color: #475569;
+        background: #f8fafc;
+    }
+
+    &__status-dot {
+        flex: 0 0 auto;
+    }
+
+    &__account {
+        border-color: #d7e9ff;
+        background: #f3f8ff;
+
+        span { color: #64748b; }
+        strong { color: #172033; }
+    }
+
+    &__notice {
+        border-color: #dbeafe;
+        color: #475569;
+        background: #f5f9ff;
+    }
+
+    &__demo {
+        color: #1d4ed8;
+        background: #eff6ff;
+    }
+}
+
+.gtraders-ai-scanner {
+    gap: 1.1rem;
+    padding: 1.4rem;
+    border: 1px solid #e5eaf1;
+    border-radius: 1.5rem;
+    background: #f8fafc;
+
+    &__heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.9rem;
+        min-height: 9rem;
+        justify-content: center;
+        padding: 1.5rem;
+        border-radius: 1.25rem;
+        background: linear-gradient(115deg, #101b35 0%, #183565 58%, #244b83 100%);
+
+        > div { gap: 0.45rem; }
+
+        strong {
+            color: #ffffff;
+            font-size: 1.65rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        span {
+            color: #b8c8df;
+            font-size: 1rem;
+            line-height: 1.45;
+        }
+
+        button {
+            width: 100%;
+            min-height: 4.4rem;
+            border-radius: 0.9rem;
+            background: #3268f5;
+            box-shadow: 0 0.45rem 1.2rem rgba(50, 104, 245, 0.2);
+            font-size: 1.15rem;
+        }
+    }
+
+    &__timestamp { color: #64748b; }
+
+    &__result {
+        border-color: #e7ecf2;
+        background: #ffffff;
+
+        strong { color: #172033; }
+        span { color: #64748b; }
+    }
+
+    &__rank {
+        color: #1d4ed8;
+        background: #eaf1ff;
+    }
+
+    &__score strong { color: #2563eb; }
+
+    &__disclaimer { color: #64748b !important; }
+}
+
+.gtraders-ai-risk,
+.gtraders-ai-session-summary,
+.gtraders-ai-execution {
+    border: 1px solid #e5eaf1;
+    border-radius: 1.25rem;
+    color: #334155;
+    background: #ffffff;
+
+    strong { color: #172033; }
+}
+
+.gtraders-ai-risk {
+    background: #f8fafc;
+
+    &__heading {
+        strong { color: #172033; }
+        span { color: #64748b; }
+    }
+
+    &__fields {
+        label > span { color: #475569; }
+
+        input {
+            border-color: #dce3ec;
+            color: #172033;
+            background: #ffffff;
+
+            &:focus {
+                border-color: #3268f5;
+                box-shadow: 0 0 0 2px rgba(50, 104, 245, 0.12);
+            }
+        }
+    }
+
+    &__assessment {
+        background: #f0fdf4;
+        strong { color: #166534; }
+        span { color: #475569; }
+    }
+
+    &__hint,
+    &__disclaimer { color: #64748b; }
+}
+
+.gtraders-ai-prediction {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+
+    > strong { color: #172033; }
+    > span { color: #475569; }
+}
+
+.gtraders-ai-session-summary,
+.gtraders-ai-execution {
+    button {
+        border: 0;
+        border-radius: 0.9rem;
+        background: #3268f5;
+    }
+}
+
+.gtraders-ai-execution__candidate {
+    border-color: #dbeafe;
+    background: #f5f9ff;
+}
+
+.gtraders-ai-execution__message {
+    color: #334155;
+    background: #eff6ff;
+}
+
+.gtraders-ai-panel__connect {
+    border-radius: 0.9rem;
+    background: #3268f5;
+}
+
+.gtraders-ai-panel__disconnect {
+    border-radius: 0.9rem;
+    color: #b91c1c;
+    background: #fff1f2;
+}
+
+@media (max-width: 767px) {
+    .gtraders-ai-panel {
+        top: 50%;
+        right: auto;
+        bottom: auto;
+        left: 50%;
+        width: calc(100vw - 2rem);
+        max-height: calc(100dvh - 2rem);
+        border-radius: 1.6rem;
+        transform: translate(-50%, -50%);
+
+        &__header { padding: 1.25rem 1.4rem; }
+        &__body { padding: 1.2rem; }
+    }
+
+    .gtraders-ai-scanner {
+        padding: 1rem;
+
+        &__heading {
+            padding: 1.2rem;
+            min-height: 8rem;
+        }
+    }
+}
