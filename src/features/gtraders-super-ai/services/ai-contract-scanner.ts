@@ -22,6 +22,8 @@ export interface AIContractEvaluationOptions {
     minimumMarketSample?: number;
     minimumDataQuality?: number;
     minimumHoldoutSample?: number;
+    /** Number of markets compared in the same scan; applies a conservative family-wise confidence adjustment. */
+    multipleComparisonCount?: number;
 }
 
 interface ContractRule {
@@ -52,9 +54,8 @@ const contractRules: ContractRule[] = [
     }),
 ];
 
-const wilsonLowerBound = (wins: number, sampleSize: number): number => {
+const wilsonLowerBound = (wins: number, sampleSize: number, z: number): number => {
     if (sampleSize <= 0) return 0;
-    const z = 1.645;
     const proportion = wins / sampleSize;
     const zSquared = z * z;
     const denominator = 1 + zSquared / sampleSize;
@@ -160,7 +161,8 @@ export const evaluateAIContractOpportunity = (
 
     const holdoutWins = countWins(holdoutDigits, selected.rule);
     const holdoutWinRate = holdoutWins / holdoutSampleSize;
-    const confidenceLowerBound = wilsonLowerBound(holdoutWins, holdoutSampleSize);
+    const confidenceZ = (options.multipleComparisonCount ?? 1) > 1 ? 2.94 : 1.645;
+    const confidenceLowerBound = wilsonLowerBound(holdoutWins, holdoutSampleSize, confidenceZ);
     const validated = confidenceLowerBound > selected.rule.baselineWinRate;
 
     if (!validated) {
