@@ -47,6 +47,13 @@ describe('evaluateAIFinalPreBuyGate', () => {
         expect(result.explanation).toContain('never places an order');
     });
 
+    it('blocks every purchase when live tick-stream reliability is not established', () => {
+        const result = evaluateAIFinalPreBuyGate({ ...validInput(), liveTickStreamHealthy: false });
+        expect(result.allowed).toBe(false);
+        expect(result.reasons).toContain('LIVE_TICK_STREAM_UNHEALTHY');
+        expect(result.explanation).toContain('NO BUY');
+    });
+
     it('blocks real or unverified accounts and open contracts', () => {
         const real = evaluateAIFinalPreBuyGate({ ...validInput(), accountType: 'real' });
         expect(real.allowed).toBe(false);
