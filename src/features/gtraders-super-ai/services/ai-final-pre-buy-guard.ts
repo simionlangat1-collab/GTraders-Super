@@ -8,6 +8,7 @@ export interface AIFinalPreBuyInput {
     accountType: 'demo' | 'real' | 'unknown';
     hasOpenContract: boolean;
     hasQualifiedOpportunity: boolean;
+    liveTickStreamHealthy: boolean;
     riskSettings: AIRiskSettings;
     riskSnapshot: AIRiskSnapshot;
     expectedContract: {
@@ -36,7 +37,8 @@ export type AIFinalPreBuyBlockReason =
     | 'PROPOSAL_MISSING_OR_INVALID'
     | 'PROPOSAL_TERMS_MISMATCH'
     | 'PROPOSAL_NOT_FRESH'
-    | 'PROPOSAL_ECONOMICS_FAILED';
+    | 'PROPOSAL_ECONOMICS_FAILED'
+    | 'LIVE_TICK_STREAM_UNHEALTHY';
 
 export interface AIFinalPreBuyResult {
     allowed: boolean;
@@ -55,6 +57,7 @@ export const evaluateAIFinalPreBuyGate = (
     input: AIFinalPreBuyInput
 ): AIFinalPreBuyResult => {
     const reasons: AIFinalPreBuyBlockReason[] = [];
+    if (!input.liveTickStreamHealthy) reasons.push('LIVE_TICK_STREAM_UNHEALTHY');
     const risk = assessAIRisk(input.riskSettings, input.riskSnapshot);
     if (!risk.allowed) reasons.push('RISK_CHECK_FAILED');
 
