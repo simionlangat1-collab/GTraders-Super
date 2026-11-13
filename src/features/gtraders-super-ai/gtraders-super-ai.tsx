@@ -22,6 +22,7 @@ const GTradersSuperAI = () => {
     const [account, setAccount] = useState<AIAccountSnapshot | null>(null);
     const [connectionError, setConnectionError] = useState('');
     const [marketResults, setMarketResults] = useState<AIMarketHistory[]>([]);
+    const [availableMarketCount, setAvailableMarketCount] = useState(0);
     const [isScanning, setIsScanning] = useState(false);
     const [scannerError, setScannerError] = useState('');
     const [scannedAt, setScannedAt] = useState<number | null>(null);
@@ -58,6 +59,7 @@ const GTradersSuperAI = () => {
                 connection.requestData<T>(payload)
             );
             const availableMarkets = await scanner.getAvailableMarkets();
+            setAvailableMarketCount(availableMarkets.length);
             const results = await scanner.scanMarkets(availableMarkets, {
                 maxMarkets: 30,
                 historyCount: 500,
@@ -159,7 +161,7 @@ const GTradersSuperAI = () => {
                                 <div className='gtraders-ai-scanner__heading'>
                                     <div>
                                         <strong>Independent Market Scanner</strong>
-                                        <span>Read-only market discovery · up to 30 markets</span>
+                                        <span>{availableMarketCount} markets discovered · scanning up to 30</span>
                                     </div>
                                     <button
                                         type='button'
@@ -188,7 +190,7 @@ const GTradersSuperAI = () => {
                                                 </span>
                                                 <div>
                                                     <strong>{market.displayName}</strong>
-                                                    <span>{market.symbol} · {market.ticks} ticks</span>
+                                                    <span>{market.symbol} · {market.ticks} ticks · {market.ticksPerMinute.toFixed(1)}/min</span>
                                                 </div>
                                                 <div className='gtraders-ai-scanner__score'>
                                                     <strong>{market.activityScore}</strong>
@@ -199,8 +201,7 @@ const GTradersSuperAI = () => {
                                     </div>
                                 )}
                                 <p className='gtraders-ai-scanner__disclaimer'>
-                                    Ranking reflects observed data availability and recent price
-                                    movement only. It is not a prediction, trade signal or guarantee
+                                    Ranking reflects observed data availability and tick frequency only. It is not a prediction, trade signal or guarantee
                                     of profitability.
                                 </p>
                             </section>
