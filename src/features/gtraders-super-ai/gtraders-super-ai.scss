@@ -1465,3 +1465,24 @@
         }
     }
 }
+
+
+/* Per-market rejection evidence; display-only and does not alter qualification. */
+.gtraders-ai-diagnostics {
+    display: grid; gap: 0.9rem; padding: 1.1rem; border: 1px solid #e1e8f2;
+    border-radius: 1.1rem; background: #ffffff;
+    &__heading { display: grid; gap: 0.3rem; strong { color: #172033; font-size: 1.1rem; } span { color: #64748b; font-size: 0.9rem; line-height: 1.45; } }
+    &__totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem;
+        > div { display: grid; gap: 0.2rem; padding: 0.7rem; border: 1px solid #e8edf4; border-radius: 0.75rem; background: #f8fafc; }
+        strong { color: #172033; font-size: 1.25rem; } span { color: #64748b; font-size: 0.75rem; }
+    }
+    &__item { display: grid; gap: 0.55rem; padding: 0.85rem; border: 1px solid #e7ecf2; border-radius: 0.85rem; background: #fbfcfe;
+        > strong { color: #172033; font-size: 0.98rem; } > span { color: #475569; font-size: 0.82rem; line-height: 1.45; overflow-wrap: anywhere; }
+    }
+    &__status { display: flex; flex-wrap: wrap; gap: 0.4rem;
+        span { padding: 0.25rem 0.5rem; border-radius: 99px; color: #475569; background: #eef2f7; font-size: 0.72rem; font-weight: 800; }
+        .is-passed { color: #166534; background: #dcfce7; } .is-rejected { color: #991b1b; background: #fee2e2; }
+    }
+    &__reason { padding: 0.65rem; border-left: 3px solid #dc7a22; border-radius: 0.4rem; color: #7c2d12 !important; background: #fff7ed; }
+}
+@media (max-width: 420px) { .gtraders-ai-diagnostics__totals { grid-template-columns: 1fr; } }
