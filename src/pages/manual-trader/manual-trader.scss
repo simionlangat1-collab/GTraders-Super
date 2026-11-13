@@ -709,20 +709,30 @@
     box-shadow: 0 0 0 1px rgba(234, 179, 8, .22), 0 0 .95rem rgba(234, 179, 8, .22);
 }
 
-/* Final settlement highlight must win over live-tick and frequency-rank styles. */
+/* Final settlement highlight: keep the whole circle filled and make the fill itself blink. */
 .manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-win {
     background: #d4a017 !important;
     border-color: #f5cf55 !important;
     color: #ffffff !important;
-    opacity: 1;
     box-shadow: 0 0 0 .2rem rgba(212,160,23,.42), 0 0 1.8rem rgba(212,160,23,.9) !important;
-    animation: manual-trader-trade-win 520ms ease-in-out 2 forwards !important;
+    animation: manual-trader-trade-win 520ms ease-in-out 2 both !important;
+    will-change: opacity, filter, transform;
 }
 .manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-loss {
     background: #dc2626 !important;
     border-color: #fb7185 !important;
     color: #ffffff !important;
-    opacity: 1;
     box-shadow: 0 0 0 .2rem rgba(239,68,68,.42), 0 0 1.8rem rgba(239,68,68,.9) !important;
-    animation: manual-trader-trade-loss 520ms ease-in-out 2 forwards !important;
+    animation: manual-trader-trade-loss 520ms ease-in-out 2 both !important;
+    will-change: opacity, filter, transform;
+}
+
+/* The fill remains intact while the entire circle visibly flashes. */
+@keyframes manual-trader-trade-win {
+    0%, 100% { opacity: 1; filter: brightness(1.15); transform: scale(1); }
+    50% { opacity: .18; filter: brightness(.72); transform: scale(1.04); }
+}
+@keyframes manual-trader-trade-loss {
+    0%, 100% { opacity: 1; filter: brightness(1.15); transform: scale(1); }
+    50% { opacity: .18; filter: brightness(.72); transform: scale(1.04); }
 }
