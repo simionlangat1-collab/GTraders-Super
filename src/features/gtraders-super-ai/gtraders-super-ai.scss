@@ -1243,3 +1243,125 @@
         .gtraders-ai-scanner__score { grid-column: 2; justify-items: start; }
     }
 }
+
+
+/* True floating-page modal: the complete AI workspace sits above the app,
+   with a dedicated backdrop and a permanently visible top-right close control. */
+.gtraders-ai-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+    overflow: hidden;
+    background: rgba(7, 13, 27, 0.72);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+}
+
+.gtraders-ai-panel {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 1;
+    width: min(58rem, 100%);
+    max-width: 100%;
+    max-height: min(92dvh, 82rem);
+    margin: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid #e5eaf2;
+    border-radius: 1.65rem;
+    background: #ffffff;
+    box-shadow: 0 1.8rem 5rem rgba(0, 0, 0, 0.38);
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.gtraders-ai-panel__header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 4.8rem;
+    box-sizing: border-box;
+    padding: 1rem 1.25rem;
+    background: #ffffff;
+    border-bottom: 1px solid #e8edf4;
+}
+
+.gtraders-ai-panel__header > div {
+    min-width: 0;
+    padding-right: 0.75rem;
+}
+
+.gtraders-ai-panel__close {
+    position: relative;
+    z-index: 11;
+    display: grid !important;
+    flex: 0 0 2.9rem;
+    place-items: center;
+    width: 2.9rem !important;
+    min-width: 2.9rem;
+    height: 2.9rem !important;
+    min-height: 2.9rem;
+    margin: 0;
+    padding: 0 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 50% !important;
+    color: #475569 !important;
+    background: #f1f5f9 !important;
+    font-family: Arial, sans-serif;
+    font-size: 2rem !important;
+    font-weight: 400;
+    line-height: 1;
+    text-align: center;
+    cursor: pointer;
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gtraders-ai-panel__close:hover,
+.gtraders-ai-panel__close:focus-visible {
+    color: #0f172a !important;
+    background: #e2e8f0 !important;
+    outline: 2px solid #93c5fd;
+    outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+    .gtraders-ai-overlay {
+        padding: 0.65rem;
+    }
+
+    .gtraders-ai-panel {
+        width: 100%;
+        max-height: calc(100dvh - 1.3rem);
+        border-radius: 1.35rem;
+    }
+
+    .gtraders-ai-panel__header {
+        min-height: 4.5rem;
+        padding: 0.85rem 1rem;
+    }
+
+    .gtraders-ai-panel__close {
+        flex-basis: 2.8rem;
+        width: 2.8rem !important;
+        min-width: 2.8rem;
+        height: 2.8rem !important;
+        min-height: 2.8rem;
+    }
+}
