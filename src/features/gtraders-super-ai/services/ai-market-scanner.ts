@@ -17,6 +17,7 @@ export interface AIMarketHistory {
     ticksPerMinute: number;
     observedRange: number;
     digitCounts: number[];
+    digitSequence: number[];
     dataQuality: number;
     activityScore: number;
 }
@@ -80,12 +81,14 @@ export class AIMarketScanner {
         const prices = (response.history?.prices ?? []).map(Number).filter(Number.isFinite);
         const times = response.history?.times ?? [];
         const digitCounts = Array<number>(10).fill(0);
+        const digitSequence: number[] = [];
 
         prices.forEach(price => {
             const decimals = Math.max(0, response.pip_size ?? 2);
             const scaled = Math.round(price * Math.pow(10, decimals));
             const lastDigit = Math.abs(scaled) % 10;
             digitCounts[lastDigit] += 1;
+            digitSequence.push(lastDigit);
         });
 
         const moves = prices.slice(1).map((price, index) => Math.abs(price - prices[index]));
@@ -116,6 +119,7 @@ export class AIMarketScanner {
             ticksPerMinute,
             observedRange,
             digitCounts,
+            digitSequence,
             dataQuality,
             activityScore,
         };
