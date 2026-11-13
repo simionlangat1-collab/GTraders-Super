@@ -454,13 +454,6 @@ const GTradersSuperAI = () => {
         }
     };
 
-    const disconnectAI = () => {
-        liveTickStream.stop();
-        connection.disconnect();
-        setAccount(null);
-        setConnectionError('');
-    };
-
     const isConnecting = connectionStatus === 'connecting';
     const isConnected = connectionStatus === 'connected';
     const stake = Number(stakeInput);
@@ -490,7 +483,7 @@ const GTradersSuperAI = () => {
             <button
                 type='button'
                 className='gtraders-ai-float'
-                aria-label='Open GTraders Super AI'
+                aria-label={isOpen ? 'Close GTraders Super AI window' : 'Open GTraders Super AI window'}
                 aria-expanded={isOpen}
                 aria-controls='gtraders-ai-panel'
                 onClick={() => setIsOpen(open => !open)}
@@ -515,7 +508,7 @@ const GTradersSuperAI = () => {
                         <button
                             type='button'
                             className='gtraders-ai-panel__close'
-                            aria-label='Close AI assistant'
+                            aria-label='Close AI trading window'
                             onClick={() => setIsOpen(false)}
                         >
                             ×
@@ -818,8 +811,8 @@ const GTradersSuperAI = () => {
                             </section>
                         )}
 
-                        <div className='gtraders-ai-panel__actions'>
-                            {!isConnected ? (
+                        {!isConnected && (
+                            <div className='gtraders-ai-panel__actions'>
                                 <button
                                     type='button'
                                     className='gtraders-ai-panel__connect'
@@ -828,17 +821,8 @@ const GTradersSuperAI = () => {
                                 >
                                     {isConnecting ? 'Connecting…' : 'Connect AI to Deriv'}
                                 </button>
-                            ) : (
-                                <button
-                                    type='button'
-                                    className='gtraders-ai-panel__disconnect'
-                                    onClick={disconnectAI}
-                                    disabled={isExecuting}
-                                >
-                                    Disconnect AI
-                                </button>
-                            )}
-                        </div>
+                            </div>
+                        )}
 
                         <p className='gtraders-ai-panel__notice'>
                             Only explicitly confirmed single DEMO purchases are enabled for validation. Continuous autonomous trading and all REAL-account execution remain disabled.
