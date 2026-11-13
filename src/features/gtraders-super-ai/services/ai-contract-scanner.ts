@@ -201,3 +201,55 @@ export const evaluateAIContractOpportunity = (
         explanation: 'Research candidate only: the contract was selected before the holdout and its conservative adjusted lower confidence bound beat the fair digit baseline. Check live proposal pricing and breakeven before any demo execution; this result never authorizes an order.',
     };
 };
+
+export interface AIProposalQuote {
+    askPrice: number;
+    payout: number;
+}
+
+export interface AIProposalEconomics {
+    allowed: boolean;
+    breakEvenProbability: number;
+    confidenceMargin: number;
+    explanation: string;
+}
+
+/**
+ * Requires the conservative holdout confidence bound to exceed the live
+ * proposal's break-even win rate. This is still a candidate gate, never a buy.
+ */
+export const evaluateAIProposalEconomics = (
+    confidenceLowerBound: number,
+    quote: AIProposalQuote
+): AIProposalEconomics => {
+    const validQuote =
+        Number.isFinite(confidenceLowerBound) &&
+        confidenceLowerBound >= 0 &&
+        confidenceLowerBound <= 1 &&
+        Number.isFinite(quote.askPrice) &&
+        Number.isFinite(quote.payout) &&
+        quote.askPrice > 0 &&
+        quote.payout > quote.askPrice;
+
+    if (!validQuote) {
+        return {
+            allowed: false,
+            breakEvenProbability: 1,
+            confidenceMargin: -1,
+            explanation: 'NO TRADE — the live proposal quote is missing, invalid, or has no positive payout above stake.',
+        };
+    }
+
+    const breakEvenProbability = quote.askPrice / quote.payout;
+    const confidenceMargin = confidenceLowerBound - breakEvenProbability;
+    const allowed = confidenceMargin > 0;
+
+    return {
+        allowed,
+        breakEvenProbability,
+        confidenceMargin,
+        explanation: allowed
+            ? 'Live proposal quote passed: the conservative holdout confidence bound is above the current break-even win rate. This remains a candidate only, not an order authorization.'
+            : 'NO TRADE — the conservative holdout confidence bound does not exceed the live contract break-even win rate.',
+    };
+};
