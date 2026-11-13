@@ -35,8 +35,8 @@ const isValidSnapshot = (value: unknown, accountLoginId: string): value is AISes
 /**
  * Tracks only contracts explicitly purchased by this AI session. Settled P/L
  * comes from Deriv's proposal_open_contract result, never from placeholder zeros.
- * A pending or uncertain purchase permanently blocks another entry until it is
- * reconciled. Browser storage provides reload continuity, not a trusted server ledger.
+ * A persisted pre-buy reservation locks the session across reloads if the
+ * browser closes or the buy response is lost. Browser storage is not a server ledger.
  */
 export class AISessionLedger {
     private readonly storage: AIStorage;
@@ -94,14 +94,23 @@ export class AISessionLedger {
         }
     }
 
+    /** Persist a lock before sending the buy request, so reloads cannot forget an in-flight order. */
+    reservePurchase = (): void => {
+        if (this.snapshot.openContractId !== null || this.snapshot.executionUncertain) {
+            throw new Error('An earlier purchase is unresolved. No additional purchase is allowed.');
+        }
+        this.snapshot = { ...this.snapshot, executionUncertain: true };
+        this.persist();
+    };
+
     markPurchase = (contractId: number): void => {
         if (!Number.isInteger(contractId) || contractId <= 0) {
             throw new Error('Deriv returned an invalid contract ID. Execution is locked for reconciliation.');
         }
-        if (this.snapshot.openContractId !== null || this.snapshot.executionUncertain) {
-            throw new Error('An earlier purchase is still unresolved. No additional purchase is allowed.');
+        if (this.snapshot.openContractId !== null || !this.snapshot.executionUncertain) {
+            throw new Error('A persisted pre-buy reservation is required before recording a purchase.');
         }
-        this.snapshot = { ...this.snapshot, openContractId: contractId };
+        this.snapshot = { ...this.snapshot, openContractId: contractId, executionUncertain: false };
         this.persist();
     };
 

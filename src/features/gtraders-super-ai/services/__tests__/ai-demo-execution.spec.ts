@@ -19,37 +19,53 @@ const gateInput = (): AIFinalPreBuyInput => ({
     now: 10000,
 });
 
+const intent = jest.fn();
+const onPurchased = jest.fn();
+const onPurchaseUncertain = jest.fn();
+
 describe('executeAIDemoTrade', () => {
-    it('submits exactly one buy after the final gate and waits for settlement', async () => {
-        const request = jest.fn(async () => ({ buy: { contract_id: 123 } }));
-        const waitForSettlement = jest.fn(async () => ({
-            contractId: 123, profit: 0.9, status: 'won', isSold: true,
-        }));
-        const onPurchased = jest.fn();
+    beforeEach(() => { jest.clearAllMocks(); });
+
+    it('persists the pre-buy reservation before submitting exactly one purchase', async () => {
+        const order: string[] = [];
         const result = await executeAIDemoTrade(gateInput(), {
-            request, waitForSettlement, onPurchased, onPurchaseUncertain: jest.fn(),
+            onPurchaseIntent: () => { order.push('reserve'); intent(); },
+            request: jest.fn(async () => { order.push('buy'); return { buy: { contract_id: 123 } }; }),
+            onPurchased: id => { order.push('record'); onPurchased(id); },
+            onPurchaseUncertain,
+            waitForSettlement: async () => ({ contractId: 123, profit: 0.9, status: 'won', isSold: true }),
         });
-        expect(request).toHaveBeenCalledTimes(1);
-        expect(request).toHaveBeenCalledWith({ buy: 'proposal-1', price: 1 });
+        expect(order).toEqual(['reserve', 'buy', 'record']);
         expect(onPurchased).toHaveBeenCalledWith(123);
-        expect(waitForSettlement).toHaveBeenCalledWith(123);
         expect(result).toMatchObject({ status: 'SETTLED', contractId: 123, profit: 0.9 });
     });
 
     it('never buys when the final safety gate rejects the trade', async () => {
         const request = jest.fn();
         const result = await executeAIDemoTrade({ ...gateInput(), accountType: 'real' }, {
-            request, waitForSettlement: jest.fn(), onPurchased: jest.fn(), onPurchaseUncertain: jest.fn(),
+            onPurchaseIntent: intent, request, waitForSettlement: jest.fn(),
+            onPurchased, onPurchaseUncertain,
         });
         expect(result.status).toBe('BLOCKED');
+        expect(request).not.toHaveBeenCalled();
+        expect(intent).not.toHaveBeenCalled();
+    });
+
+    it('does not send a buy if the local pre-buy reservation fails', async () => {
+        const request = jest.fn();
+        const result = await executeAIDemoTrade(gateInput(), {
+            onPurchaseIntent: () => { throw new Error('storage unavailable'); },
+            request, waitForSettlement: jest.fn(), onPurchased, onPurchaseUncertain,
+        });
+        expect(result.status).toBe('EXECUTION_ABORTED');
         expect(request).not.toHaveBeenCalled();
     });
 
     it('does not retry an uncertain buy and locks the session', async () => {
         const request = jest.fn(async () => { throw new Error('network timeout'); });
-        const onPurchaseUncertain = jest.fn();
         const result = await executeAIDemoTrade(gateInput(), {
-            request, waitForSettlement: jest.fn(), onPurchased: jest.fn(), onPurchaseUncertain,
+            onPurchaseIntent: intent, request, waitForSettlement: jest.fn(),
+            onPurchased, onPurchaseUncertain,
         });
         expect(result.status).toBe('PURCHASE_UNCERTAIN');
         expect(request).toHaveBeenCalledTimes(1);
@@ -58,10 +74,10 @@ describe('executeAIDemoTrade', () => {
 
     it('keeps a confirmed purchase pending when settlement cannot be verified', async () => {
         const result = await executeAIDemoTrade(gateInput(), {
+            onPurchaseIntent: intent,
             request: jest.fn(async () => ({ buy: { contract_id: 456 } })),
             waitForSettlement: jest.fn(async () => { throw new Error('stream lost'); }),
-            onPurchased: jest.fn(),
-            onPurchaseUncertain: jest.fn(),
+            onPurchased, onPurchaseUncertain,
         });
         expect(result).toMatchObject({ status: 'SETTLEMENT_PENDING', contractId: 456 });
     });

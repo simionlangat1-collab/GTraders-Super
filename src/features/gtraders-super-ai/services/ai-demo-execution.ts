@@ -10,20 +10,22 @@ export interface AIContractSettlement {
 export interface AIDemoExecutionDependencies {
     request: (payload: Record<string, unknown>) => Promise<unknown>;
     waitForSettlement: (contractId: number) => Promise<AIContractSettlement>;
+    onPurchaseIntent: () => void;
     onPurchased: (contractId: number) => void;
     onPurchaseUncertain: () => void;
 }
 
 export type AIDemoExecutionResult =
     | { status: 'BLOCKED'; gate: AIFinalPreBuyResult }
+    | { status: 'EXECUTION_ABORTED'; message: string }
     | { status: 'PURCHASE_UNCERTAIN'; message: string }
     | { status: 'SETTLEMENT_PENDING'; contractId: number; message: string }
     | { status: 'SETTLED'; contractId: number; profit: number; settlementStatus: string; gate: AIFinalPreBuyResult };
 
 /**
- * Executes exactly one explicitly confirmed demo purchase. It never retries a
- * buy request: a timeout can mean Deriv accepted the order but the response was
- * lost, so uncertain outcomes lock the session for manual reconciliation.
+ * Executes exactly one explicitly confirmed demo purchase. A persisted local
+ * reservation is written before the buy request. The buy is never retried:
+ * uncertain outcomes lock the session for manual reconciliation.
  */
 export const executeAIDemoTrade = async (
     gateInput: AIFinalPreBuyInput,
@@ -31,6 +33,15 @@ export const executeAIDemoTrade = async (
 ): Promise<AIDemoExecutionResult> => {
     const gate = evaluateAIFinalPreBuyGate(gateInput);
     if (!gate.allowed || !gateInput.proposal) return { status: 'BLOCKED', gate };
+
+    try {
+        dependencies.onPurchaseIntent();
+    } catch {
+        return {
+            status: 'EXECUTION_ABORTED',
+            message: 'The pre-buy safety reservation could not be saved. The buy request was NOT sent.',
+        };
+    }
 
     let buyResponse: unknown;
     try {

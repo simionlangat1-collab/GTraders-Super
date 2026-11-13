@@ -10,17 +10,20 @@ describe('AISessionLedger', () => {
     it('records actual settled P/L and consecutive losses without changing the stake', () => {
         const storage = new MemoryStorage();
         const ledger = new AISessionLedger('CR123', storage);
+        ledger.reservePurchase();
         ledger.markPurchase(101);
         const first = ledger.recordSettlement(101, -1);
         expect(first.sessionProfitLoss).toBe(-1);
         expect(first.consecutiveLosses).toBe(1);
         expect(first.settledTrades).toBe(1);
 
+        ledger.reservePurchase();
         ledger.markPurchase(102);
         const second = ledger.recordSettlement(102, -0.5);
         expect(second.sessionProfitLoss).toBe(-1.5);
         expect(second.consecutiveLosses).toBe(2);
 
+        ledger.reservePurchase();
         ledger.markPurchase(103);
         const third = ledger.recordSettlement(103, 0.8);
         expect(third.sessionProfitLoss).toBeCloseTo(-0.7);
@@ -28,20 +31,23 @@ describe('AISessionLedger', () => {
         expect(third.openContractId).toBeNull();
     });
 
-    it('restores the same account session after reload and blocks while a contract is open', () => {
+    it('restores an in-flight reservation after reload and blocks another purchase', () => {
         const storage = new MemoryStorage();
         const first = new AISessionLedger('CR123', storage);
+        first.reservePurchase();
+        const restored = new AISessionLedger('CR123', storage);
+        expect(restored.getSnapshot().executionUncertain).toBe(true);
+        expect(() => restored.reservePurchase()).toThrow('unresolved');
+    });
+
+    it('restores an open contract and blocks while settlement is pending', () => {
+        const storage = new MemoryStorage();
+        const first = new AISessionLedger('CR123', storage);
+        first.reservePurchase();
         first.markPurchase(777);
         const restored = new AISessionLedger('CR123', storage);
         expect(restored.getSnapshot().openContractId).toBe(777);
-        expect(() => restored.markPurchase(778)).toThrow('unresolved');
-    });
-
-    it('locks permanently when a buy response is uncertain', () => {
-        const ledger = new AISessionLedger('CR123', new MemoryStorage());
-        ledger.markPurchaseUncertain();
-        expect(ledger.getSnapshot().executionUncertain).toBe(true);
-        expect(() => ledger.markPurchase(888)).toThrow('unresolved');
+        expect(() => restored.reservePurchase()).toThrow('unresolved');
     });
 
     it('rejects damaged stored state rather than silently resetting risk to zero', () => {
@@ -52,6 +58,7 @@ describe('AISessionLedger', () => {
 
     it('rejects a settlement for a different contract', () => {
         const ledger = new AISessionLedger('CR123', new MemoryStorage());
+        ledger.reservePurchase();
         ledger.markPurchase(101);
         expect(() => ledger.recordSettlement(102, 1)).toThrow('does not match');
     });
