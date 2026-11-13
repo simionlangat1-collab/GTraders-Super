@@ -142,8 +142,20 @@ const GTradersSuperAI = () => {
             );
             // Both independent gates must pass: an Over/Under edge and a
             // separately validated next-digit research prediction.
-            const qualifying = contractQualified
-                .filter(item => item.prediction.decision === 'PREDICTION_CANDIDATE')
+            const predictionQualified = contractQualified.filter(
+                item => item.prediction.decision === 'PREDICTION_CANDIDATE'
+            );
+            // Reject conflicting signals: the predicted digit itself must satisfy
+            // the selected Over/Under barrier before the market can be shortlisted.
+            const qualifying = predictionQualified
+                .filter(item => {
+                    const predictedDigit = item.prediction.predictedDigit;
+                    const barrier = item.opportunity.barrier;
+                    if (predictedDigit === null || barrier === null) return false;
+                    return item.opportunity.contractType === 'DIGITOVER'
+                        ? predictedDigit > barrier
+                        : predictedDigit < barrier;
+                })
                 .sort((a, b) => b.opportunity.edge - a.opportunity.edge);
 
             // Request live quotes only for the ten strongest research candidates.
@@ -218,9 +230,11 @@ const GTradersSuperAI = () => {
                     ? ''
                     : !contractQualified.length
                         ? 'NO TRADE — none of the scanned Volatility markets passed the independent Over/Under holdout test. The AI will not force a selection.'
-                        : !qualifying.length
+                        : !predictionQualified.length
                             ? 'NO TRADE — an Over/Under pattern was found, but the separate last-digit prediction model did not beat its matched baseline on unseen ticks. The AI will not force a selection.'
-                            : 'NO TRADE — the evidence-qualified candidates did not pass the live proposal payout/breakeven check. The AI will not force a selection.'
+                            : !qualifying.length
+                                ? 'NO TRADE — the predicted last digit conflicts with the selected Over/Under barrier. The AI will not force a selection.'
+                                : 'NO TRADE — the evidence-qualified candidates did not pass the live proposal payout/breakeven check. The AI will not force a selection.'
             );
             setScannedAt(Date.now());
 
