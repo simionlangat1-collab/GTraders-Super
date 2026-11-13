@@ -22,6 +22,12 @@ const connectionStatusLabel: Record<AIConnectionStatus, string> = {
     error: 'Connection needs attention',
 };
 
+type AIMarketRejectionDiagnostic = {
+    symbol: string; displayName: string; ticks: number; dataQuality: number; dataQualityReason: string;
+    contractStatus: string; contractEvidence: string; predictionStatus: string; predictionEvidence: string;
+    barrierEvidence: string; quoteEvidence: string; finalReason: string;
+};
+
 type SelectedMarketOpportunity = AIContractOpportunity & {
     symbol: string;
     displayName: string;
@@ -45,6 +51,7 @@ const GTradersSuperAI = () => {
     const [account, setAccount] = useState<AIAccountSnapshot | null>(null);
     const [connectionError, setConnectionError] = useState('');
     const [marketResults, setMarketResults] = useState<AIMarketHistory[]>([]);
+    const [rejectionDiagnostics, setRejectionDiagnostics] = useState<AIMarketRejectionDiagnostic[]>([]);
     const [availableMarketCount, setAvailableMarketCount] = useState(0);
     const [marketStatistics, setMarketStatistics] = useState<AIMarketStatistics | null>(null);
     const [marketOpportunity, setMarketOpportunity] = useState<SelectedMarketOpportunity | null>(null);
@@ -125,6 +132,7 @@ const GTradersSuperAI = () => {
         setScannerError('');
         setScannerOutcomeMessage('');
         setMarketResults([]);
+        setRejectionDiagnostics([]);
         setMarketStatistics(null);
         setMarketOpportunity(null);
         setAvailableMarketCount(0);
@@ -220,6 +228,47 @@ const GTradersSuperAI = () => {
                     return { ...candidate, proposalId: proposal.id, askPrice, payout, economics };
                 })
             );
+
+            const rejectionDetails: AIMarketRejectionDiagnostic[] = evaluatedMarkets.map(item => {
+                const contractPassed = item.opportunity.decision === 'MARKET_CANDIDATE';
+                const predictionPassed = item.prediction.decision === 'PREDICTION_CANDIDATE';
+                const barrierPassed = contractPassed && predictionPassed && doesAIPredictionSupportContract(
+                    item.opportunity.contractType, item.opportunity.barrier, item.prediction.predictedDigit
+                );
+                const quoteIndex = qualifying.findIndex(candidate => candidate.market.symbol === item.market.symbol);
+                const quoteResult = quoteIndex >= 0 && quoteIndex < 10 ? quoteResults[quoteIndex] : undefined;
+                const quoteEvidence = !barrierPassed
+                    ? 'Not requested: an earlier evidence gate failed.'
+                    : quoteIndex >= 10
+                        ? 'Not requested: candidate ranked outside the top 10 quote requests.'
+                        : quoteResult?.status === 'fulfilled'
+                            ? quoteResult.value.economics.explanation
+                            : quoteResult?.status === 'rejected'
+                                ? (quoteResult.reason instanceof Error ? quoteResult.reason.message : String(quoteResult.reason))
+                                : 'Quote status unavailable.';
+                const finalReason = !contractPassed ? item.opportunity.explanation
+                    : !predictionPassed ? item.prediction.explanation
+                    : !barrierPassed ? 'Predicted last digit does not satisfy the selected Over/Under barrier.'
+                    : quoteResult?.status === 'fulfilled' && quoteResult.value.economics.allowed
+                        ? 'Passed all scanner gates; eligible for candidate selection.'
+                        : quoteIndex >= 10 ? 'Evidence passed, but no live quote was requested because this candidate ranked outside the top 10.'
+                        : quoteEvidence;
+                return {
+                    symbol: item.market.symbol, displayName: item.market.displayName, ticks: item.market.ticks,
+                    dataQuality: item.market.dataQuality, dataQualityReason: item.market.dataQualityReason,
+                    contractStatus: contractPassed ? 'PASSED' : 'REJECTED',
+                    contractEvidence: item.opportunity.explanation,
+                    predictionStatus: predictionPassed ? 'PASSED' : 'REJECTED',
+                    predictionEvidence: item.prediction.explanation,
+                    barrierEvidence: barrierPassed
+                        ? `Predicted digit ${item.prediction.predictedDigit} satisfies ${item.opportunity.contractLabel} ${item.opportunity.barrier}.`
+                        : contractPassed && predictionPassed
+                            ? `Predicted digit ${item.prediction.predictedDigit ?? '—'} conflicts with ${item.opportunity.contractLabel} ${item.opportunity.barrier}.`
+                            : 'Not evaluated because an earlier gate failed.',
+                    quoteEvidence, finalReason,
+                };
+            });
+            setRejectionDiagnostics(rejectionDetails);
 
             const approvedQuotes = quoteResults.flatMap(result =>
                 result.status === 'fulfilled' && result.value.economics.allowed
@@ -853,6 +902,37 @@ const GTradersSuperAI = () => {
                                             </div>
                                         ))}
                                     </div>
+                                )}
+                                {rejectionDiagnostics.length > 0 && (
+                                    <section className='gtraders-ai-diagnostics' aria-live='polite'>
+                                        <div className='gtraders-ai-diagnostics__heading'>
+                                            <strong>AI Rejection Diagnostics</strong>
+                                            <span>Per-market gate results from this scan. Qualification thresholds and execution safeguards are unchanged.</span>
+                                        </div>
+                                        <div className='gtraders-ai-diagnostics__totals'>
+                                            <div><strong>{rejectionDiagnostics.length}</strong><span>Markets evaluated</span></div>
+                                            <div><strong>{rejectionDiagnostics.filter(item => item.finalReason.startsWith('Passed all')).length}</strong><span>Passed all scanner gates</span></div>
+                                            <div><strong>{rejectionDiagnostics.filter(item => !item.finalReason.startsWith('Passed all')).length}</strong><span>Rejected / not selected</span></div>
+                                        </div>
+                                        {rejectionDiagnostics.map(item => (
+                                            <article className='gtraders-ai-diagnostics__item' key={item.symbol}>
+                                                <strong>{item.displayName} · {item.symbol}</strong>
+                                                <span>{item.ticks} valid ticks · data quality {item.dataQuality.toFixed(1)}% · {item.dataQualityReason}</span>
+                                                <div className='gtraders-ai-diagnostics__status'>
+                                                    <span className={item.contractStatus === 'PASSED' ? 'is-passed' : 'is-rejected'}>Over/Under: {item.contractStatus}</span>
+                                                    <span className={item.predictionStatus === 'PASSED' ? 'is-passed' : 'is-rejected'}>Prediction: {item.predictionStatus}</span>
+                                                </div>
+                                                <span><strong>Contract evidence:</strong> {item.contractEvidence}</span>
+                                                <span><strong>Prediction evidence:</strong> {item.predictionEvidence}</span>
+                                                <span><strong>Barrier compatibility:</strong> {item.barrierEvidence}</span>
+                                                <span><strong>Live quote:</strong> {item.quoteEvidence}</span>
+                                                <span className='gtraders-ai-diagnostics__reason'><strong>Final outcome:</strong> {item.finalReason}</span>
+                                                {marketResults.find(market => market.symbol === item.symbol)?.scanError && (
+                                                    <span><strong>History request error:</strong> {marketResults.find(market => market.symbol === item.symbol)?.scanError}</span>
+                                                )}
+                                            </article>
+                                        ))}
+                                    </section>
                                 )}
                                 {marketStatistics && (
                                     <div className='gtraders-ai-statistics'>
