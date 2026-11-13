@@ -24,6 +24,10 @@ class MockTickConnection implements AILiveTickConnection {
         return () => this.statusListeners.delete(listener);
     };
     getStatus = () => this.status;
+    disconnect = () => {
+        this.status = 'disconnected';
+        this.statusListeners.forEach(listener => listener(this.status));
+    };
     emit = (tick: { symbol: string; quote: number; epoch: number }) => {
         this.listeners.forEach(listener => listener({ tick }));
     };
