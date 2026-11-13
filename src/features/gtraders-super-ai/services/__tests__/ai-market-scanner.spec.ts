@@ -198,7 +198,7 @@ describe('AIMarketScanner tick-data lifecycle checks', () => {
             history: { prices: Array(500).fill('123.45'), times },
             pip_size: 2,
         }));
-        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest, () => 1_700_000_600);
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest, () => 1_700_000_550);
 
         const history = await scanner.getTickHistory('R_100', 500);
 
