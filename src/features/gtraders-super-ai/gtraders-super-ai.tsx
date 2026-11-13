@@ -174,6 +174,7 @@ const GTradersSuperAI = () => {
                     market.dataQuality,
                     {
                         candidateWindows: [20, 30, 50, 75, 100],
+                        multipleComparisonCount: results.length,
                         trainingFraction: 0.6,
                         minimumMarketSample: 500,
                         minimumDataQuality: 95,
