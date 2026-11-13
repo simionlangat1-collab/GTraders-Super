@@ -5,6 +5,7 @@ import {
     AIConnectionStatus,
 } from './services/ai-deriv-connection';
 import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
+import { AILiveTickStream, AILiveTickStatus } from './services/ai-live-tick-stream';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
 import { AIContractOpportunity, doesAIPredictionSupportContract, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
@@ -35,6 +36,10 @@ type SelectedMarketOpportunity = AIContractOpportunity & {
 const GTradersSuperAI = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [connection] = useState(() => new AIDerivConnection());
+    const [liveTickStatus, setLiveTickStatus] = useState<AILiveTickStatus>('stopped');
+    const [liveTickStream] = useState(() => new AILiveTickStream(connection, {
+        onStatus: status => setLiveTickStatus(status),
+    }));
     const [connectionStatus, setConnectionStatus] =
         useState<AIConnectionStatus>('disconnected');
     const [account, setAccount] = useState<AIAccountSnapshot | null>(null);
@@ -67,9 +72,10 @@ const GTradersSuperAI = () => {
 
         return () => {
             unsubscribe();
+            liveTickStream.stop();
             connection.disconnect();
         };
-    }, [connection]);
+    }, [connection, liveTickStream]);
 
     const connectAI = async () => {
         setConnectionError('');
@@ -237,6 +243,11 @@ const GTradersSuperAI = () => {
                 }
                 : null;
             setMarketOpportunity(selectedOpportunity);
+            if (selectedOpportunity) {
+                await liveTickStream.start(selectedOpportunity.symbol);
+            } else {
+                liveTickStream.stop();
+            }
 
             const statisticsMarket = selected?.market ?? qualifying[0]?.market ?? results[0];
             setMarketStatistics(
@@ -365,6 +376,7 @@ const GTradersSuperAI = () => {
                 hasQualifiedOpportunity: candidate.decision === 'MARKET_CANDIDATE' &&
                     candidate.prediction.decision === 'PREDICTION_CANDIDATE' &&
                     doesAIPredictionSupportContract(candidate.contractType, candidate.barrier, candidate.prediction.predictedDigit),
+                liveTickStreamHealthy: liveTickStream.isHealthy(),
                 riskSettings: { stake, targetProfit, stopLoss, maxConsecutiveLosses },
                 riskSnapshot: { balance: finalAccount.balance, sessionProfitLoss: latestSession.sessionProfitLoss, consecutiveLosses: latestSession.consecutiveLosses },
                 expectedContract: { amount: stake, currency: finalAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol },
@@ -443,6 +455,7 @@ const GTradersSuperAI = () => {
     };
 
     const disconnectAI = () => {
+        liveTickStream.stop();
         connection.disconnect();
         setAccount(null);
         setConnectionError('');
@@ -638,6 +651,7 @@ const GTradersSuperAI = () => {
                                 <div className='gtraders-ai-risk__heading'>
                                     <strong>Controlled Demo Execution</strong>
                                     <span>One trade at a time · fresh confirmation scan · no Martingale</span>
+                                    <span role='status'>Live tick stream: {liveTickStatus.toUpperCase()} · {liveTickStream.isHealthy() ? 'evidence current' : 'NO TRADE until revalidated'}</span>
                                 </div>
                                 <p>Prepare only scans and displays a candidate. Confirmation rescans the markets, requests a brand-new proposal, refreshes account balance and runs the final safety gate before one demo purchase.</p>
                                 <button type='button' onClick={prepareDemoTrade}
@@ -650,7 +664,7 @@ const GTradersSuperAI = () => {
                                         <span>{preparedOpportunity.contractLabel} {preparedOpportunity.barrier} · predicted last digit {preparedOpportunity.prediction.predictedDigit}</span>
                                         <span>Preparation quote is display-only and will never be purchased.</span>
                                         <button type='button' onClick={confirmDemoTrade}
-                                            disabled={isExecuting || !riskAssessment?.allowed || account.account_type !== 'demo'}>
+                                            disabled={isExecuting || !riskAssessment?.allowed || account.account_type !== 'demo' || !liveTickStream.isHealthy()}>
                                             Confirm ONE Demo Purchase
                                         </button>
                                     </div>
