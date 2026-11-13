@@ -189,7 +189,11 @@ export class AILiveTickStream {
         this.reconnecting = true;
         const generation = ++this.generation;
         this.recoveryTicks = 0;
+        const previousSubscriptionId = this.subscriptionId;
         this.subscriptionId = null;
+        if (previousSubscriptionId && this.connection.getStatus() === 'connected') {
+            void this.connection.requestData({ forget: previousSubscriptionId }).catch(() => undefined);
+        }
         this.setStatus('interrupted', reason);
 
         try {
