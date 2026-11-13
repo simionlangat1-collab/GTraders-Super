@@ -94,7 +94,8 @@ describe('AccountSwitcher', () => {
     it('opens dropdown on click when multiple accounts exist', () => {
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
-        expect(screen.getByRole('listbox')).toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: 'Switch account' })).toBeInTheDocument();
+        expect(screen.getByRole('listbox', { name: 'Accounts' })).toBeInTheDocument();
     });
 
     it('does not open dropdown when bot is running via run_panel', () => {
@@ -183,7 +184,7 @@ describe('AccountSwitcher', () => {
         const trigger = screen.getByTestId('dt_acc_info');
         expect(trigger).toHaveAttribute('role', 'button');
         expect(trigger).toHaveAttribute('aria-expanded', 'false');
-        expect(trigger).toHaveAttribute('aria-haspopup', 'listbox');
+        expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
         fireEvent.click(trigger);
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
     });
