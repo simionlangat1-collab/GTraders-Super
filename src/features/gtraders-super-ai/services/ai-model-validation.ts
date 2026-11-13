@@ -3,6 +3,8 @@ import { AITradeEvidence } from './ai-trade-decision';
 export interface AIValidationObservation {
     /** Timestamp when this prediction was evaluated/settled, in Unix milliseconds. */
     settledAt: number;
+    /** Original zero-based tick position; strictly after the training cutoff. */
+    observationIndex: number;
     /** Whether the model's pre-settlement prediction was correct. */
     modelPredictionCorrect: boolean;
     /** Whether a pre-defined matched baseline prediction was correct. */
@@ -11,7 +13,8 @@ export interface AIValidationObservation {
 
 export interface AIModelValidationInput {
     /** End of the model-training period, in Unix milliseconds. */
-    trainingCutoff: number;
+    trainingCutoffTimestamp: number;
+    trainingCutoffIndex: number;
     /** Recent valid market observations used to assess data sufficiency. */
     marketSampleSize: number;
     /** Percentage of expected market observations successfully received. */
@@ -54,7 +57,9 @@ export const validateAIModelOutOfSample = (
     input: AIModelValidationInput
 ): AIModelValidationResult => {
     const validInput =
-        Number.isFinite(input.trainingCutoff) &&
+        Number.isFinite(input.trainingCutoffTimestamp) &&
+        Number.isInteger(input.trainingCutoffIndex) &&
+        input.trainingCutoffIndex >= 0 &&
         Number.isInteger(input.marketSampleSize) &&
         input.marketSampleSize >= 0 &&
         Number.isFinite(input.dataQuality) &&
@@ -62,15 +67,21 @@ export const validateAIModelOutOfSample = (
         input.dataQuality <= 100 &&
         Array.isArray(input.observations);
 
-    let previousTimestamp = input.trainingCutoff;
+    let previousTimestamp = input.trainingCutoffTimestamp;
+    let previousIndex = input.trainingCutoffIndex;
     const eligible = validInput
         ? input.observations.filter(item => {
             const isValid =
                 Number.isFinite(item.settledAt) &&
-                item.settledAt > previousTimestamp &&
+                item.settledAt >= previousTimestamp &&
+                Number.isInteger(item.observationIndex) &&
+                item.observationIndex > previousIndex &&
                 typeof item.modelPredictionCorrect === 'boolean' &&
                 typeof item.baselinePredictionCorrect === 'boolean';
-            if (isValid) previousTimestamp = item.settledAt;
+            if (isValid) {
+                previousTimestamp = item.settledAt;
+                previousIndex = item.observationIndex;
+            }
             return isValid;
         })
         : [];
@@ -110,6 +121,6 @@ export const validateAIModelOutOfSample = (
         rejectedObservations,
         explanation: validationPassed
             ? 'Untouched chronological holdout passed the initial statistical check. The separate evidence and risk gates must still approve; no trade is authorized by validation alone.'
-            : 'Model not validated. Require clean, settled observations strictly after the training cutoff and stronger out-of-sample evidence than the matched baseline.',
+            : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and a confidence lower bound above the matched baseline.`,
     };
 };
