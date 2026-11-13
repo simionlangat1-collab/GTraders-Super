@@ -177,7 +177,8 @@ const GTradersSuperAI = () => {
                         trainingFraction: 0.6,
                         minimumMarketSample: 500,
                         minimumDataQuality: 95,
-                    }
+                    },
+                    market.tickTimes
                 ),
             }));
             const contractQualified = evaluatedMarkets.filter(
@@ -257,9 +258,9 @@ const GTradersSuperAI = () => {
                     symbol: item.market.symbol, displayName: item.market.displayName, ticks: item.market.ticks,
                     dataQuality: item.market.dataQuality, dataQualityReason: item.market.dataQualityReason,
                     contractStatus: contractPassed ? 'PASSED' : 'REJECTED',
-                    contractEvidence: item.opportunity.explanation,
+                    contractEvidence: `${item.opportunity.explanation} Training/holdout: ${item.opportunity.trainingSampleSize}/${item.opportunity.holdoutSampleSize}; holdout win rate ${(item.opportunity.holdoutWinRate * 100).toFixed(1)}%; fair baseline ${(item.opportunity.baselineWinRate * 100).toFixed(1)}%; adjusted lower bound ${(item.opportunity.confidenceLowerBound * 100).toFixed(1)}%.`,
                     predictionStatus: predictionPassed ? 'PASSED' : 'REJECTED',
-                    predictionEvidence: item.prediction.explanation,
+                    predictionEvidence: `${item.prediction.explanation} Training/holdout: ${item.prediction.trainingSampleSize}/${item.prediction.holdoutSampleSize}; model accuracy ${(item.prediction.modelWinRate * 100).toFixed(1)}%; matched baseline ${(item.prediction.baselineWinRate * 100).toFixed(1)}%; confidence lower bound ${(item.prediction.confidenceLowerBound * 100).toFixed(1)}%.`,
                     barrierEvidence: barrierPassed
                         ? `Predicted digit ${item.prediction.predictedDigit} satisfies ${item.opportunity.contractLabel} ${item.opportunity.barrier}.`
                         : contractPassed && predictionPassed
