@@ -97,6 +97,18 @@ describe('AccountSwitcher', () => {
         expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
 
+    it('shows real and demo account balances in the centered switcher', () => {
+        render(<AccountSwitcher activeAccount={mockActiveAccount} />);
+        fireEvent.click(screen.getByTestId('dt_acc_info'));
+
+        expect(screen.getByRole('dialog', { name: 'Switch Deriv account' })).toBeInTheDocument();
+        expect(screen.getByText('REAL')).toBeInTheDocument();
+        expect(screen.getByText('DEMO')).toBeInTheDocument();
+        expect(screen.getByText('100.00 USD')).toBeInTheDocument();
+        expect(screen.getByText('9992.15 USD')).toBeInTheDocument();
+        expect(screen.getAllByRole('option')).toHaveLength(2);
+    });
+
     it('does not open dropdown when bot is running via run_panel', () => {
         const { useStore } = require('@/hooks/useStore');
         useStore.mockReturnValue({
