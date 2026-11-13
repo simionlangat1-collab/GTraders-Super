@@ -17,9 +17,8 @@ export interface AIFreshProposal {
 export type AIProposalRequest = (payload: Record<string, unknown>) => Promise<unknown>;
 
 /**
- * Requests a new, one-tick proposal from Deriv for the exact current candidate.
- * No quote is cached. The returned proposal id is retained for the later
- * execution stage; receiving a proposal never buys a contract.
+ * Requests a new one-tick Deriv proposal for the exact current candidate.
+ * No quote is cached. A proposal is pricing data only; it never buys a contract.
  */
 export const requestFreshAIProposal = async (
     request: AIProposalRequest,
@@ -37,13 +36,6 @@ export const requestFreshAIProposal = async (
     }
 
     const rawResponse = await request({
-        proposal?: {
-            id?: string | number;
-            ask_price?: number | string;
-            payout?: number | string;
-        };
-    });
-    const response = rawResponse as {
         proposal: 1,
         amount: input.amount,
         basis: 'stake',
@@ -54,10 +46,17 @@ export const requestFreshAIProposal = async (
         barrier: String(input.barrier),
         underlying_symbol: input.symbol,
     });
+    const response = rawResponse as {
+        proposal?: {
+            id?: string | number;
+            ask_price?: number | string;
+            payout?: number | string;
+        };
+    };
 
-    const proposalId = response.proposal?.id;
-    const askPrice = Number(response.proposal?.ask_price);
-    const payout = Number(response.proposal?.payout);
+    const proposalId = response?.proposal?.id;
+    const askPrice = Number(response?.proposal?.ask_price);
+    const payout = Number(response?.proposal?.payout);
 
     if (
         (typeof proposalId !== 'string' && typeof proposalId !== 'number') ||
