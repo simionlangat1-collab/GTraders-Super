@@ -1365,3 +1365,103 @@
         min-height: 2.8rem;
     }
 }
+
+
+.gtraders-ai-selected {
+    display: grid;
+    gap: 1rem;
+    padding: 1.2rem;
+    border: 1px solid rgba(34, 211, 238, 0.24);
+    border-radius: 1rem;
+    background: rgba(8, 18, 34, 0.58);
+
+    &__heading {
+        display: grid;
+        gap: 0.25rem;
+
+        strong {
+            color: #ffffff;
+            font-size: 1.15rem;
+        }
+
+        span {
+            color: #9fb2ca;
+            font-size: 0.9rem;
+        }
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+    }
+
+    &__card {
+        display: grid;
+        gap: 0.3rem;
+        min-width: 0;
+        padding: 0.85rem;
+        border: 1px solid rgba(96, 165, 250, 0.2);
+        border-radius: 0.8rem;
+        background: rgba(30, 58, 95, 0.3);
+
+        span {
+            color: #8fa8c4;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        strong {
+            overflow: hidden;
+            color: #f8fbff;
+            font-size: 1.05rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        small {
+            overflow: hidden;
+            color: #67e8f9;
+            font-size: 0.78rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+}
+
+.gtraders-ai-execution {
+    &__run-button {
+        width: 100%;
+        min-height: 4.4rem;
+        margin-top: 0.35rem;
+        border: 0;
+        border-radius: 0.9rem;
+        color: #ffffff;
+        background: linear-gradient(100deg, #1769d2, #5b45c8);
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        box-shadow: 0 0.6rem 1.8rem rgba(37, 131, 255, 0.2);
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        &--stop {
+            background: linear-gradient(100deg, #b91c1c, #c2410c);
+            box-shadow: 0 0.6rem 1.8rem rgba(220, 38, 38, 0.18);
+        }
+    }
+}
+
+@media (max-width: 520px) {
+    .gtraders-ai-selected {
+        &__grid {
+            grid-template-columns: 1fr;
+        }
+    }
+}
