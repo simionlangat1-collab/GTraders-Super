@@ -11,7 +11,7 @@ describe('evaluateAIContractOpportunity', () => {
         expect(result.trainingSampleSize).toBe(300);
         expect(result.holdoutSampleSize).toBe(200);
         expect(result.confidenceLowerBound).toBeGreaterThan(result.baselineWinRate);
-        expect(result.explanation).toContain('does not authorize an order');
+        expect(result.explanation).toContain('never authorizes an order');
     });
 
     it('returns NO TRADE when balanced digits do not beat a fair baseline', () => {
@@ -40,7 +40,7 @@ describe('evaluateAIContractOpportunity', () => {
     });
 
     it('does not claim a candidate when a training pattern disappears in holdout', () => {
-        const digits = [...Array(300).fill(8), ...Array.from({ length: 200 }, (_, i) => i % 10)];
+        const digits = [...Array(300).fill(8), ...Array(200).fill(0)];
         const result = evaluateAIContractOpportunity(digits, 100);
 
         expect(result.decision).toBe('NO_TRADE');
