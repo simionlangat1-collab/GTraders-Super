@@ -6,6 +6,7 @@ import {
 } from './services/ai-deriv-connection';
 import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
+import { assessAIRisk } from './services/ai-risk-manager';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -28,6 +29,10 @@ const GTradersSuperAI = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [scannerError, setScannerError] = useState('');
     const [scannedAt, setScannedAt] = useState<number | null>(null);
+    const [stakeInput, setStakeInput] = useState('');
+    const [targetProfitInput, setTargetProfitInput] = useState('');
+    const [stopLossInput, setStopLossInput] = useState('');
+    const [maxConsecutiveLossesInput, setMaxConsecutiveLossesInput] = useState('3');
 
     useEffect(() => {
         const unsubscribe = connection.onStatusChange(status => {
@@ -88,6 +93,27 @@ const GTradersSuperAI = () => {
 
     const isConnecting = connectionStatus === 'connecting';
     const isConnected = connectionStatus === 'connected';
+    const stake = Number(stakeInput);
+    const targetProfit = Number(targetProfitInput);
+    const stopLoss = Number(stopLossInput);
+    const maxConsecutiveLosses = Number(maxConsecutiveLossesInput);
+    const riskInputsReady =
+        stakeInput.trim() !== '' &&
+        targetProfitInput.trim() !== '' &&
+        stopLossInput.trim() !== '' &&
+        maxConsecutiveLossesInput.trim() !== '' &&
+        [stake, targetProfit, stopLoss, maxConsecutiveLosses].every(Number.isFinite) &&
+        stake > 0 &&
+        targetProfit > 0 &&
+        stopLoss > 0 &&
+        Number.isInteger(maxConsecutiveLosses) &&
+        maxConsecutiveLosses > 0;
+    const riskAssessment = isConnected && account && riskInputsReady
+        ? assessAIRisk(
+            { stake, targetProfit, stopLoss, maxConsecutiveLosses },
+            { balance: account.balance, sessionProfitLoss: 0, consecutiveLosses: 0 }
+        )
+        : null;
 
     return (
         <>
@@ -157,6 +183,82 @@ const GTradersSuperAI = () => {
                             <p className='gtraders-ai-panel__error' role='alert'>
                                 {connectionError}
                             </p>
+                        )}
+
+                        {isConnected && account && (
+                            <section className='gtraders-ai-risk'>
+                                <div className='gtraders-ai-risk__heading'>
+                                    <strong>AI Session Risk Controls</strong>
+                                    <span>Set your limits before any future demo execution</span>
+                                </div>
+                                <div className='gtraders-ai-risk__fields'>
+                                    <label>
+                                        <span>Stake ({account.currency})</span>
+                                        <input
+                                            type='number'
+                                            min='0.01'
+                                            step='any'
+                                            inputMode='decimal'
+                                            value={stakeInput}
+                                            onChange={event => setStakeInput(event.target.value)}
+                                            placeholder='Enter stake'
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Target profit ({account.currency})</span>
+                                        <input
+                                            type='number'
+                                            min='0.01'
+                                            step='any'
+                                            inputMode='decimal'
+                                            value={targetProfitInput}
+                                            onChange={event => setTargetProfitInput(event.target.value)}
+                                            placeholder='Enter target'
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Stop loss ({account.currency})</span>
+                                        <input
+                                            type='number'
+                                            min='0.01'
+                                            step='any'
+                                            inputMode='decimal'
+                                            value={stopLossInput}
+                                            onChange={event => setStopLossInput(event.target.value)}
+                                            placeholder='Enter stop loss'
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Max consecutive losses</span>
+                                        <input
+                                            type='number'
+                                            min='1'
+                                            step='1'
+                                            inputMode='numeric'
+                                            value={maxConsecutiveLossesInput}
+                                            onChange={event => setMaxConsecutiveLossesInput(event.target.value)}
+                                        />
+                                    </label>
+                                </div>
+                                {riskAssessment ? (
+                                    <div
+                                        className={`gtraders-ai-risk__assessment gtraders-ai-risk__assessment--${riskAssessment.allowed ? 'allowed' : 'blocked'}`}
+                                        role='status'
+                                    >
+                                        <strong>{riskAssessment.allowed ? 'Preflight checks passed' : 'Trading blocked by risk limits'}</strong>
+                                        <span>{riskAssessment.explanation}</span>
+                                        <span>Remaining target: {riskAssessment.remainingProfitTarget.toFixed(2)} {account.currency}</span>
+                                        <span>Remaining loss allowance: {riskAssessment.remainingLossAllowance.toFixed(2)} {account.currency}</span>
+                                    </div>
+                                ) : (
+                                    <p className='gtraders-ai-risk__hint'>
+                                        Enter a positive stake, target profit and stop loss to check the limits. The initial stake is capped at 2% of the connected account balance.
+                                    </p>
+                                )}
+                                <p className='gtraders-ai-risk__disclaimer'>
+                                    Preflight only: session profit/loss and consecutive losses are currently zero because execution is not enabled. Passing these checks does not start trading or authorize an order.
+                                </p>
+                            </section>
                         )}
 
                         {isConnected && (
