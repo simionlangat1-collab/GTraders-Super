@@ -62,13 +62,17 @@ export const validateAIModelOutOfSample = (
         input.dataQuality <= 100 &&
         Array.isArray(input.observations);
 
+    let previousTimestamp = input.trainingCutoff;
     const eligible = validInput
-        ? input.observations.filter(item =>
-            Number.isFinite(item.settledAt) &&
-            item.settledAt > input.trainingCutoff &&
-            typeof item.modelPredictionCorrect === 'boolean' &&
-            typeof item.baselinePredictionCorrect === 'boolean'
-        )
+        ? input.observations.filter(item => {
+            const isValid =
+                Number.isFinite(item.settledAt) &&
+                item.settledAt > previousTimestamp &&
+                typeof item.modelPredictionCorrect === 'boolean' &&
+                typeof item.baselinePredictionCorrect === 'boolean';
+            if (isValid) previousTimestamp = item.settledAt;
+            return isValid;
+        })
         : [];
 
     const rejectedObservations = validInput
