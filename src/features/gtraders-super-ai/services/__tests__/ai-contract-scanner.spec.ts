@@ -1,4 +1,26 @@
-import { evaluateAIContractOpportunity, evaluateAIProposalEconomics } from '../ai-contract-scanner';
+import { doesAIPredictionSupportContract, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from '../ai-contract-scanner';
+
+describe('doesAIPredictionSupportContract', () => {
+    it('requires the predicted digit to satisfy the selected Over barrier', () => {
+        expect(doesAIPredictionSupportContract('DIGITOVER', 2, 3)).toBe(true);
+        expect(doesAIPredictionSupportContract('DIGITOVER', 2, 2)).toBe(false);
+        expect(doesAIPredictionSupportContract('DIGITOVER', 2, 1)).toBe(false);
+    });
+
+    it('requires the predicted digit to satisfy the selected Under barrier', () => {
+        expect(doesAIPredictionSupportContract('DIGITUNDER', 7, 6)).toBe(true);
+        expect(doesAIPredictionSupportContract('DIGITUNDER', 7, 7)).toBe(false);
+        expect(doesAIPredictionSupportContract('DIGITUNDER', 7, 8)).toBe(false);
+    });
+
+    it('rejects missing and invalid prediction or barrier data', () => {
+        expect(doesAIPredictionSupportContract(null, 2, 3)).toBe(false);
+        expect(doesAIPredictionSupportContract('DIGITOVER', null, 3)).toBe(false);
+        expect(doesAIPredictionSupportContract('DIGITOVER', 2, null)).toBe(false);
+        expect(doesAIPredictionSupportContract('DIGITOVER', 9, 9)).toBe(false);
+        expect(doesAIPredictionSupportContract('DIGITUNDER', 0, 0)).toBe(false);
+    });
+});
 
 describe('evaluateAIContractOpportunity', () => {
     it('selects an Over/Under contract from training and validates it on later unseen ticks', () => {
