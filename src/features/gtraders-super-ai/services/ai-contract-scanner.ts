@@ -1,7 +1,7 @@
 export type AIContractType = 'DIGITOVER' | 'DIGITUNDER';
 
 export interface AIContractOpportunity {
-    decision: 'TRADE_CANDIDATE' | 'NO_TRADE';
+    decision: 'MARKET_CANDIDATE' | 'NO_TRADE';
     contractType: AIContractType | null;
     contractLabel: 'Over' | 'Under' | null;
     barrier: number | null;
@@ -180,12 +180,12 @@ export const evaluateAIContractOpportunity = (
             trainingSampleSize,
             holdoutSampleSize,
             dataQuality,
-            explanation: 'NO TRADE — the training-selected contract did not beat its fair baseline with the required one-sided 95% holdout confidence.',
+            explanation: 'NO TRADE — the training-selected contract did not beat its fair baseline with the conservative holdout confidence bound.',
         };
     }
 
     return {
-        decision: 'TRADE_CANDIDATE',
+        decision: 'MARKET_CANDIDATE',
         contractType: selected.rule.contractType,
         contractLabel: selected.rule.contractLabel,
         barrier: selected.rule.barrier,
@@ -198,6 +198,6 @@ export const evaluateAIContractOpportunity = (
         trainingSampleSize,
         holdoutSampleSize,
         dataQuality,
-        explanation: 'Research candidate only: the contract was selected before the holdout and its one-sided 95% lower confidence bound beat the fair digit baseline. Check live proposal pricing and breakeven before any demo execution; this result never authorizes an order.',
+        explanation: 'Research candidate only: the contract was selected before the holdout and its conservative adjusted lower confidence bound beat the fair digit baseline. Check live proposal pricing and breakeven before any demo execution; this result never authorizes an order.',
     };
 };
