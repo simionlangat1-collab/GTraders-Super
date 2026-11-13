@@ -26,7 +26,6 @@ export interface AIMarketStatistics {
 }
 
 const DIGIT_COUNT = 10;
-const EXPECTED_PROPORTION = 1 / DIGIT_COUNT;
 const MINIMUM_SAMPLE = 100;
 
 const wilsonInterval = (successes: number, sampleSize: number): [number, number] => {
