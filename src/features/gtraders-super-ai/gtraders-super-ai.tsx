@@ -4,7 +4,7 @@ import {
     AIAccountSnapshot,
     AIConnectionStatus,
 } from './services/ai-deriv-connection';
-import { AIMarketScanner, AIMarketHistory, isVolatilityIndexMarket } from './services/ai-market-scanner';
+import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
 import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import { assessAIRisk } from './services/ai-risk-manager';
 import { AIContractOpportunity, doesAIPredictionSupportContract, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
@@ -100,11 +100,17 @@ const GTradersSuperAI = () => {
             const scanner = new AIMarketScanner(<T,>(payload: Record<string, unknown>) =>
                 connection.requestData<T>(payload)
             );
-            const availableMarkets = await scanner.getAvailableMarkets();
-            const volatilityMarkets = availableMarkets.filter(isVolatilityIndexMarket);
-            setAvailableMarketCount(volatilityMarkets.length);
+            // Every scan request re-discovers active symbols and fetches new
+            // tick history. The autonomous runner will reuse this exact method
+            // before every entry rather than trading from a stale shortlist.
+            const freshScan = await scanner.scanFreshVolatilityMarkets({
+                maxMarkets: 100,
+                historyCount: 500,
+                concurrency: 3,
+            });
+            setAvailableMarketCount(freshScan.availableMarketCount);
 
-            if (!volatilityMarkets.length) {
+            if (!freshScan.markets.length) {
                 setScannerOutcomeMessage(
                     'NO TRADE — no eligible Volatility Index markets were returned by Deriv.'
                 );
@@ -112,11 +118,7 @@ const GTradersSuperAI = () => {
                 return;
             }
 
-            const results = await scanner.scanMarkets(volatilityMarkets, {
-                maxMarkets: 30,
-                historyCount: 500,
-                concurrency: 3,
-            });
+            const results = freshScan.histories;
             setMarketResults(results);
 
             const evaluatedMarkets = results.map(market => ({
@@ -433,7 +435,7 @@ const GTradersSuperAI = () => {
                                 <div className='gtraders-ai-scanner__heading'>
                                     <div>
                                         <strong>Independent Market Scanner</strong>
-                                        <span>{availableMarketCount} Volatility Index markets found · scanning up to 30</span>
+                                        <span>{availableMarketCount} Volatility Index markets found · fresh scan across all returned eligible markets</span>
                                     </div>
                                     <button
                                         type='button'
