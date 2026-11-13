@@ -1,4 +1,4 @@
-import { validateAIModelOutOfSample } from '../ai-model-validation';
+import { getFamilyWiseConfidenceZ, validateAIModelOutOfSample } from '../ai-model-validation';
 
 const makeObservations = (
     count: number,
@@ -6,16 +6,22 @@ const makeObservations = (
     baselineCorrect: (index: number) => boolean = () => false
 ) => Array.from({ length: count }, (_, index) => ({
     settledAt: 2000 + index,
+    observationIndex: index + 1,
     modelPredictionCorrect: modelCorrect(index),
     baselinePredictionCorrect: baselineCorrect(index),
 }));
 
+const baseInput = {
+    trainingCutoffTimestamp: 1000,
+    trainingCutoffIndex: 0,
+    marketSampleSize: 500,
+    dataQuality: 100,
+};
+
 describe('validateAIModelOutOfSample', () => {
     it('validates only a clean chronological holdout with a statistically stronger model', () => {
         const result = validateAIModelOutOfSample({
-            trainingCutoff: 1000,
-            marketSampleSize: 500,
-            dataQuality: 100,
+            ...baseInput,
             observations: makeObservations(300, index => index < 240, index => index < 150),
         });
 
@@ -26,11 +32,10 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.winRateConfidenceLowerBound).toBeGreaterThan(0.5);
     });
 
-    it('rejects observations at or before the training cutoff', () => {
+    it('rejects observations at or before the training timestamp cutoff', () => {
         const result = validateAIModelOutOfSample({
-            trainingCutoff: 2000,
-            marketSampleSize: 500,
-            dataQuality: 100,
+            ...baseInput,
+            trainingCutoffTimestamp: 2000,
             observations: makeObservations(250, () => true),
         });
 
@@ -39,13 +44,11 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.validationPassed).toBe(false);
     });
 
-    it('rejects duplicate or out-of-order holdout timestamps', () => {
+    it('rejects out-of-order timestamps and tick positions', () => {
         const observations = makeObservations(250, () => true);
-        observations[120].settledAt = observations[119].settledAt;
+        observations[120].settledAt = observations[119].settledAt - 1;
         const result = validateAIModelOutOfSample({
-            trainingCutoff: 1000,
-            marketSampleSize: 500,
-            dataQuality: 100,
+            ...baseInput,
             observations,
         });
 
@@ -53,11 +56,21 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.validationPassed).toBe(false);
     });
 
+    it('allows equal second-level timestamps when tick positions remain strictly increasing', () => {
+        const observations = makeObservations(250, () => true);
+        observations[120].settledAt = observations[119].settledAt;
+        const result = validateAIModelOutOfSample({
+            ...baseInput,
+            observations,
+        });
+
+        expect(result.rejectedObservations).toBe(0);
+        expect(result.evidence.outOfSampleTradeCount).toBe(250);
+    });
+
     it('rejects a holdout that does not beat the matched baseline', () => {
         const result = validateAIModelOutOfSample({
-            trainingCutoff: 1000,
-            marketSampleSize: 500,
-            dataQuality: 100,
+            ...baseInput,
             observations: makeObservations(300, () => true, () => true),
         });
 
@@ -69,22 +82,28 @@ describe('validateAIModelOutOfSample', () => {
 
     it('requires at least 200 clean settled holdout observations', () => {
         const result = validateAIModelOutOfSample({
-            trainingCutoff: 1000,
-            marketSampleSize: 500,
-            dataQuality: 100,
+            ...baseInput,
             observations: makeObservations(199, () => true),
         });
 
         expect(result.evidence.validationPassed).toBe(false);
     });
 
+    it('uses a stricter confidence bound when more markets are compared', () => {
+        expect(getFamilyWiseConfidenceZ(1)).toBeCloseTo(1.645, 2);
+        expect(getFamilyWiseConfidenceZ(100)).toBeCloseTo(3.291, 2);
+        expect(getFamilyWiseConfidenceZ(100)).toBeGreaterThan(getFamilyWiseConfidenceZ(1));
+    });
+
     it('rejects malformed input and invalid timestamps without claiming validation', () => {
         const result = validateAIModelOutOfSample({
-            trainingCutoff: Number.NaN,
+            ...baseInput,
+            trainingCutoffTimestamp: Number.NaN,
             marketSampleSize: -1,
             dataQuality: 101,
             observations: [{
                 settledAt: Number.NaN,
+                observationIndex: 1,
                 modelPredictionCorrect: true,
                 baselinePredictionCorrect: true,
             }],
