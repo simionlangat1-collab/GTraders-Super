@@ -1,5 +1,7 @@
+import { isProduction } from '@/components/shared';
 import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 import { OAuthTokenExchangeService } from '@/services/oauth-token-exchange.service';
+import brandConfig from '../../../../brand.config.json';
 
 export type AIConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -108,7 +110,7 @@ export class AIDerivConnection {
         }
     };
 
-    private request = <T extends DerivMessage>(payload: Record<string, unknown>): Promise<T> => {
+    private request = <T = DerivMessage>(payload: Record<string, unknown>): Promise<T> => {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
             return Promise.reject(new Error('AI Deriv connection is not open.'));
         }
@@ -151,6 +153,54 @@ export class AIDerivConnection {
         }
     };
 
+    private async getPrivateWebSocketUrl(accessToken: string): Promise<string> {
+        // Reuse account identity data only. The AI requests its own fresh OTP so
+        // it cannot accidentally share the existing bot's one-time WebSocket URL.
+        const storedAccounts = DerivWSAccountsService.getStoredAccounts();
+        const accounts =
+            storedAccounts && storedAccounts.length > 0
+                ? storedAccounts
+                : await DerivWSAccountsService.fetchAccountsList(accessToken);
+
+        if (!accounts.length) {
+            throw new Error('No Deriv accounts are available for the AI connection.');
+        }
+
+        const selectedAccountId = localStorage.getItem('active_loginid');
+        const selectedAccount = selectedAccountId
+            ? accounts.find(account => account.account_id === selectedAccountId)
+            : accounts[0];
+
+        if (!selectedAccount) {
+            throw new Error('The selected Deriv account could not be verified. Please switch accounts and try again.');
+        }
+
+        const environment = isProduction() ? 'production' : 'staging';
+        const baseUrl = brandConfig.platform.derivws.url[environment];
+        const optionsDirectory = brandConfig.platform.derivws.directories.options;
+        const otpEndpoint = `${baseUrl}${optionsDirectory}accounts/${selectedAccount.account_id}/otp`;
+
+        const response = await fetch(otpEndpoint, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Deriv could not issue a private AI connection URL (${response.status}).`);
+        }
+
+        const otpResponse = (await response.json()) as { data?: { url?: string } };
+        const websocketUrl = otpResponse.data?.url;
+
+        if (!websocketUrl) {
+            throw new Error('Deriv did not return a private AI WebSocket URL.');
+        }
+
+        return websocketUrl;
+    }
+
     private async connectPrivateSocket(): Promise<AIAccountSnapshot> {
         this.intentionalClose = false;
         this.setStatus('connecting');
@@ -162,9 +212,7 @@ export class AIDerivConnection {
             }
 
             const selectedAccountId = localStorage.getItem('active_loginid');
-            const websocketUrl = await DerivWSAccountsService.getAuthenticatedWebSocketURL(
-                authInfo.access_token
-            );
+            const websocketUrl = await this.getPrivateWebSocketUrl(authInfo.access_token);
 
             if (!websocketUrl) {
                 throw new Error('Deriv did not provide an authenticated WebSocket URL.');
