@@ -218,10 +218,15 @@ export class AILiveTickStream {
             for (let attempt = 1; attempt <= this.reconnectAttempts; attempt += 1) {
                 if (this.manuallyStopped || generation !== this.generation) return;
                 try {
-                    // A silent-but-open socket is not trusted: force a fresh
-                    // authenticated socket before restoring the subscription.
+                    // First test the authenticated socket without tearing it down.
+                    // A quiet tick feed is not, by itself, proof that the account
+                    // connection is dead. Reconnect only when the Deriv ping fails.
                     if (this.connection.getStatus() === 'connected') {
-                        this.connection.disconnect?.();
+                        try {
+                            await this.connection.requestData({ ping: 1 });
+                        } catch {
+                            this.connection.disconnect();
+                        }
                     }
                     if (this.connection.getStatus() !== 'connected') {
                         await this.connection.connect();
