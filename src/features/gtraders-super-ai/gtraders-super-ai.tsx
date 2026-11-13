@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     AIDerivConnection,
     AIAccountSnapshot,
@@ -10,6 +10,8 @@ import { assessAIRisk } from './services/ai-risk-manager';
 import { AIContractOpportunity, doesAIPredictionSupportContract, evaluateAIContractOpportunity, evaluateAIProposalEconomics } from './services/ai-contract-scanner';
 import { AIPredictionResult, generateAIPrediction } from './services/ai-prediction-engine';
 import { requestFreshAIProposal } from './services/ai-proposal-service';
+import { executeAIDemoTrade } from './services/ai-demo-execution';
+import { AISessionLedger, AISessionSnapshot } from './services/ai-session-ledger';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -49,6 +51,13 @@ const GTradersSuperAI = () => {
     const [targetProfitInput, setTargetProfitInput] = useState('');
     const [stopLossInput, setStopLossInput] = useState('');
     const [maxConsecutiveLossesInput, setMaxConsecutiveLossesInput] = useState('3');
+    const [sessionLedger, setSessionLedger] = useState<AISessionLedger | null>(null);
+    const [sessionSnapshot, setSessionSnapshot] = useState<AISessionSnapshot | null>(null);
+    const [ledgerError, setLedgerError] = useState('');
+    const [isExecuting, setIsExecuting] = useState(false);
+    const [executionMessage, setExecutionMessage] = useState('');
+    const [preparedOpportunity, setPreparedOpportunity] = useState<SelectedMarketOpportunity | null>(null);
+    const executionLock = useRef(false);
 
     useEffect(() => {
         const unsubscribe = connection.onStatusChange(status => {
@@ -67,6 +76,16 @@ const GTradersSuperAI = () => {
         try {
             const connectedAccount = await connection.connect();
             setAccount(connectedAccount);
+            try {
+                const ledger = new AISessionLedger(connectedAccount.loginid);
+                setSessionLedger(ledger);
+                setSessionSnapshot(ledger.getSnapshot());
+                setLedgerError('');
+            } catch (error) {
+                setSessionLedger(null);
+                setSessionSnapshot(null);
+                setLedgerError(error instanceof Error ? error.message : 'AI session ledger could not be initialized.');
+            }
         } catch (error) {
             setConnectionError(
                 error instanceof Error ? error.message : 'Unable to connect to Deriv.'
@@ -74,18 +93,23 @@ const GTradersSuperAI = () => {
         }
     };
 
-    const scanMarkets = async () => {
+    const scanMarkets = async (balanceOverride?: number): Promise<SelectedMarketOpportunity | null> => {
         if (!riskInputsReady) {
             setScannerError('Enter your stake, target profit and stop loss before scanning.');
-            return;
+            return null;
         }
-        if (!riskAssessment?.allowed) {
-            setScannerError('Market scanning is blocked until the AI risk preflight passes.');
-            return;
+        if (!account || !sessionLedger || !sessionSnapshot) {
+            setScannerError('Connect a verified account and initialize the AI session ledger first.');
+            return null;
         }
-        if (!account) {
-            setScannerError('Connect the AI account before requesting market proposals.');
-            return;
+        const currentSession = sessionLedger.getSnapshot();
+        const scanRisk = assessAIRisk(
+            { stake: Number(stakeInput), targetProfit: Number(targetProfitInput), stopLoss: Number(stopLossInput), maxConsecutiveLosses: Number(maxConsecutiveLossesInput) },
+            { balance: balanceOverride ?? account.balance, sessionProfitLoss: currentSession.sessionProfitLoss, consecutiveLosses: currentSession.consecutiveLosses }
+        );
+        if (!scanRisk.allowed) {
+            setScannerError(scanRisk.explanation);
+            return null;
         }
 
         const scanStake = Number(stakeInput);
@@ -103,8 +127,7 @@ const GTradersSuperAI = () => {
                 connection.requestData<T>(payload)
             );
             // Every scan request re-discovers active symbols and fetches new
-            // tick history. The autonomous runner will reuse this exact method
-            // before every entry rather than trading from a stale shortlist.
+            // tick history. Demo confirmation performs another complete scan.
             const freshScan = await scanner.scanFreshVolatilityMarkets({
                 maxMarkets: 100,
                 historyCount: 500,
@@ -117,7 +140,7 @@ const GTradersSuperAI = () => {
                     'NO TRADE — no eligible Volatility Index markets were returned by Deriv.'
                 );
                 setScannedAt(Date.now());
-                return;
+                return null;
             }
 
             const results = freshScan.histories;
@@ -199,7 +222,7 @@ const GTradersSuperAI = () => {
                 (a, b) => b.economics.confidenceMargin - a.economics.confidenceMargin
             )[0];
 
-            setMarketOpportunity(selected
+            const selectedOpportunity: SelectedMarketOpportunity | null = selected
                 ? {
                     ...selected.opportunity,
                     explanation: selected.economics.explanation,
@@ -212,7 +235,8 @@ const GTradersSuperAI = () => {
                     confidenceMargin: selected.economics.confidenceMargin,
                     prediction: selected.prediction,
                 }
-                : null);
+                : null;
+            setMarketOpportunity(selectedOpportunity);
 
             const statisticsMarket = selected?.market ?? qualifying[0]?.market ?? results[0];
             setMarketStatistics(
@@ -236,10 +260,177 @@ const GTradersSuperAI = () => {
             if (!results.length) {
                 setScannerError('No market history was returned. Please try scanning again.');
             }
+            return selectedOpportunity;
         } catch (error) {
             setScannerError(error instanceof Error ? error.message : 'Market scan failed.');
+            return null;
         } finally {
             setIsScanning(false);
+        }
+    };
+
+
+    const getFreshDemoBalance = async (): Promise<AIAccountSnapshot> => {
+        if (!account || account.account_type !== 'demo') {
+            throw new Error('A verified Deriv demo account is required. Real and unverified accounts are blocked.');
+        }
+        const response = await connection.requestData<{ balance: AIAccountSnapshot }>({ balance: 1 });
+        const fresh = response.balance;
+        if (!fresh?.loginid || fresh.loginid !== account.loginid || fresh.currency !== account.currency ||
+            !Number.isFinite(Number(fresh.balance)) || Number(fresh.balance) <= 0) {
+            throw new Error('The fresh balance response does not match the connected demo account. No trade will be placed.');
+        }
+        return { ...account, balance: Number(fresh.balance) };
+    };
+
+    const prepareDemoTrade = async () => {
+        if (executionLock.current) return;
+        executionLock.current = true;
+        setIsExecuting(true);
+        setExecutionMessage('');
+        setPreparedOpportunity(null);
+        try {
+            if (!sessionLedger || !sessionSnapshot || ledgerError) {
+                throw new Error('The AI session ledger is unavailable. Demo execution is disabled.');
+            }
+            const current = sessionLedger.getSnapshot();
+            if (current.openContractId !== null || current.executionUncertain) {
+                throw new Error('An earlier purchase is unresolved. Reconcile it before preparing another trade.');
+            }
+            const freshAccount = await getFreshDemoBalance();
+            setAccount(freshAccount);
+            const candidate = await scanMarkets(freshAccount.balance);
+            if (!candidate) {
+                setExecutionMessage('NO TRADE — the fresh market scan found no candidate that passed every evidence and pricing check.');
+                return;
+            }
+            setPreparedOpportunity(candidate);
+            setExecutionMessage(`Candidate prepared: ${candidate.displayName}, ${candidate.contractLabel} ${candidate.barrier}. Preparation does not buy. Confirmation runs another fresh scan and requests a new proposal.`);
+        } catch (error) {
+            setExecutionMessage(error instanceof Error ? error.message : 'Demo preparation failed.');
+        } finally {
+            executionLock.current = false;
+            setIsExecuting(false);
+        }
+    };
+
+    const confirmDemoTrade = async () => {
+        if (executionLock.current || !preparedOpportunity) return;
+        executionLock.current = true;
+        setIsExecuting(true);
+        setExecutionMessage('Rechecking account, market evidence and contract pricing…');
+        try {
+            if (!sessionLedger || !account || account.account_type !== 'demo' || ledgerError) {
+                throw new Error('A verified demo account and valid AI session ledger are required.');
+            }
+            const beforeScan = sessionLedger.getSnapshot();
+            if (beforeScan.openContractId !== null || beforeScan.executionUncertain) {
+                throw new Error('An earlier purchase is unresolved. No additional purchase is allowed.');
+            }
+
+            const freshAccount = await getFreshDemoBalance();
+            setAccount(freshAccount);
+            const initialRisk = assessAIRisk(
+                { stake, targetProfit, stopLoss, maxConsecutiveLosses },
+                { balance: freshAccount.balance, sessionProfitLoss: beforeScan.sessionProfitLoss, consecutiveLosses: beforeScan.consecutiveLosses }
+            );
+            if (!initialRisk.allowed) {
+                setPreparedOpportunity(null);
+                setExecutionMessage(initialRisk.explanation);
+                return;
+            }
+
+            const candidate = await scanMarkets(freshAccount.balance);
+            if (!candidate || !candidate.contractType || candidate.barrier === null) {
+                setPreparedOpportunity(null);
+                setExecutionMessage('NO TRADE — the confirmation scan did not produce a fully qualified candidate.');
+                return;
+            }
+
+            const preBuyAccount = await getFreshDemoBalance();
+            setAccount(preBuyAccount);
+            const proposal = await requestFreshAIProposal(
+                <T,>(payload: Record<string, unknown>) => connection.requestData<T>(payload),
+                { amount: stake, currency: preBuyAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol }
+            );
+            const latestSession = sessionLedger.getSnapshot();
+            const gateInput = {
+                connectionStatus: connection.getStatus(),
+                accountType: preBuyAccount.account_type,
+                hasOpenContract: latestSession.openContractId !== null || latestSession.executionUncertain,
+                hasQualifiedOpportunity: candidate.decision === 'MARKET_CANDIDATE' &&
+                    candidate.prediction.decision === 'PREDICTION_CANDIDATE' &&
+                    doesAIPredictionSupportContract(candidate.contractType, candidate.barrier, candidate.prediction.predictedDigit),
+                riskSettings: { stake, targetProfit, stopLoss, maxConsecutiveLosses },
+                riskSnapshot: { balance: preBuyAccount.balance, sessionProfitLoss: latestSession.sessionProfitLoss, consecutiveLosses: latestSession.consecutiveLosses },
+                expectedContract: { amount: stake, currency: preBuyAccount.currency, contractType: candidate.contractType, barrier: candidate.barrier, symbol: candidate.symbol },
+                proposal,
+                confidenceLowerBound: candidate.confidenceLowerBound,
+            };
+
+            const result = await executeAIDemoTrade(gateInput, {
+                request: payload => connection.requestData(payload),
+                waitForSettlement: contractId => connection.waitForContractSettlement(contractId),
+                onPurchased: contractId => {
+                    sessionLedger.markPurchase(contractId);
+                    setSessionSnapshot(sessionLedger.getSnapshot());
+                },
+                onPurchaseUncertain: () => {
+                    sessionLedger.markPurchaseUncertain();
+                    setSessionSnapshot(sessionLedger.getSnapshot());
+                },
+            });
+
+            if (result.status === 'BLOCKED') {
+                setExecutionMessage(result.gate.explanation);
+                return;
+            }
+            if (result.status === 'PURCHASE_UNCERTAIN' || result.status === 'SETTLEMENT_PENDING') {
+                setExecutionMessage(result.message);
+                setSessionSnapshot(sessionLedger.getSnapshot());
+                setPreparedOpportunity(null);
+                return;
+            }
+
+            const settledSession = sessionLedger.recordSettlement(result.contractId, result.profit);
+            setSessionSnapshot(settledSession);
+            const balanceAfter = await connection.requestData<{ balance: AIAccountSnapshot }>({ balance: 1 });
+            if (balanceAfter.balance?.loginid !== preBuyAccount.loginid || balanceAfter.balance.currency !== preBuyAccount.currency ||
+                !Number.isFinite(Number(balanceAfter.balance.balance))) {
+                throw new Error('The contract settled, but the post-settlement balance could not be reconciled. The verified contract P/L remains in the session ledger.');
+            }
+            setAccount({ ...preBuyAccount, balance: Number(balanceAfter.balance.balance) });
+            setExecutionMessage(`DEMO CONTRACT SETTLED — ${result.settlementStatus.toUpperCase()}. Realized P/L: ${result.profit.toFixed(2)} ${preBuyAccount.currency}. Session P/L: ${settledSession.sessionProfitLoss.toFixed(2)} ${preBuyAccount.currency}. Consecutive losses: ${settledSession.consecutiveLosses}. Stake unchanged; no Martingale.`);
+            setPreparedOpportunity(null);
+        } catch (error) {
+            if (sessionLedger) setSessionSnapshot(sessionLedger.getSnapshot());
+            setExecutionMessage(error instanceof Error ? error.message : 'Demo execution stopped safely.');
+        } finally {
+            executionLock.current = false;
+            setIsExecuting(false);
+        }
+    };
+
+    const resumeSettlementMonitoring = async () => {
+        if (executionLock.current || !sessionLedger) return;
+        const openContractId = sessionLedger.getSnapshot().openContractId;
+        if (openContractId === null) return;
+        executionLock.current = true;
+        setIsExecuting(true);
+        setExecutionMessage(`Resuming settlement monitoring for contract ${openContractId}…`);
+        try {
+            const settlement = await connection.waitForContractSettlement(openContractId);
+            const updatedSession = sessionLedger.recordSettlement(openContractId, settlement.profit);
+            setSessionSnapshot(updatedSession);
+            const freshBalance = await getFreshDemoBalance();
+            setAccount(freshBalance);
+            setExecutionMessage(`CONTRACT RECONCILED — ${settlement.status.toUpperCase()}. Realized P/L: ${settlement.profit.toFixed(2)} ${freshBalance.currency}. Session P/L: ${updatedSession.sessionProfitLoss.toFixed(2)} ${freshBalance.currency}.`);
+        } catch (error) {
+            setSessionSnapshot(sessionLedger.getSnapshot());
+            setExecutionMessage(error instanceof Error ? error.message : 'Settlement is still unverified. Trading remains locked.');
+        } finally {
+            executionLock.current = false;
+            setIsExecuting(false);
         }
     };
 
@@ -266,10 +457,10 @@ const GTradersSuperAI = () => {
         stopLoss > 0 &&
         Number.isInteger(maxConsecutiveLosses) &&
         maxConsecutiveLosses > 0;
-    const riskAssessment = isConnected && account && riskInputsReady
+    const riskAssessment = isConnected && account && sessionSnapshot && riskInputsReady
         ? assessAIRisk(
             { stake, targetProfit, stopLoss, maxConsecutiveLosses },
-            { balance: account.balance, sessionProfitLoss: 0, consecutiveLosses: 0 }
+            { balance: account.balance, sessionProfitLoss: sessionSnapshot.sessionProfitLoss, consecutiveLosses: sessionSnapshot.consecutiveLosses }
         )
         : null;
 
@@ -354,7 +545,7 @@ const GTradersSuperAI = () => {
                             <section className='gtraders-ai-risk'>
                                 <div className='gtraders-ai-risk__heading'>
                                     <strong>AI Session Risk Controls</strong>
-                                    <span>Set your limits before any future demo execution</span>
+                                    <span>Session limits for controlled demo execution</span>
                                 </div>
                                 <div className='gtraders-ai-risk__fields'>
                                     <label>
@@ -420,9 +611,50 @@ const GTradersSuperAI = () => {
                                         Enter a positive stake, target profit and stop loss to check the limits. The initial stake is capped at 2% of the connected account balance.
                                     </p>
                                 )}
-                                <p className='gtraders-ai-risk__disclaimer'>
-                                    Preflight only: session profit/loss and consecutive losses are currently zero because execution is not enabled. Passing these checks does not start trading or authorize an order.
-                                </p>
+                                {sessionSnapshot && (
+                                    <div className='gtraders-ai-session-summary'>
+                                        <strong>Verified AI session ledger</strong>
+                                        <span>Realized session P/L: {sessionSnapshot.sessionProfitLoss.toFixed(2)} {account.currency}</span>
+                                        <span>Consecutive losses: {sessionSnapshot.consecutiveLosses}</span>
+                                        <span>Settled AI contracts: {sessionSnapshot.settledTrades}</span>
+                                        {sessionSnapshot.openContractId !== null && <span>Unsettled contract: {sessionSnapshot.openContractId} · new purchases locked</span>}
+                                        {sessionSnapshot.executionUncertain && <span>Purchase status uncertain · execution locked pending manual reconciliation</span>}
+                                    </div>
+                                )}
+                                {ledgerError && <p className='gtraders-ai-panel__error' role='alert'>{ledgerError}</p>}
+                            </section>
+                        )}
+
+                        {isConnected && account && (
+                            <section className='gtraders-ai-execution'>
+                                <div className='gtraders-ai-risk__heading'>
+                                    <strong>Controlled Demo Execution</strong>
+                                    <span>One trade at a time · fresh confirmation scan · no Martingale</span>
+                                </div>
+                                <p>Prepare only scans and displays a candidate. Confirmation rescans the markets, requests a brand-new proposal, refreshes account balance and runs the final safety gate before one demo purchase.</p>
+                                <button type='button' onClick={prepareDemoTrade}
+                                    disabled={!riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting}>
+                                    {isExecuting ? 'Working…' : 'Prepare Demo Trade'}
+                                </button>
+                                {preparedOpportunity && (
+                                    <div className='gtraders-ai-execution__candidate'>
+                                        <strong>Prepared candidate: {preparedOpportunity.displayName}</strong>
+                                        <span>{preparedOpportunity.contractLabel} {preparedOpportunity.barrier} · predicted last digit {preparedOpportunity.prediction.predictedDigit}</span>
+                                        <span>Preparation quote is display-only and will never be purchased.</span>
+                                        <button type='button' onClick={confirmDemoTrade}
+                                            disabled={isExecuting || !riskAssessment?.allowed || account.account_type !== 'demo'}>
+                                            Confirm ONE Demo Purchase
+                                        </button>
+                                    </div>
+                                )}
+                                {sessionSnapshot && sessionSnapshot.openContractId !== null && (
+                                    <button type='button' onClick={resumeSettlementMonitoring} disabled={isExecuting || !isConnected}>
+                                        {isExecuting ? 'Checking settlement…' : `Resume settlement for contract ${sessionSnapshot.openContractId}`}
+                                    </button>
+                                )}
+                                {executionMessage && <p className='gtraders-ai-execution__message' role='status'>{executionMessage}</p>}
+                                {sessionSnapshot?.executionUncertain && <p className='gtraders-ai-panel__error' role='alert'>A buy response was uncertain. Do not retry. Check the Deriv demo account and reconcile the purchase before using this AI session again.</p>}
+                                <p className='gtraders-ai-risk__disclaimer'>Only explicitly confirmed single DEMO purchases are enabled for validation. No live-account purchase, automatic retry, Martingale or continuous trading loop is enabled.</p>
                             </section>
                         )}
 
@@ -436,7 +668,7 @@ const GTradersSuperAI = () => {
                                     <button
                                         type='button'
                                         onClick={scanMarkets}
-                                        disabled={isScanning || !riskInputsReady || !riskAssessment?.allowed}
+                                        disabled={isScanning || isExecuting || !riskInputsReady || !riskAssessment?.allowed}
                                     >
                                         {isScanning ? 'Scanning markets…' : 'Market Scanner'}
                                     </button>
@@ -586,9 +818,7 @@ const GTradersSuperAI = () => {
                         </div>
 
                         <p className='gtraders-ai-panel__notice'>
-                            Connection verification only. Automated trading remains disabled
-                            until market-data handling, execution safeguards and demo tests are
-                            completed.
+                            Only explicitly confirmed single DEMO purchases are enabled for validation. Continuous autonomous trading and all REAL-account execution remain disabled.
                         </p>
                         <span className='gtraders-ai-panel__demo'>DEMO-FIRST DEVELOPMENT</span>
                     </div>
