@@ -5,6 +5,7 @@ import {
     AIConnectionStatus,
 } from './services/ai-deriv-connection';
 import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
+import { AIMarketStatistics, analyseMarketDigits } from './services/ai-market-statistics';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -23,6 +24,7 @@ const GTradersSuperAI = () => {
     const [connectionError, setConnectionError] = useState('');
     const [marketResults, setMarketResults] = useState<AIMarketHistory[]>([]);
     const [availableMarketCount, setAvailableMarketCount] = useState(0);
+    const [marketStatistics, setMarketStatistics] = useState<AIMarketStatistics | null>(null);
     const [isScanning, setIsScanning] = useState(false);
     const [scannerError, setScannerError] = useState('');
     const [scannedAt, setScannedAt] = useState<number | null>(null);
@@ -66,6 +68,7 @@ const GTradersSuperAI = () => {
                 concurrency: 3,
             });
             setMarketResults(results);
+            setMarketStatistics(results.length ? analyseMarketDigits(results[0].digitSequence) : null);
             setScannedAt(Date.now());
             if (!results.length) {
                 setScannerError('No market history was returned. Please try scanning again.');
