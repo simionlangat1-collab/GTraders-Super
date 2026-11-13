@@ -38,7 +38,7 @@ const getLastDigit = (quote: number | string, precision?: number) => {
     return Number((decimals || quoteText).slice(-1));
 };
 
-const AnalysisTool = observer(({ onRunBot }: { onRunBot: () => void }) => {
+const AnalysisTool = observer(({ onRunBot, onStopBot, isBotRunning }: { onRunBot: () => void; onStopBot: () => void; isBotRunning: boolean }) => {
     const [markets, setMarkets] = useState<TMarket[]>([]);
     const [marketPrecisions, setMarketPrecisions] = useState<Record<string, number>>({});
     const [socketReady, setSocketReady] = useState(false);
@@ -93,6 +93,29 @@ const AnalysisTool = observer(({ onRunBot }: { onRunBot: () => void }) => {
             oddDisplayPercentage: ticks.length ? 100 - Number(((evenCount / ticks.length) * 100).toFixed(1)) : 0,
         };
     }, [ticks]);
+    const aiSelections = useMemo(() => {
+        const buildSelection = (contract: 'OVER 2' | 'UNDER 7', barrier: number, isOver: boolean) => {
+            const eligible = ticks.filter(tick => (isOver ? tick.digit > barrier : tick.digit < barrier));
+            const counts = Array.from({ length: 10 }, (_, digit) => ({
+                digit,
+                count: eligible.filter(tick => tick.digit === digit).length,
+            })).filter(item => item.count > 0);
+            const prediction = counts.reduce((best, item) => (item.count > best.count ? item : best), counts[0] || { digit: isOver ? 3 : 6, count: 0 });
+            return {
+                contract,
+                barrier,
+                probability: eligible.length ? (eligible.length / ticks.length) * 100 : 0,
+                prediction: prediction.digit,
+                predictionShare: eligible.length ? (prediction.count / eligible.length) * 100 : 0,
+            };
+        };
+
+        return [
+            buildSelection('OVER 2', 2, true),
+            buildSelection('UNDER 7', 7, false),
+        ];
+    }, [ticks]);
+
     const rankedDigits = useMemo(
         () => [...frequencies].sort((a, b) => a.count - b.count || a.digit - b.digit),
         [frequencies]
@@ -229,9 +252,6 @@ const AnalysisTool = observer(({ onRunBot }: { onRunBot: () => void }) => {
                     <span className='analysis-tool__eyebrow'>GTRADERS SUPER · MARKET INTELLIGENCE</span>
                     <h1>Analysis Tool</h1>
                     <p>Live Deriv digit statistics, built into GTraders Super.</p>
-                    <button type='button' className='analysis-tool__run-bot' onClick={onRunBot} disabled={false} aria-disabled={false}>
-                        Run Bot
-                    </button>
                 </div>
                 <div className={`analysis-tool__status analysis-tool__status--${connection}`}>
                     <span />
@@ -265,6 +285,48 @@ const AnalysisTool = observer(({ onRunBot }: { onRunBot: () => void }) => {
             </section>
 
             {error && <div className='analysis-tool__error' role='alert'>{error}</div>}
+
+            <section className='analysis-tool__ai-selection'>
+                <div className='analysis-tool__section-heading'>
+                    <div>
+                        <span className='analysis-tool__ai-kicker'>AI MARKET SELECTIONS</span>
+                        <h2>Live trade candidates</h2>
+                        <p>Estimated from the current tick sample. The last digit shown is an estimate, not a guarantee.</p>
+                    </div>
+                    <span>{ticks.length.toLocaleString()} live ticks</span>
+                </div>
+                <div className='analysis-tool__ai-grid'>
+                    {aiSelections.map(selection => {
+                        const strongest = aiSelections.reduce((best, item) => item.probability > best.probability ? item : best, aiSelections[0]);
+                        const isRecommended = ticks.length > 0 && selection.contract === strongest.contract;
+                        return (
+                            <article key={selection.contract} className={`analysis-tool__ai-card ${isRecommended ? 'is-recommended' : ''}`}>
+                                <div className='analysis-tool__ai-card-top'>
+                                    <div>
+                                        <span className='analysis-tool__ai-contract'>{selection.contract}</span>
+                                        <span className='analysis-tool__ai-label'>{isRecommended ? 'AI PREFERRED' : 'AI CANDIDATE'}</span>
+                                    </div>
+                                    <strong>{ticks.length ? selection.probability.toFixed(1) : '–'}<small>{ticks.length ? '%' : ''}</small></strong>
+                                </div>
+                                <div className='analysis-tool__ai-prediction'>
+                                    <span>Estimated last digit</span>
+                                    <strong>{ticks.length ? selection.prediction : '–'}</strong>
+                                    <small>{ticks.length ? `Within contract: ${selection.predictionShare.toFixed(1)}%` : 'Waiting for live ticks'}</small>
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
+                <button
+                    type='button'
+                    className={`analysis-tool__run-bot ${isBotRunning ? 'is-stop' : ''}`}
+                    onClick={isBotRunning ? onStopBot : onRunBot}
+                    disabled={!isBotRunning && !socketReady}
+                    aria-pressed={isBotRunning}
+                >
+                    {isBotRunning ? 'STOP BOT' : 'RUN BOT'}
+                </button>
+            </section>
 
             <section className='analysis-tool__overview'>
                 <div className='analysis-tool__panel analysis-tool__latest'>
