@@ -23,6 +23,7 @@ export interface AILiveTickConnection {
     onStatusChange(listener: (status: AIConnectionStatus) => void): () => void;
     getStatus(): AIConnectionStatus;
     connect(): Promise<unknown>;
+    disconnect(): void;
 }
 
 export interface AILiveTickStreamOptions {
