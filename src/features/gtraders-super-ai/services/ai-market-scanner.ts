@@ -48,7 +48,9 @@ export type AIMarketRequest = <T>(payload: Record<string, unknown>) => Promise<T
 
 /** Limits the AI scanner to Volatility synthetic indices, excluding other synthetic products. */
 export const isVolatilityIndexMarket = (market: AIMarketSymbol): boolean =>
-    /volatility/i.test(market.display_name) && /synthetic/i.test(market.market);
+    /volatility/i.test(market.display_name) &&
+    /synthetic/i.test(market.market) &&
+    market.exchange_is_open !== 0;
 
 const MAX_DIGIT_PRECISION = 10;
 
@@ -110,6 +112,10 @@ export class AIMarketScanner {
             .filter(record => Number.isFinite(record.price));
         const prices = priceRecords.map(record => record.price);
         const times = response.history?.times ?? [];
+        const validTimes = times.map(Number).filter(Number.isFinite);
+        const timestampsAreOrdered = validTimes.every(
+            (time, index) => index === 0 || time >= validTimes[index - 1]
+        );
         const digitCounts = Array<number>(10).fill(0);
         const digitSequence: number[] = [];
         const reportedPrecision = response.pip_size;
@@ -137,13 +143,25 @@ export class AIMarketScanner {
         const observedRange = prices.length
             ? Math.max(...prices) - Math.min(...prices)
             : 0;
-        const firstTickAt = times.length ? Number(times[0]) : 0;
-        const lastTickAt = times.length ? Number(times[times.length - 1]) : 0;
+        const firstTickAt = validTimes.length ? validTimes[0] : 0;
+        const lastTickAt = validTimes.length ? validTimes[validTimes.length - 1] : 0;
         const elapsedMinutes = lastTickAt > firstTickAt
             ? (lastTickAt - firstTickAt) / 60
             : 0;
         const ticksPerMinute = elapsedMinutes > 0 ? moves.length / elapsedMinutes : 0;
-        const dataQuality = Math.min(100, Math.round((prices.length / 500) * 100));
+        const sampleDepthQuality = Math.min(100, (prices.length / 500) * 100);
+        const priceIntegrityQuality = rawPrices.length
+            ? (prices.length / rawPrices.length) * 100
+            : 0;
+        const timestampIntegrityQuality = rawPrices.length && timestampsAreOrdered
+            ? (validTimes.length / rawPrices.length) * 100
+            : 0;
+        const dataQuality = Math.min(
+            100,
+            sampleDepthQuality,
+            priceIntegrityQuality,
+            timestampIntegrityQuality
+        );
         const activityScore = Math.round(
             dataQuality * 0.65 + Math.min(35, (ticksPerMinute / 30) * 35)
         );
