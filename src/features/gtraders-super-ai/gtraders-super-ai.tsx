@@ -203,6 +203,33 @@ const GTradersSuperAI = () => {
                                         ))}
                                     </div>
                                 )}
+                                {marketStatistics && (
+                                    <div className='gtraders-ai-statistics'>
+                                        <div className='gtraders-ai-statistics__heading'>
+                                            <strong>Digit distribution · {marketResults[0]?.displayName}</strong>
+                                            <span>{marketStatistics.sampleSize} observed ticks · expected baseline 10% each</span>
+                                        </div>
+                                        <div className='gtraders-ai-statistics__grid'>
+                                            {marketStatistics.frequencies.map(item => (
+                                                <div className='gtraders-ai-statistics__digit' key={item.digit}>
+                                                    <div>
+                                                        <strong>{item.digit}</strong>
+                                                        <span>{item.percentage.toFixed(1)}%</span>
+                                                    </div>
+                                                    <div className='gtraders-ai-statistics__track'>
+                                                        <span style={{ width: `${Math.min(100, item.percentage * 5)}%` }} />
+                                                    </div>
+                                                    <small>95% interval: {item.confidenceLow.toFixed(1)}–{item.confidenceHigh.toFixed(1)}%</small>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className='gtraders-ai-statistics__summary'>
+                                            <span>Chi-square descriptive statistic: {marketStatistics.chiSquareStatistic?.toFixed(2) ?? '—'}</span>
+                                            <span>Largest deviation from 10%: {marketStatistics.maxAbsoluteDeviation.toFixed(2)} pp</span>
+                                        </div>
+                                        <p>{marketStatistics.interpretation}</p>
+                                    </div>
+                                )}
                                 <p className='gtraders-ai-scanner__disclaimer'>
                                     Ranking reflects observed data availability and tick frequency only. It is not a prediction, trade signal or guarantee
                                     of profitability.
