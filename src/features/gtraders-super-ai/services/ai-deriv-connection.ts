@@ -354,8 +354,8 @@ export class AIDerivConnection {
             let finished = false;
             const subscriptionId = (initial.subscription as { id?: string } | undefined)?.id;
             let timeout: ReturnType<typeof setTimeout>;
+            let unsubscribe = () => undefined;
 
-            const unsubscribe = this.onMessage(message => inspect(message));
             const cleanup = () => {
                 clearTimeout(timeout);
                 unsubscribe();
@@ -392,6 +392,7 @@ export class AIDerivConnection {
                 }
                 finish(undefined, { contractId, profit, status, isSold });
             };
+            unsubscribe = this.onMessage(inspect);
 
             timeout = setTimeout(
                 () => finish(new Error('Timed out waiting for verified contract settlement.')),
