@@ -18,6 +18,8 @@ export interface AIMarketHistory {
     observedRange: number;
     digitCounts: number[];
     digitSequence: number[];
+    /** Unix-second timestamps aligned one-to-one with digitSequence. */
+    tickTimes: number[];
     dataQuality: number;
     isFresh: boolean;
     dataQualityReason: string;
@@ -114,7 +116,7 @@ export class AIMarketScanner {
 
         const rawPrices = response.history?.prices ?? [];
         const priceRecords = rawPrices
-            .map(rawPrice => ({ rawPrice, price: Number(rawPrice) }))
+            .map((rawPrice, index) => ({ rawPrice, price: Number(rawPrice), index }))
             .filter(record => Number.isFinite(record.price));
         const prices = priceRecords.map(record => record.price);
         const times = response.history?.times ?? [];
@@ -128,6 +130,7 @@ export class AIMarketScanner {
             (time, index) => index === 0 || time >= numericTimes[index - 1]
         );
         const validTimes = timestampsAreFinite ? numericTimes : [];
+        const tickTimes = priceRecords.map(record => numericTimes[record.index]);
         const digitCounts = Array<number>(10).fill(0);
         const digitSequence: number[] = [];
         const reportedPrecision = response.pip_size;
@@ -210,6 +213,7 @@ export class AIMarketScanner {
             observedRange,
             digitCounts,
             digitSequence,
+            tickTimes,
             dataQuality,
             isFresh,
             dataQualityReason,
@@ -261,7 +265,7 @@ export class AIMarketScanner {
                     results.push({
                         symbol: batch[index].symbol, displayName: batch[index].display_name, ticks: 0,
                         firstTickAt: 0, lastTickAt: 0, averageAbsoluteMove: 0, ticksPerMinute: 0,
-                        observedRange: 0, digitCounts: Array<number>(10).fill(0), digitSequence: [],
+                        observedRange: 0, digitCounts: Array<number>(10).fill(0), digitSequence: [], tickTimes: [],
                         dataQuality: 0, isFresh: false, dataQualityReason: 'Tick-history request failed.',
                         scanError: reason, activityScore: 0,
                     });
