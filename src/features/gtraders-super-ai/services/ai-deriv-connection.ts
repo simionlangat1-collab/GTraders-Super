@@ -45,6 +45,7 @@ export class AIDerivConnection {
     private statusListeners = new Set<(status: AIConnectionStatus) => void>();
     private messageListeners = new Set<(message: DerivMessage) => void>();
     private intentionalClose = false;
+    private connectionAttempt = 0;
 
     getStatus = (): AIConnectionStatus => this.status;
 
@@ -202,6 +203,8 @@ export class AIDerivConnection {
     }
 
     private async connectPrivateSocket(): Promise<AIAccountSnapshot> {
+        const attemptId = ++this.connectionAttempt;
+        let attemptSocket: WebSocket | null = null;
         this.intentionalClose = false;
         this.setStatus('connecting');
 
@@ -213,12 +216,14 @@ export class AIDerivConnection {
 
             const selectedAccountId = localStorage.getItem('active_loginid');
             const websocketUrl = await this.getPrivateWebSocketUrl(authInfo.access_token);
+            if (attemptId !== this.connectionAttempt) throw new Error('AI connection was stopped.');
 
             if (!websocketUrl) {
                 throw new Error('Deriv did not provide an authenticated WebSocket URL.');
             }
 
             const socket = new WebSocket(websocketUrl);
+            attemptSocket = socket;
             this.socket = socket;
             socket.addEventListener('message', this.handleMessage);
             socket.addEventListener('close', this.handleClose);
@@ -245,9 +250,21 @@ export class AIDerivConnection {
                     },
                     { once: true }
                 );
+
+                socket.addEventListener(
+                    'close',
+                    () => {
+                        clearTimeout(openTimeout);
+                        reject(new Error('The AI Deriv connection closed before it was ready.'));
+                    },
+                    { once: true }
+                );
             });
 
+            if (attemptId !== this.connectionAttempt) throw new Error('AI connection was stopped.');
+
             const response = await this.request<{ balance: AIAccountSnapshot }>({ balance: 1 });
+            if (attemptId !== this.connectionAttempt) throw new Error('AI connection was stopped.');
             const account = response.balance;
 
             if (!account?.loginid) {
@@ -268,12 +285,19 @@ export class AIDerivConnection {
             this.setStatus('connected');
             return this.account;
         } catch (error) {
+            if (attemptId !== this.connectionAttempt) {
+                if (attemptSocket && attemptSocket.readyState < WebSocket.CLOSING) {
+                    attemptSocket.close();
+                }
+                throw error instanceof Error ? error : new Error('AI connection was stopped.');
+            }
+
             this.intentionalClose = true;
             this.rejectPendingRequests('AI Deriv connection could not be established.');
-            if (this.socket && this.socket.readyState < WebSocket.CLOSING) {
-                this.socket.close();
+            if (attemptSocket && attemptSocket.readyState < WebSocket.CLOSING) {
+                attemptSocket.close();
             }
-            this.socket = null;
+            if (this.socket === attemptSocket) this.socket = null;
             this.account = null;
             this.setStatus('error');
             throw error instanceof Error ? error : new Error('AI Deriv connection failed.');
@@ -281,6 +305,7 @@ export class AIDerivConnection {
     }
 
     disconnect = (): void => {
+        this.connectionAttempt += 1;
         this.intentionalClose = true;
         this.rejectPendingRequests('AI Deriv connection was stopped.');
         const socket = this.socket;
