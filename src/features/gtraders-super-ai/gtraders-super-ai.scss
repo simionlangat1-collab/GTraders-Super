@@ -602,3 +602,26 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+
+.gtraders-ai-prediction {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-normal, #3b465b);
+    border-radius: 0.75rem;
+    background: var(--general-section-1, #18243a);
+
+    > strong {
+        font-size: 1.05rem;
+        color: var(--text-prominent, #fff);
+    }
+
+    > span {
+        color: var(--text-general, #c5ccda);
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+}
