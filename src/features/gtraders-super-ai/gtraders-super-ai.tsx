@@ -371,6 +371,10 @@ const GTradersSuperAI = () => {
             const result = await executeAIDemoTrade(gateInput, {
                 request: payload => connection.requestData(payload),
                 waitForSettlement: contractId => connection.waitForContractSettlement(contractId),
+                onPurchaseIntent: () => {
+                    sessionLedger.reservePurchase();
+                    setSessionSnapshot(sessionLedger.getSnapshot());
+                },
                 onPurchased: contractId => {
                     sessionLedger.markPurchase(contractId);
                     setSessionSnapshot(sessionLedger.getSnapshot());
@@ -385,7 +389,7 @@ const GTradersSuperAI = () => {
                 setExecutionMessage(result.gate.explanation);
                 return;
             }
-            if (result.status === 'PURCHASE_UNCERTAIN' || result.status === 'SETTLEMENT_PENDING') {
+            if (result.status === 'EXECUTION_ABORTED' || result.status === 'PURCHASE_UNCERTAIN' || result.status === 'SETTLEMENT_PENDING') {
                 setExecutionMessage(result.message);
                 setSessionSnapshot(sessionLedger.getSnapshot());
                 setPreparedOpportunity(null);
@@ -653,7 +657,7 @@ const GTradersSuperAI = () => {
                                     </button>
                                 )}
                                 {executionMessage && <p className='gtraders-ai-execution__message' role='status'>{executionMessage}</p>}
-                                {sessionSnapshot?.executionUncertain && <p className='gtraders-ai-panel__error' role='alert'>A buy response was uncertain. Do not retry. Check the Deriv demo account and reconcile the purchase before using this AI session again.</p>}
+                                {sessionSnapshot?.executionUncertain && <p className='gtraders-ai-panel__error' role='alert'>The pre-buy reservation or purchase outcome is unresolved. Do not retry. Check the Deriv demo account and reconcile before using this AI session again.</p>}
                                 <p className='gtraders-ai-risk__disclaimer'>Only explicitly confirmed single DEMO purchases are enabled for validation. No live-account purchase, automatic retry, Martingale or continuous trading loop is enabled.</p>
                             </section>
                         )}
@@ -811,6 +815,7 @@ const GTradersSuperAI = () => {
                                     type='button'
                                     className='gtraders-ai-panel__disconnect'
                                     onClick={disconnectAI}
+                                    disabled={isExecuting}
                                 >
                                     Disconnect AI
                                 </button>
