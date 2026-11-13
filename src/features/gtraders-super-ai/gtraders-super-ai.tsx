@@ -375,8 +375,8 @@ const GTradersSuperAI = () => {
                                     >
                                         <strong>{riskAssessment.allowed ? 'Preflight checks passed' : 'Trading blocked by risk limits'}</strong>
                                         <span>{riskAssessment.explanation}</span>
-                                        <span>Remaining target: {riskAssessment.remainingProfitTarget.toFixed(2)} {account.currency}</span>
-                                        <span>Remaining loss allowance: {riskAssessment.remainingLossAllowance.toFixed(2)} {account.currency}</span>
+                                        <span>Remaining target: {riskAssessment.remainingProfitTarget.toFixed(2)} {account?.currency ?? ''}</span>
+                                        <span>Remaining loss allowance: {riskAssessment.remainingLossAllowance.toFixed(2)} {account?.currency ?? ''}</span>
                                     </div>
                                 ) : (
                                     <p className='gtraders-ai-risk__hint'>
@@ -495,8 +495,8 @@ const GTradersSuperAI = () => {
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
                                                     <span>Adjusted lower confidence bound: {(marketOpportunity.confidenceLowerBound * 100).toFixed(1)}%</span>
-                                                    <span>Live stake quote: {marketOpportunity.askPrice.toFixed(2)} {account.currency}</span>
-                                                    <span>Potential payout: {marketOpportunity.payout.toFixed(2)} {account.currency}</span>
+                                                    <span>Live stake quote: {marketOpportunity.askPrice.toFixed(2)} {account?.currency ?? ''}</span>
+                                                    <span>Potential payout: {marketOpportunity.payout.toFixed(2)} {account?.currency ?? ''}</span>
                                                     <span>Break-even win rate: {(marketOpportunity.breakEvenProbability * 100).toFixed(1)}%</span>
                                                     <span>Confidence margin above break-even: {(marketOpportunity.confidenceMargin * 100).toFixed(2)} pp</span>
                                                     <span>Training / holdout ticks: {marketOpportunity.trainingSampleSize} / {marketOpportunity.holdoutSampleSize}</span>
