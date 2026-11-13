@@ -2,8 +2,10 @@ import { validateAIModelOutOfSample } from './ai-model-validation';
 import { evaluateAITradeEvidence } from './ai-trade-decision';
 
 export interface AIPredictionEngineOptions {
-    /** Number of immediately preceding ticks used by the candidate model. */
+    /** Legacy single-window setting. Prefer candidateWindows for training-only model selection. */
     candidateWindow?: number;
+    /** Pre-declared recent-history windows; selection occurs only inside the training period. */
+    candidateWindows?: number[];
     /** Fraction reserved for initial training; the remainder is an untouched walk-forward holdout. */
     trainingFraction?: number;
     minimumMarketSample?: number;
@@ -39,17 +41,61 @@ const modeDigit = (digits: number[]): number | null => {
 const validDigits = (input: number[]): number[] =>
     input.filter(digit => Number.isInteger(digit) && digit >= 0 && digit <= 9);
 
+const normalizeWindows = (options: AIPredictionEngineOptions): number[] => {
+    const requested = options.candidateWindows ??
+        [options.candidateWindow ?? 50];
+    return [...new Set(requested
+        .filter(window => Number.isFinite(window))
+        .map(window => Math.max(20, Math.min(500, Math.floor(window)))))]
+        .sort((a, b) => a - b);
+};
+
+interface WindowScore {
+    window: number;
+    correct: number;
+    total: number;
+}
+
+/**
+ * Chooses among pre-declared recent-window models using only the final 20%
+ * of the training segment. The later untouched holdout is not involved in
+ * model/window selection. Ties prefer the shorter window.
+ */
+const selectWindowWithinTraining = (
+    digits: number[],
+    trainingSampleSize: number,
+    windows: number[]
+): WindowScore | null => {
+    const selectionStart = Math.floor(trainingSampleSize * 0.8);
+    const selectionSize = trainingSampleSize - selectionStart;
+    if (!windows.length || selectionSize < 40 || selectionStart < Math.max(...windows)) {
+        return null;
+    }
+
+    const scores = windows.map(window => {
+        let correct = 0;
+        for (let index = selectionStart; index < trainingSampleSize; index += 1) {
+            const prediction = modeDigit(digits.slice(index - window, index));
+            if (prediction === digits[index]) correct += 1;
+        }
+        return { window, correct, total: selectionSize };
+    });
+
+    return scores.sort((a, b) =>
+        b.correct / b.total - a.correct / a.total || a.window - b.window
+    )[0] ?? null;
+};
+
 /**
  * Conservative walk-forward last-digit research engine.
  *
- * The candidate predicts the most frequent digit in a fixed recent window.
- * Its matched baseline predicts the most frequent digit in all data available
- * up to that point. Both are scored against the same strictly later holdout
- * ticks. The holdout is never used to fit either prediction for that tick.
+ * A small, pre-declared family of recent-window models is compared only
+ * inside the training period. The winning window is frozen before the final
+ * chronological holdout. Its predictions and the all-history mode baseline
+ * are then scored on the exact same later ticks.
  *
- * This is a research signal only. A candidate is returned only if the
- * candidate's one-sided 95% Wilson lower bound beats the matched baseline.
- * It never sends orders and never treats historical frequency as certainty.
+ * This is a research signal only. It never sends orders and never treats
+ * historical frequency as certainty.
  */
 export const generateAIPrediction = (
     input: number[],
@@ -59,10 +105,7 @@ export const generateAIPrediction = (
 ): AIPredictionResult => {
     const isArrayInput = Array.isArray(input);
     const digits = isArrayInput ? validDigits(input) : [];
-    const requestedWindow = options.candidateWindow ?? 50;
-    const candidateWindow = Number.isFinite(requestedWindow)
-        ? Math.max(20, Math.min(500, Math.floor(requestedWindow)))
-        : 50;
+    const candidateWindows = normalizeWindows(options);
     const requestedTrainingFraction = options.trainingFraction ?? 0.6;
     const trainingFraction = Number.isFinite(requestedTrainingFraction)
         ? requestedTrainingFraction
@@ -104,16 +147,26 @@ export const generateAIPrediction = (
     if (digits.length < minimumMarketSample || trainingFraction <= 0 || trainingFraction >= 1) {
         return noTrade('there are not enough valid ticks for a separate training period and unseen holdout.');
     }
-    if (trainingSampleSize < candidateWindow || holdoutSampleSize < 200) {
-        return noTrade('the training window or untouched holdout is too small.');
+    if (
+        !candidateWindows.length ||
+        trainingSampleSize < Math.max(...candidateWindows) + 40 ||
+        holdoutSampleSize < 200
+    ) {
+        return noTrade('the training period is too small for training-only model selection or the untouched holdout is too small.');
     }
 
+    const selected = selectWindowWithinTraining(digits, trainingSampleSize, candidateWindows);
+    if (!selected) {
+        return noTrade('the pre-declared prediction windows could not be compared within the training period.');
+    }
+    const selectedWindow = selected.window;
     const trainingCutoffIndex = trainingSampleSize - 1;
     const trainingCutoffTimestamp = tickTimestamps[trainingCutoffIndex];
     const observations = [];
+
     for (let index = trainingSampleSize; index < digits.length; index += 1) {
         const history = digits.slice(0, index);
-        const candidatePrediction = modeDigit(history.slice(-candidateWindow));
+        const candidatePrediction = modeDigit(history.slice(-selectedWindow));
         const baselinePrediction = modeDigit(history);
         if (candidatePrediction === null || baselinePrediction === null) {
             return noTrade('walk-forward predictions could not be generated.');
@@ -147,14 +200,14 @@ export const generateAIPrediction = (
             baselineWinRate: validation.evidence.baselineWinRate,
             confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
             validationPassed: false,
-            explanation: `NO TRADE — ${validation.explanation} ${gate.explanation}`,
+            explanation: `NO TRADE — training-only selection chose a ${selectedWindow}-tick window. ${validation.explanation} ${gate.explanation}`,
         };
     }
 
-    const predictedDigit = modeDigit(digits.slice(-candidateWindow));
+    const predictedDigit = modeDigit(digits.slice(-selectedWindow));
     if (predictedDigit === null) return noTrade('no current prediction can be calculated.');
-    const recentCounts = countDigits(digits.slice(-candidateWindow));
-    const historicalShare = recentCounts[predictedDigit] / candidateWindow;
+    const recentCounts = countDigits(digits.slice(-selectedWindow));
+    const historicalShare = recentCounts[predictedDigit] / selectedWindow;
 
     return {
         decision: 'PREDICTION_CANDIDATE',
@@ -167,7 +220,7 @@ export const generateAIPrediction = (
         baselineWinRate: validation.evidence.baselineWinRate,
         confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
         validationPassed: true,
-        explanation: 'Research candidate only: the recent-window model passed the configured chronological holdout comparison. Historical share is not a calibrated next-tick probability and this result does not authorize an order.',
+        explanation: `Research candidate only: the ${selectedWindow}-tick recent-window model was selected inside training and passed the separate chronological holdout comparison. Historical share is not a calibrated next-tick probability and this result does not authorize an order.`,
     };
 };
 
