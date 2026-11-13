@@ -381,8 +381,9 @@ export class AIDerivConnection {
                 if (!open || Number(open.contract_id) !== contractId) return;
 
                 const status = String(open.status ?? '').toLowerCase();
-                const isSold = Number(open.is_sold) === 1;
-                if (!isSold && !['won', 'lost', 'sold'].includes(status)) return;
+                const terminalStatus = ['won', 'lost', 'sold'].includes(status);
+                const isSold = Number(open.is_sold) === 1 || terminalStatus;
+                if (!isSold) return;
 
                 const profit = Number(open.profit);
                 if (!Number.isFinite(profit)) {
