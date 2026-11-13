@@ -127,11 +127,12 @@ describe('AccountSwitcher', () => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
-    it('closes dropdown on outside click', () => {
+    it('closes dropdown when the modal backdrop is clicked', () => {
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
+        const dialog = screen.getByRole('dialog', { name: 'Switch account' });
         expect(screen.getByRole('listbox')).toBeInTheDocument();
-        fireEvent.mouseDown(document.body);
+        fireEvent.mouseDown(dialog);
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
