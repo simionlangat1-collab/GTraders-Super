@@ -1,5 +1,30 @@
 export type AIContractType = 'DIGITOVER' | 'DIGITUNDER';
 
+/** Returns true only when the estimated last digit itself satisfies the selected barrier. */
+export const doesAIPredictionSupportContract = (
+    contractType: AIContractType | null,
+    barrier: number | null,
+    predictedDigit: number | null
+): boolean => {
+    if (
+        (contractType !== 'DIGITOVER' && contractType !== 'DIGITUNDER') ||
+        !Number.isInteger(barrier) ||
+        !Number.isInteger(predictedDigit) ||
+        barrier === null ||
+        predictedDigit === null ||
+        predictedDigit < 0 ||
+        predictedDigit > 9
+    ) {
+        return false;
+    }
+
+    if (contractType === 'DIGITOVER') {
+        return barrier >= 0 && barrier <= 8 && predictedDigit > barrier;
+    }
+
+    return barrier >= 1 && barrier <= 9 && predictedDigit < barrier;
+};
+
 export interface AIContractOpportunity {
     decision: 'MARKET_CANDIDATE' | 'NO_TRADE';
     contractType: AIContractType | null;
