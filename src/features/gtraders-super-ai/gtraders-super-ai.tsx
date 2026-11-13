@@ -325,6 +325,13 @@ const GTradersSuperAI = () => {
                                 <span>Authenticated account</span>
                                 <strong>{account.loginid}</strong>
                                 <span>
+                                    Account type: {account.account_type === 'demo'
+                                        ? 'DEMO · execution eligible after all safety checks'
+                                        : account.account_type === 'real'
+                                            ? 'REAL · autonomous execution blocked during demo validation'
+                                            : 'UNVERIFIED · autonomous execution blocked'}
+                                </span>
+                                <span>
                                     Balance: {account.balance.toLocaleString(undefined, {
                                         minimumFractionDigits: 2,
                                         maximumFractionDigits: 2,
