@@ -8,10 +8,11 @@ export interface AIFreshProposalRequest {
     symbol: string;
 }
 
-export interface AIFreshProposal {
+export interface AIFreshProposal extends AIFreshProposalRequest {
     id: string;
     askPrice: number;
     payout: number;
+    requestedAt: number;
 }
 
 export type AIProposalRequest = (payload: Record<string, unknown>) => Promise<unknown>;
@@ -35,7 +36,7 @@ export const requestFreshAIProposal = async (
         throw new Error('A fresh proposal cannot be requested with incomplete or invalid contract details.');
     }
 
-    const rawResponse = await request({
+    // Timestamp before the network round-trip so network delay counts against freshness.\n    const requestedAt = Date.now();\n    const rawResponse = await request({
         proposal: 1,
         amount: input.amount,
         basis: 'stake',
@@ -69,5 +70,5 @@ export const requestFreshAIProposal = async (
         throw new Error('Deriv did not return a valid fresh proposal id, stake price and payout.');
     }
 
-    return { id: String(proposalId), askPrice, payout };
+    return { ...input, id: String(proposalId), askPrice, payout, requestedAt };
 };
