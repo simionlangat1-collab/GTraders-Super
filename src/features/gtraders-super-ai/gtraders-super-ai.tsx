@@ -76,6 +76,7 @@ const GTradersSuperAI = () => {
         setScannerError('');
         setScannerOutcomeMessage('');
         setMarketOpportunity(null);
+        setScannedAt(null);
         setIsScanning(true);
         try {
             const scanner = new AIMarketScanner(<T,>(payload: Record<string, unknown>) =>
@@ -110,7 +111,8 @@ const GTradersSuperAI = () => {
                     market,
                     opportunity: evaluateAIContractOpportunity(
                         market.digitSequence,
-                        market.dataQuality
+                        market.dataQuality,
+                        { multipleComparisonCount: results.length }
                     ),
                 }))
                 .filter(item => item.opportunity.decision === 'TRADE_CANDIDATE')
@@ -370,7 +372,7 @@ const GTradersSuperAI = () => {
                                 {marketStatistics && (
                                     <div className='gtraders-ai-statistics'>
                                         <div className='gtraders-ai-statistics__heading'>
-                                            <strong>Digit distribution · {marketResults[0]?.displayName}</strong>
+                                            <strong>Digit distribution · {marketOpportunity?.displayName ?? marketResults[0]?.displayName}</strong>
                                             <span>{marketStatistics.sampleSize} observed ticks · expected baseline 10% each</span>
                                         </div>
                                         <div className='gtraders-ai-statistics__grid'>
