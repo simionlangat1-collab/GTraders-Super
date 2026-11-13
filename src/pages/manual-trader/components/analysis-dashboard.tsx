@@ -9,11 +9,12 @@ type Props = {
     tickError?: string;
     tradeResultHighlight?: { digit: number; status: 'won' | 'lost'; key: string } | null;
     barrierDigit: number;
+    onTradeResultAnimationEnd?: (key: string) => void;
 };
 
 const TICK_WINDOW = 1000;
 
-export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnection, tickError, tradeResultHighlight, barrierDigit }: Props) => {
+export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnection, tickError, tradeResultHighlight, barrierDigit, onTradeResultAnimationEnd }: Props) => {
     const frequencies = useMemo(
         () => Array.from({ length: 10 }, (_, digit) => {
             const count = ticks.filter(tick => tick.digit === digit).length;
@@ -89,6 +90,11 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
                         >
                             <div
                                 className={`analysis-tool__digit-circle ${item.digit === barrierDigit ? 'is-barrier' : ''} ${tradeResultHighlight?.digit === item.digit ? `is-trade-result is-trade-result-${tradeResultHighlight.status}` : ''}`}
+                                onAnimationEnd={() => {
+                                    if (tradeResultHighlight?.digit === item.digit) {
+                                        onTradeResultAnimationEnd?.(tradeResultHighlight.key);
+                                    }
+                                }}
                                 style={tradeResultHighlight?.digit === item.digit ? {
                                     background: tradeResultHighlight.status === 'won' ? '#d4a017' : '#dc2626',
                                     borderColor: tradeResultHighlight.status === 'won' ? '#f5cf55' : '#fb7185',
@@ -105,7 +111,6 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
                                 <span className='analysis-tool__digit-number'>{item.digit}</span>
                                 <strong className='analysis-tool__digit-percentage'>{item.percentage.toFixed(1)}%</strong>
                                 {latestTick?.digit === item.digit && <span className='analysis-tool__tick-cursor' aria-label='Latest tick' />}
-                                {tradeResultHighlight?.digit === item.digit && <span className='analysis-tool__trade-result-glow' aria-hidden='true' />}
                             </div>
                             <span>{item.count.toLocaleString()} ticks</span>
                             <div className='analysis-tool__bar'><i style={{ width: `${item.percentage}%` }} /></div>
