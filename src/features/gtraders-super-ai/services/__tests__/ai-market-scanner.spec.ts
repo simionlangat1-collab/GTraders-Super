@@ -127,3 +127,83 @@ it('marks history with missing or unusable timestamps as poor quality', async ()
     expect(history.ticks).toBe(500);
     expect(history.dataQuality).toBe(0);
 });
+
+
+describe('AIMarketScanner tick-data lifecycle checks', () => {
+    const freshTimes = Array.from({ length: 500 }, (_, index) => 1_700_000_000 + index);
+
+    it('rejects stale history even when the prices and timestamps otherwise look valid', async () => {
+        const request = jest.fn(async () => ({
+            history: { prices: Array(500).fill('123.45'), times: freshTimes },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest, () => 1_700_000_600);
+
+        const history = await scanner.getTickHistory('R_100', 500);
+
+        expect(history.isFresh).toBe(false);
+        expect(history.dataQuality).toBe(0);
+        expect(history.dataQualityReason).toMatch(/stale/i);
+    });
+
+    it('rejects future-dated ticks beyond the allowed clock-skew tolerance', async () => {
+        const request = jest.fn(async () => ({
+            history: { prices: Array(500).fill('123.45'), times: freshTimes },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest, () => 1_700_000_100);
+
+        const history = await scanner.getTickHistory('R_100', 500);
+
+        expect(history.isFresh).toBe(false);
+        expect(history.dataQuality).toBe(0);
+        expect(history.dataQualityReason).toMatch(/stale or unexpectedly future-dated/i);
+    });
+
+    it('rejects mismatched price and timestamp arrays', async () => {
+        const request = jest.fn(async () => ({
+            history: {
+                prices: Array(500).fill('123.45'),
+                times: freshTimes.slice(0, 499),
+            },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest, () => 1_700_000_600);
+
+        const history = await scanner.getTickHistory('R_100', 500);
+
+        expect(history.dataQuality).toBe(0);
+        expect(history.dataQualityReason).toMatch(/do not align/i);
+    });
+
+    it('rejects out-of-order timestamps while allowing same-second ticks', async () => {
+        const times = [...freshTimes];
+        times[300] = times[299] - 1;
+        const request = jest.fn(async () => ({
+            history: { prices: Array(500).fill('123.45'), times },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest, () => 1_700_000_600);
+
+        const history = await scanner.getTickHistory('R_100', 500);
+
+        expect(history.dataQuality).toBe(0);
+        expect(history.dataQualityReason).toMatch(/out of order/i);
+    });
+
+    it('accepts fresh, aligned, ordered history and allows second-level timestamp ties', async () => {
+        const times = [...freshTimes];
+        times[300] = times[299];
+        const request = jest.fn(async () => ({
+            history: { prices: Array(500).fill('123.45'), times },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest, () => 1_700_000_600);
+
+        const history = await scanner.getTickHistory('R_100', 500);
+
+        expect(history.isFresh).toBe(true);
+        expect(history.dataQuality).toBe(100);
+        expect(history.dataQualityReason).toMatch(/passed/i);
+    });
+});
