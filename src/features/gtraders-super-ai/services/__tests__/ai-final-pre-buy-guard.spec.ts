@@ -91,6 +91,7 @@ describe('evaluateAIFinalPreBuyGate', () => {
         const stale = evaluateAIFinalPreBuyGate({
             ...validInput(),
             proposal: { ...validInput().proposal!, requestedAt: 0 },
+            now: 10001,
         });
         expect(stale.reasons).toContain('PROPOSAL_NOT_FRESH');
 
