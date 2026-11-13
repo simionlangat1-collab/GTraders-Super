@@ -88,7 +88,6 @@ const AppWrapper = observer(() => {
     const [left_tab_shadow, setLeftTabShadow] = useState<boolean>(false);
     const [right_tab_shadow, setRightTabShadow] = useState<boolean>(false);
     const [freeBotRunRequest, setFreeBotRunRequest] = useState(0);
-    const analysisRunPending = React.useRef(false);
 
     // Trade type modal state
     const [tradeTypeModalState, setTradeTypeModalState] = useState(getModalState());
@@ -345,20 +344,10 @@ const AppWrapper = observer(() => {
     );
 
     const runBotFromAnalysis = React.useCallback(() => {
-        // Return to the configured Bot Builder workspace and run that workspace,
-        // rather than launching the separate Free Bots strategy.
-        handleTabChange(BOT_BUILDER);
-        analysisRunPending.current = true;
-    }, [handleTabChange, BOT_BUILDER]);
-
-    // Wait until Bot Builder is active and its configured workspace is ready.
-    React.useEffect(() => {
-        if (!analysisRunPending.current || active_tab !== BOT_BUILDER || is_loading) return;
-        if (is_gk_pioneer_mode && !run_panel.execution_workspace) return;
-
-        analysisRunPending.current = false;
+        // Run the configured Bot Builder workspace without changing the
+        // currently selected tab, so Analysis Tool remains highlighted.
         void run_panel.onRunButtonClick();
-    }, [active_tab, is_loading, is_gk_pioneer_mode, run_panel, run_panel.execution_workspace, BOT_BUILDER]);
+    }, [run_panel]);
 
     const openGKPioneer = React.useCallback(() => {
         // Do not replace the current Bot Builder workspace while a bot is trading.
