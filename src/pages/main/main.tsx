@@ -260,6 +260,13 @@ const AppWrapper = observer(() => {
     }, [active_tab, is_loading]);
 
     React.useEffect(() => {
+        // TEMPORARY DIAGNOSTIC: identify unexpected active-tab changes after Analysis Tool runs.
+        console.info('[G-K Pioneer tab diagnostic] active_tab changed:', {
+            active_tab,
+            tab_name: hash[active_tab] || 'unknown',
+            hash: window.location.hash,
+        });
+
         // Run on mount and when active tab changes
 
         if (is_open) {
@@ -330,6 +337,7 @@ const AppWrapper = observer(() => {
 
     const handleTabChange = React.useCallback(
         (tab_index: number) => {
+            console.trace('[G-K Pioneer tab diagnostic] handleTabChange requested:', tab_index);
             setActiveTab(tab_index);
             const el_id = TAB_IDS[tab_index];
             if (el_id) {
