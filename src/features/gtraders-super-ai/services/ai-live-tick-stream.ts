@@ -98,6 +98,8 @@ export class AILiveTickStream {
         try {
             await this.subscribe(generation);
         } catch (error) {
+            this.clearSubscriptions();
+            this.stopHeartbeat();
             this.setStatus('error', error instanceof Error ? error.message : 'Live tick subscription failed. NO TRADE.');
             throw error;
         }
@@ -117,6 +119,11 @@ export class AILiveTickStream {
                 void this.recover('Deriv WebSocket disconnected. Live evidence invalidated; NO TRADE.');
             }
         });
+    }
+
+    private stopHeartbeat(): void {
+        if (this.heartbeat) clearInterval(this.heartbeat);
+        this.heartbeat = null;
     }
 
     private startHeartbeat(): void {
@@ -183,6 +190,7 @@ export class AILiveTickStream {
         this.recoveryTicks = 0;
         this.setStatus('error', reason);
         this.clearSubscriptions();
+        this.stopHeartbeat();
     }
 
     private async recover(reason: string): Promise<void> {
@@ -218,6 +226,8 @@ export class AILiveTickStream {
                 } catch {
                     if (attempt === this.reconnectAttempts) {
                         this.setStatus('error', 'Safe reconnection failed after bounded attempts. NO TRADE.');
+                        this.stopHeartbeat();
+                        this.clearSubscriptions();
                         return;
                     }
                     await new Promise(resolve => setTimeout(resolve, this.reconnectBaseDelayMs * 2 ** (attempt - 1)));
@@ -243,8 +253,7 @@ export class AILiveTickStream {
     stop = (): void => {
         this.manuallyStopped = true;
         this.generation += 1;
-        if (this.heartbeat) clearInterval(this.heartbeat);
-        this.heartbeat = null;
+        this.stopHeartbeat();
         this.clearSubscriptions();
         this.recoveryTicks = 0;
         this.lastEpoch = 0;
