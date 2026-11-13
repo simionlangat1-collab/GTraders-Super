@@ -4,6 +4,7 @@ import {
     AIAccountSnapshot,
     AIConnectionStatus,
 } from './services/ai-deriv-connection';
+import { AIMarketScanner, AIMarketHistory } from './services/ai-market-scanner';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -20,6 +21,10 @@ const GTradersSuperAI = () => {
         useState<AIConnectionStatus>('disconnected');
     const [account, setAccount] = useState<AIAccountSnapshot | null>(null);
     const [connectionError, setConnectionError] = useState('');
+    const [marketResults, setMarketResults] = useState<AIMarketHistory[]>([]);
+    const [isScanning, setIsScanning] = useState(false);
+    const [scannerError, setScannerError] = useState('');
+    const [scannedAt, setScannedAt] = useState<number | null>(null);
 
     useEffect(() => {
         const unsubscribe = connection.onStatusChange(status => {
@@ -42,6 +47,31 @@ const GTradersSuperAI = () => {
             setConnectionError(
                 error instanceof Error ? error.message : 'Unable to connect to Deriv.'
             );
+        }
+    };
+
+    const scanMarkets = async () => {
+        setScannerError('');
+        setIsScanning(true);
+        try {
+            const scanner = new AIMarketScanner(<T,>(payload: Record<string, unknown>) =>
+                connection.requestData<T>(payload)
+            );
+            const availableMarkets = await scanner.getAvailableMarkets();
+            const results = await scanner.scanMarkets(availableMarkets, {
+                maxMarkets: 30,
+                historyCount: 500,
+                concurrency: 3,
+            });
+            setMarketResults(results);
+            setScannedAt(Date.now());
+            if (!results.length) {
+                setScannerError('No market history was returned. Please try scanning again.');
+            }
+        } catch (error) {
+            setScannerError(error instanceof Error ? error.message : 'Market scan failed.');
+        } finally {
+            setIsScanning(false);
         }
     };
 
@@ -122,6 +152,58 @@ const GTradersSuperAI = () => {
                             <p className='gtraders-ai-panel__error' role='alert'>
                                 {connectionError}
                             </p>
+                        )}
+
+                        {isConnected && (
+                            <section className='gtraders-ai-scanner'>
+                                <div className='gtraders-ai-scanner__heading'>
+                                    <div>
+                                        <strong>Independent Market Scanner</strong>
+                                        <span>Read-only market discovery · up to 30 markets</span>
+                                    </div>
+                                    <button
+                                        type='button'
+                                        onClick={scanMarkets}
+                                        disabled={isScanning}
+                                    >
+                                        {isScanning ? 'Scanning…' : 'Scan markets'}
+                                    </button>
+                                </div>
+                                {scannerError && (
+                                    <p className='gtraders-ai-panel__error' role='alert'>
+                                        {scannerError}
+                                    </p>
+                                )}
+                                {scannedAt && (
+                                    <span className='gtraders-ai-scanner__timestamp'>
+                                        Last scan: {new Date(scannedAt).toLocaleTimeString()}
+                                    </span>
+                                )}
+                                {marketResults.length > 0 && (
+                                    <div className='gtraders-ai-scanner__results'>
+                                        {marketResults.slice(0, 8).map((market, index) => (
+                                            <div className='gtraders-ai-scanner__result' key={market.symbol}>
+                                                <span className='gtraders-ai-scanner__rank'>
+                                                    {index + 1}
+                                                </span>
+                                                <div>
+                                                    <strong>{market.displayName}</strong>
+                                                    <span>{market.symbol} · {market.ticks} ticks</span>
+                                                </div>
+                                                <div className='gtraders-ai-scanner__score'>
+                                                    <strong>{market.activityScore}</strong>
+                                                    <span>Activity</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <p className='gtraders-ai-scanner__disclaimer'>
+                                    Ranking reflects observed data availability and recent price
+                                    movement only. It is not a prediction, trade signal or guarantee
+                                    of profitability.
+                                </p>
+                            </section>
                         )}
 
                         <div className='gtraders-ai-panel__actions'>
