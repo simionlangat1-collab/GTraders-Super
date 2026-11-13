@@ -60,6 +60,7 @@ export class AILiveTickStream {
     private heartbeat: ReturnType<typeof setInterval> | null = null;
     private generation = 0;
     private reconnecting = false;
+    private consecutiveReconnectCycles = 0;
     private manuallyStopped = false;
 
     constructor(
@@ -180,6 +181,7 @@ export class AILiveTickStream {
         this.options.onTick?.(tick);
 
         if (this.recoveryTicks >= this.recoveryTicksRequired) {
+            this.consecutiveReconnectCycles = 0;
             this.setStatus('healthy', 'Live tick stream is fresh and ordered.');
         } else {
             this.setStatus('recovering', 'Revalidating live stream with consecutive ticks.');
@@ -195,6 +197,13 @@ export class AILiveTickStream {
 
     private async recover(reason: string): Promise<void> {
         if (this.manuallyStopped || this.reconnecting || this.status === 'error') return;
+        if (this.consecutiveReconnectCycles >= this.reconnectAttempts) {
+            this.setStatus('error', 'Live stream did not recover within the allowed reconnect cycles. NO TRADE.');
+            this.stopHeartbeat();
+            this.clearSubscriptions();
+            return;
+        }
+        this.consecutiveReconnectCycles += 1;
         this.reconnecting = true;
         const generation = ++this.generation;
         this.recoveryTicks = 0;
@@ -259,6 +268,7 @@ export class AILiveTickStream {
         this.lastEpoch = 0;
         this.lastTickAt = 0;
         this.reconnecting = false;
+        this.consecutiveReconnectCycles = 0;
         this.setStatus('stopped', 'Live tick monitoring stopped. Trading must remain blocked until restarted.');
     };
 }
