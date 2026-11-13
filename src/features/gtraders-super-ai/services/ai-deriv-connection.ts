@@ -9,6 +9,7 @@ export interface AIAccountSnapshot {
     loginid: string;
     balance: number;
     currency: string;
+    account_type: 'demo' | 'real' | 'unknown';
 }
 
 interface DerivAPIError {
@@ -161,7 +162,7 @@ export class AIDerivConnection {
         }
     };
 
-    private async getPrivateWebSocketUrl(accessToken: string): Promise<string> {
+    private async getPrivateWebSocketUrl(accessToken: string): Promise<{ url: string; accountType: 'demo' | 'real' | 'unknown' }> {
         // Reuse account identity data only. The AI requests its own fresh OTP so
         // it cannot accidentally share the existing bot's one-time WebSocket URL.
         const storedAccounts = DerivWSAccountsService.getStoredAccounts();
@@ -206,7 +207,11 @@ export class AIDerivConnection {
             throw new Error('Deriv did not return a private AI WebSocket URL.');
         }
 
-        return websocketUrl;
+        const accountType = selectedAccount.account_type === 'demo' || selectedAccount.account_type === 'real'
+            ? selectedAccount.account_type
+            : 'unknown';
+
+        return { url: websocketUrl, accountType };
     }
 
     private async connectPrivateSocket(): Promise<AIAccountSnapshot> {
@@ -222,7 +227,8 @@ export class AIDerivConnection {
             }
 
             const selectedAccountId = localStorage.getItem('active_loginid');
-            const websocketUrl = await this.getPrivateWebSocketUrl(authInfo.access_token);
+            const connectionDetails = await this.getPrivateWebSocketUrl(authInfo.access_token);
+            const websocketUrl = connectionDetails.url;
             if (attemptId !== this.connectionAttempt) throw new Error('AI connection was stopped.');
 
             if (!websocketUrl) {
@@ -290,6 +296,7 @@ export class AIDerivConnection {
                 loginid: account.loginid,
                 balance: Number(account.balance),
                 currency: account.currency,
+                account_type: connectionDetails.accountType,
             };
             this.setStatus('connected');
             return this.account;
