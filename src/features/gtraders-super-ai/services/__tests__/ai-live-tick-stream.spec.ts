@@ -76,6 +76,13 @@ describe('AILiveTickStream', () => {
         expect(stream.isHealthy()).toBe(false);
     });
 
+    it('rejects stale ticks even when the market symbol matches', async () => {
+        await stream.start('R_100');
+        connection.emit({ symbol: 'R_100', quote: 123.45, epoch: 1_700_000_008 });
+        expect(stream.getStatus()).toBe('error');
+        expect(stream.isHealthy()).toBe(false);
+    });
+
     it('rejects out-of-order tick timestamps', async () => {
         await stream.start('R_100');
         connection.emit({ symbol: 'R_100', quote: 123.45, epoch: 1_700_000_009 });
@@ -90,6 +97,25 @@ describe('AILiveTickStream', () => {
         await Promise.resolve();
         await Promise.resolve();
 
+        expect(connection.connect).toHaveBeenCalledTimes(1);
+        expect(connection.requests.filter(request => request.ticks === 'R_100')).toHaveLength(2);
+        expect(stream.getStatus()).toBe('recovering');
+        expect(stream.isHealthy()).toBe(false);
+    });
+
+    it('forces a fresh authenticated socket after a silent-but-open heartbeat timeout', async () => {
+        let clock = now;
+        stream = new AILiveTickStream(connection, {
+            nowMs: () => clock,
+            heartbeatIntervalMs: 100,
+            silenceTimeoutMs: 1000,
+            reconnectBaseDelayMs: 10,
+        });
+        await stream.start('R_100');
+        clock += 1100;
+        await jest.advanceTimersByTimeAsync(100);
+
+        expect(connection.disconnect).toHaveBeenCalledTimes(1);
         expect(connection.connect).toHaveBeenCalledTimes(1);
         expect(connection.requests.filter(request => request.ticks === 'R_100')).toHaveLength(2);
         expect(stream.getStatus()).toBe('recovering');
