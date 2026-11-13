@@ -24,10 +24,10 @@ class MockTickConnection implements AILiveTickConnection {
         return () => this.statusListeners.delete(listener);
     };
     getStatus = () => this.status;
-    disconnect = () => {
+    disconnect = jest.fn(() => {
         this.status = 'disconnected';
         this.statusListeners.forEach(listener => listener(this.status));
-    };
+    });
     emit = (tick: { symbol: string; quote: number; epoch: number }) => {
         this.listeners.forEach(listener => listener({ tick }));
     };
@@ -94,8 +94,7 @@ describe('AILiveTickStream', () => {
     it('reconnects after a WebSocket interruption but requires fresh ticks again', async () => {
         await stream.start('R_100');
         connection.setStatus('disconnected');
-        await Promise.resolve();
-        await Promise.resolve();
+        await jest.advanceTimersByTimeAsync(0);
 
         expect(connection.connect).toHaveBeenCalledTimes(1);
         expect(connection.requests.filter(request => request.ticks === 'R_100')).toHaveLength(2);
