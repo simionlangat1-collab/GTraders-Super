@@ -102,7 +102,7 @@ describe('AILiveTickStream', () => {
         expect(stream.isHealthy()).toBe(false);
     });
 
-    it('forces a fresh authenticated socket after a silent-but-open heartbeat timeout', async () => {
+    it('keeps the authenticated socket open during a silent tick-feed recovery', async () => {
         let clock = now;
         stream = new AILiveTickStream(connection, {
             nowMs: () => clock,
@@ -114,8 +114,9 @@ describe('AILiveTickStream', () => {
         clock += 1100;
         await jest.advanceTimersByTimeAsync(100);
 
-        expect(connection.disconnect).toHaveBeenCalledTimes(1);
-        expect(connection.connect).toHaveBeenCalledTimes(1);
+        expect(connection.requests).toContainEqual({ ping: 1 });
+        expect(connection.disconnect).not.toHaveBeenCalled();
+        expect(connection.connect).not.toHaveBeenCalled();
         expect(connection.requests.filter(request => request.ticks === 'R_100')).toHaveLength(2);
         expect(stream.getStatus()).toBe('recovering');
         expect(stream.isHealthy()).toBe(false);
