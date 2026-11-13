@@ -54,6 +54,12 @@ export class AIDerivConnection {
     private messageListeners = new Set<(message: DerivMessage) => void>();
     private intentionalClose = false;
     private connectionAttempt = 0;
+    private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+    private keepAliveInFlight = false;
+    private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    private reconnectAttempt = 0;
+    private shouldMaintainConnection = false;
+    private hasConnectedOnce = false;
 
     getStatus = (): AIConnectionStatus => this.status;
 
@@ -109,16 +115,59 @@ export class AIDerivConnection {
         this.messageListeners.forEach(listener => listener(message));
     };
 
+    private stopKeepAlive = (): void => {
+        if (this.keepAliveTimer) clearInterval(this.keepAliveTimer);
+        this.keepAliveTimer = null;
+        this.keepAliveInFlight = false;
+    };
+
+    private startKeepAlive = (): void => {
+        this.stopKeepAlive();
+        // Deriv application-level ping keeps an idle authenticated socket alive
+        // even when no market tick subscription is currently running.
+        this.keepAliveTimer = setInterval(() => {
+            if (this.status !== 'connected' || this.keepAliveInFlight || !this.shouldMaintainConnection) return;
+            this.keepAliveInFlight = true;
+            void this.request({ ping: 1 })
+                .catch(() => {
+                    if (this.shouldMaintainConnection) this.scheduleReconnect();
+                })
+                .finally(() => {
+                    this.keepAliveInFlight = false;
+                });
+        }, 25000);
+    };
+
+    private scheduleReconnect = (): void => {
+        if (!this.shouldMaintainConnection || !this.hasConnectedOnce || this.reconnectTimer) return;
+        this.stopKeepAlive();
+        const delay = Math.min(1000 * 2 ** this.reconnectAttempt, 30000);
+        this.reconnectAttempt += 1;
+        this.reconnectTimer = setTimeout(() => {
+            this.reconnectTimer = null;
+            if (!this.shouldMaintainConnection) return;
+            const staleSocket = this.socket;
+            this.socket = null;
+            this.account = null;
+            this.rejectPendingRequests('Refreshing the AI Deriv connection.');
+            if (staleSocket && staleSocket.readyState < WebSocket.CLOSING) staleSocket.close();
+            this.setStatus('disconnected');
+            void this.connect().catch(() => this.scheduleReconnect());
+        }, delay);
+    };
+
     private handleClose = (closedSocket: WebSocket): void => {
         // A late close event from an older socket must not clear a newer connection.
         if (this.socket !== closedSocket) return;
 
         this.rejectPendingRequests('AI Deriv connection closed.');
+        this.stopKeepAlive();
         this.socket = null;
         this.account = null;
 
         if (!this.intentionalClose) {
             this.setStatus('disconnected');
+            this.scheduleReconnect();
         }
     };
 
@@ -157,6 +206,7 @@ export class AIDerivConnection {
         this.request<T>(payload);
 
     connect = async (): Promise<AIAccountSnapshot> => {
+        this.shouldMaintainConnection = true;
         if (this.status === 'connected' && this.account) return this.account;
         if (this.connectPromise) return this.connectPromise;
 
@@ -305,7 +355,10 @@ export class AIDerivConnection {
                 currency: account.currency,
                 account_type: connectionDetails.accountType,
             };
+            this.reconnectAttempt = 0;
+            this.hasConnectedOnce = true;
             this.setStatus('connected');
+            this.startKeepAlive();
             return this.account;
         } catch (error) {
             if (attemptId !== this.connectionAttempt) {
@@ -316,6 +369,7 @@ export class AIDerivConnection {
             }
 
             this.intentionalClose = true;
+            this.stopKeepAlive();
             this.rejectPendingRequests('AI Deriv connection could not be established.');
             if (attemptSocket && attemptSocket.readyState < WebSocket.CLOSING) {
                 attemptSocket.close();
@@ -405,6 +459,12 @@ export class AIDerivConnection {
     disconnect = (): void => {
         this.connectionAttempt += 1;
         this.intentionalClose = true;
+        this.shouldMaintainConnection = false;
+        this.hasConnectedOnce = false;
+        this.reconnectAttempt = 0;
+        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+        this.stopKeepAlive();
         this.rejectPendingRequests('AI Deriv connection was stopped.');
         const socket = this.socket;
         this.socket = null;
