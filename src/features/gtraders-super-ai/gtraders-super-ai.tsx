@@ -442,7 +442,7 @@ const GTradersSuperAI = () => {
         }
     };
 
-        const disconnectAI = () => {
+    const disconnectAI = () => {
         connection.disconnect();
         setAccount(null);
         setConnectionError('');
