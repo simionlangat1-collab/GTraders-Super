@@ -112,7 +112,7 @@ const GTradersSuperAI = () => {
                         { multipleComparisonCount: results.length }
                     ),
                 }))
-                .filter(item => item.opportunity.decision === 'TRADE_CANDIDATE')
+                .filter(item => item.opportunity.decision === 'MARKET_CANDIDATE')
                 .sort((a, b) => b.opportunity.edge - a.opportunity.edge);
 
             const selected = qualifying[0];
@@ -427,7 +427,7 @@ const GTradersSuperAI = () => {
                                                     <span>Training win rate: {(marketOpportunity.trainingWinRate * 100).toFixed(1)}%</span>
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
-                                                    <span>95% lower confidence bound: {(marketOpportunity.confidenceLowerBound * 100).toFixed(1)}%</span>
+                                                    <span>Adjusted lower confidence bound: {(marketOpportunity.confidenceLowerBound * 100).toFixed(1)}%</span>
                                                     <span>Training / holdout ticks: {marketOpportunity.trainingSampleSize} / {marketOpportunity.holdoutSampleSize}</span>
                                                 </div>
                                                 <span>{marketOpportunity.explanation}</span>
