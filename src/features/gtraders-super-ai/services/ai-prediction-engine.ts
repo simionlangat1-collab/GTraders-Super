@@ -10,6 +10,8 @@ export interface AIPredictionEngineOptions {
     trainingFraction?: number;
     minimumMarketSample?: number;
     minimumDataQuality?: number;
+    /** Number of markets tested in the same scan; adjusts the holdout confidence bound. */
+    multipleComparisonCount?: number;
 }
 
 export interface AIPredictionResult {
@@ -184,6 +186,7 @@ export const generateAIPrediction = (
         trainingCutoffIndex,
         marketSampleSize: digits.length,
         dataQuality,
+        multipleComparisonCount: options.multipleComparisonCount,
         observations,
     });
     const gate = evaluateAITradeEvidence(validation.evidence);
