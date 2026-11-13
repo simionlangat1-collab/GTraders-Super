@@ -1,3 +1,5 @@
+import { getFamilyWiseConfidenceZ } from './ai-model-validation';
+
 export type AIContractType = 'DIGITOVER' | 'DIGITUNDER';
 
 /** Returns true only when the estimated last digit itself satisfies the selected barrier. */
@@ -186,7 +188,7 @@ export const evaluateAIContractOpportunity = (
 
     const holdoutWins = countWins(holdoutDigits, selected.rule);
     const holdoutWinRate = holdoutWins / holdoutSampleSize;
-    const confidenceZ = (options.multipleComparisonCount ?? 1) > 1 ? 2.94 : 1.645;
+    const confidenceZ = getFamilyWiseConfidenceZ(options.multipleComparisonCount);
     const confidenceLowerBound = wilsonLowerBound(holdoutWins, holdoutSampleSize, confidenceZ);
     const validated = confidenceLowerBound > selected.rule.baselineWinRate;
 
