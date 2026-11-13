@@ -223,6 +223,24 @@ const GTradersSuperAI = () => {
                                                 </div>
                                             ))}
                                         </div>
+                                        {marketStatistics.rollingWindows.length > 0 && (
+                                            <div className='gtraders-ai-statistics__windows'>
+                                                <strong>Rolling sample comparison</strong>
+                                                {marketStatistics.rollingWindows.map(window => {
+                                                    const leadingDigit = [...window.frequencies].sort(
+                                                        (a, b) => b.count - a.count
+                                                    )[0];
+                                                    return (
+                                                        <div key={window.windowSize}>
+                                                            <span>Last {window.windowSize} ticks</span>
+                                                            <span>
+                                                                Digit {leadingDigit.digit}: {leadingDigit.percentage.toFixed(1)}%
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                         <div className='gtraders-ai-statistics__summary'>
                                             <span>Chi-square descriptive statistic: {marketStatistics.chiSquareStatistic?.toFixed(2) ?? '—'}</span>
                                             <span>Largest deviation from 10%: {marketStatistics.maxAbsoluteDeviation.toFixed(2)} pp</span>
