@@ -248,7 +248,7 @@ const AccountSwitcher = observer(({ activeAccount, balanceDisplayCurrency = 'USD
                             </button>
                         </div>
 
-                        <div className='acc-modal__accounts'>
+                        <div className='acc-modal__accounts' role='listbox' aria-label='Accounts'>
                             {formattedAccounts.map(account => (
                                 <div
                                     key={account.loginid}
