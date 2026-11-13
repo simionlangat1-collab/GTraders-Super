@@ -1,0 +1,164 @@
+.gtraders-ai-float {
+    position: fixed;
+    right: 2rem;
+    bottom: 2.4rem;
+    z-index: 900;
+    display: grid;
+    place-items: center;
+    width: 6.2rem;
+    height: 6.2rem;
+    padding: 0;
+    border: 1px solid rgba(76, 170, 255, 0.8);
+    border-radius: 50%;
+    color: #ffffff;
+    background: radial-gradient(circle at 32% 25%, #344f83 0%, #172b50 48%, #10182b 100%);
+    box-shadow: 0 0 0 0.4rem rgba(37, 131, 255, 0.12), 0 0.6rem 2rem rgba(0, 0, 0, 0.38),
+        0 0 1.8rem rgba(37, 131, 255, 0.42);
+    cursor: pointer;
+    isolation: isolate;
+    -webkit-tap-highlight-color: transparent;
+
+    &__ring {
+        position: absolute;
+        inset: -0.45rem;
+        z-index: -1;
+        border: 2px solid transparent;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #22d3ee, #2583ff 48%, #a855f7) border-box;
+        -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    &__letters {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.08em;
+        text-shadow: 0 0 1.2rem rgba(34, 211, 238, 0.8);
+    }
+
+    &:focus-visible {
+        outline: 3px solid #22d3ee;
+        outline-offset: 0.5rem;
+    }
+
+    &:hover {
+        box-shadow: 0 0 0 0.5rem rgba(37, 131, 255, 0.16), 0 0.8rem 2.4rem rgba(0, 0, 0, 0.42),
+            0 0 2.2rem rgba(37, 131, 255, 0.58);
+        transform: translateY(-2px);
+    }
+}
+
+.gtraders-ai-panel {
+    position: fixed;
+    right: 2rem;
+    bottom: 10rem;
+    z-index: 901;
+    width: min(36rem, calc(100vw - 3.2rem));
+    overflow: hidden;
+    border: 1px solid rgba(76, 170, 255, 0.34);
+    border-radius: 1.6rem;
+    color: #eaf2ff;
+    background: #111c31;
+    box-shadow: 0 1.6rem 4.8rem rgba(0, 0, 0, 0.48), 0 0 2.4rem rgba(37, 131, 255, 0.14);
+
+    &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.2rem;
+        padding: 1.8rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        background: linear-gradient(120deg, rgba(37, 131, 255, 0.18), rgba(139, 92, 246, 0.12));
+
+        h2 {
+            margin: 0.4rem 0 0;
+            color: #ffffff;
+            font-size: 1.7rem;
+            font-weight: 700;
+        }
+    }
+
+    &__eyebrow {
+        color: #70cfff;
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+    }
+
+    &__close {
+        width: 2.8rem;
+        height: 2.8rem;
+        border: 0;
+        border-radius: 50%;
+        color: #dbeafe;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 2.2rem;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    &__body {
+        display: grid;
+        gap: 1.2rem;
+        padding: 1.8rem;
+
+        p {
+            margin: 0;
+            color: #c2cee0;
+            font-size: 1.25rem;
+            line-height: 1.55;
+        }
+    }
+
+    &__status {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        color: #a7f3d0;
+        font-size: 1.15rem;
+        font-weight: 600;
+    }
+
+    &__status-dot {
+        width: 0.8rem;
+        height: 0.8rem;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 0.8rem rgba(52, 211, 153, 0.7);
+    }
+
+    &__notice {
+        padding: 1.2rem;
+        border: 1px solid rgba(34, 211, 238, 0.2);
+        border-radius: 1rem;
+        background: rgba(34, 211, 238, 0.06);
+    }
+
+    &__demo {
+        justify-self: start;
+        padding: 0.5rem 0.8rem;
+        border-radius: 0.5rem;
+        color: #a5d8ff;
+        background: rgba(37, 131, 255, 0.14);
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+    }
+}
+
+@media (max-width: 767px) {
+    .gtraders-ai-float {
+        right: 1.6rem;
+        bottom: 2rem;
+        width: 5.6rem;
+        height: 5.6rem;
+    }
+
+    .gtraders-ai-panel {
+        right: 1.2rem;
+        bottom: 8.8rem;
+        width: calc(100vw - 2.4rem);
+    }
+}
