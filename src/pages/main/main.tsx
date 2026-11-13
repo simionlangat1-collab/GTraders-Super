@@ -519,7 +519,11 @@ const AppWrapper = observer(() => {
                                 <Suspense
                                     fallback={<ChunkLoader message={localize('Loading Analysis Tool...')} />}
                                 >
-                                    <AnalysisTool onRunBot={runBotFromAnalysis} />
+                                    <AnalysisTool
+                                        onRunBot={runBotFromAnalysis}
+                                        onStopBot={run_panel.stopBot}
+                                        isBotRunning={run_panel.is_running}
+                                    />
                                 </Suspense>
                             </div>
                             <div
