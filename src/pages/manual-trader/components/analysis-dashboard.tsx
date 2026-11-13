@@ -87,10 +87,25 @@ export const ManualTraderAnalysisDashboard = ({ ticks, marketName, tickConnectio
                             ].filter(Boolean).join(' ')}
                             key={tradeResultHighlight?.digit === item.digit ? tradeResultHighlight.key : item.digit}
                         >
-                            <div className={`analysis-tool__digit-circle ${item.digit === barrierDigit ? 'is-barrier' : ''} ${tradeResultHighlight?.digit === item.digit ? `is-trade-result is-trade-result-${tradeResultHighlight.status}` : ''}`}>
+                            <div
+                                className={`analysis-tool__digit-circle ${item.digit === barrierDigit ? 'is-barrier' : ''} ${tradeResultHighlight?.digit === item.digit ? `is-trade-result is-trade-result-${tradeResultHighlight.status}` : ''}`}
+                                style={tradeResultHighlight?.digit === item.digit ? {
+                                    background: tradeResultHighlight.status === 'won' ? '#d4a017' : '#dc2626',
+                                    borderColor: tradeResultHighlight.status === 'won' ? '#f5cf55' : '#fb7185',
+                                    color: '#ffffff',
+                                    boxShadow: tradeResultHighlight.status === 'won'
+                                        ? '0 0 .25rem #f5cf55, 0 0 1.8rem #d4a017, inset 0 0 1.2rem rgba(255,255,255,.28)'
+                                        : '0 0 .25rem #fb7185, 0 0 1.8rem #dc2626, inset 0 0 1.2rem rgba(255,255,255,.22)',
+                                    animation: tradeResultHighlight.status === 'won'
+                                        ? 'manual-trader-trade-win 520ms ease-in-out 2 both'
+                                        : 'manual-trader-trade-loss 520ms ease-in-out 2 both',
+                                    zIndex: 3,
+                                } : undefined}
+                            >
                                 <span className='analysis-tool__digit-number'>{item.digit}</span>
                                 <strong className='analysis-tool__digit-percentage'>{item.percentage.toFixed(1)}%</strong>
                                 {latestTick?.digit === item.digit && <span className='analysis-tool__tick-cursor' aria-label='Latest tick' />}
+                                {tradeResultHighlight?.digit === item.digit && <span className='analysis-tool__trade-result-glow' aria-hidden='true' />}
                             </div>
                             <span>{item.count.toLocaleString()} ticks</span>
                             <div className='analysis-tool__bar'><i style={{ width: `${item.percentage}%` }} /></div>
