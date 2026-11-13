@@ -162,3 +162,78 @@
         width: calc(100vw - 2.4rem);
     }
 }
+
+
+.gtraders-ai-panel {
+    &__status {
+        &--connecting {
+            color: #fcd34d;
+        }
+
+        &--connected {
+            color: #a7f3d0;
+        }
+
+        &--error {
+            color: #fca5a5;
+        }
+    }
+
+    &__account {
+        display: grid;
+        gap: 0.5rem;
+        padding: 1.2rem;
+        border: 1px solid rgba(52, 211, 153, 0.24);
+        border-radius: 1rem;
+        background: rgba(16, 185, 129, 0.07);
+
+        span {
+            color: #b8c7dc;
+            font-size: 1.1rem;
+        }
+
+        strong {
+            color: #ffffff;
+            font-size: 1.5rem;
+        }
+    }
+
+    &__error {
+        padding: 1rem;
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        border-radius: 0.8rem;
+        color: #fecaca !important;
+        background: rgba(127, 29, 29, 0.2);
+    }
+
+    &__actions {
+        display: flex;
+        width: 100%;
+    }
+
+    &__connect,
+    &__disconnect {
+        width: 100%;
+        min-height: 4.2rem;
+        border: 0;
+        border-radius: 0.9rem;
+        color: #ffffff;
+        font-size: 1.25rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    &__connect {
+        background: linear-gradient(100deg, #1769d2, #5b45c8);
+
+        &:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+    }
+
+    &__disconnect {
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        background: rgba(185, 28, 28, 0.2);
+    }
+}
