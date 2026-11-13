@@ -5,7 +5,7 @@ describe('evaluateAIContractOpportunity', () => {
         const digits = [...Array(300).fill(8), ...Array(200).fill(8)];
         const result = evaluateAIContractOpportunity(digits, 100);
 
-        expect(result.decision).toBe('TRADE_CANDIDATE');
+        expect(result.decision).toBe('MARKET_CANDIDATE');
         expect(result.contractLabel).toBe('Over');
         expect(result.barrier).toBe(7);
         expect(result.trainingSampleSize).toBe(300);
