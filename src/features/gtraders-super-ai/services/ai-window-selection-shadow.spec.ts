@@ -1,11 +1,22 @@
 import { classifyPowerEvidence, runAIWindowSelectionShadowAudit } from './ai-window-selection-shadow';
 
 describe('AI shadow window selection', () => {
-    it('is deterministic and distinguishes ambiguity from regime instability', () => {
+    it('is deterministic and reports fold sample-size sensitivities', () => {
         const first = runAIWindowSelectionShadowAudit(200, 123);
         expect(first).toEqual(runAIWindowSelectionShadowAudit(200, 123));
-        expect(first.map(item => item.profile)).toEqual(['CLEAR_WINNER', 'NEAR_TIE', 'REGIME_SHIFT']);
+        expect(first).toHaveLength(9);
+        expect(first.filter(item => item.profile === 'CLEAR_WINNER').map(item => item.foldObservationsPerFold))
+            .toEqual([50, 100, 200]);
         expect(first.every(item => item.ambiguousRate >= 0 && item.regimeUnstableRate >= 0)).toBe(true);
+    });
+
+    it('keeps the existing stability and ambiguity criteria visible at every sample size', () => {
+        const results = runAIWindowSelectionShadowAudit(500, 20261114);
+        expect(results.every(item =>
+            item.currentRulePassRate >= 0 && item.currentRulePassRate <= 1 &&
+            item.aggregateClearCandidateRate + item.ambiguousRate + item.regimeUnstableRate
+                > 0.999999
+        )).toBe(true);
     });
 
     it('labels low design power as insufficient evidence without changing live gates', () => {
