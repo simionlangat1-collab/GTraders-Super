@@ -94,7 +94,7 @@ describe('validateAIModelOutOfSample', () => {
         expect(calculatePairedExactPValue(5, 5)).toBeGreaterThan(0.5);
         const single = validateAIModelOutOfSample({
             ...baseInput,
-            observations: makeObservations(200, index => index < 120, index => index >= 120),
+            observations: makeObservations(200, index => index < 119, index => index >= 119),
         });
         const family = validateAIModelOutOfSample({
             ...baseInput,
