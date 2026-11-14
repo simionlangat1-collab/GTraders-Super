@@ -4,9 +4,9 @@ describe('AI shadow window selection', () => {
     it('is deterministic and reports fold sample-size sensitivities', () => {
         const first = runAIWindowSelectionShadowAudit(200, 123);
         expect(first).toEqual(runAIWindowSelectionShadowAudit(200, 123));
-        expect(first).toHaveLength(9);
+        expect(first).toHaveLength(12);
         expect(first.filter(item => item.profile === 'CLEAR_WINNER').map(item => item.foldObservationsPerFold))
-            .toEqual([50, 100, 200]);
+            .toEqual([50, 100, 200, 500]);
         expect(first.every(item => item.ambiguousRate >= 0 && item.regimeUnstableRate >= 0)).toBe(true);
     });
 
