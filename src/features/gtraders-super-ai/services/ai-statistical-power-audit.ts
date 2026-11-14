@@ -56,7 +56,7 @@ export interface AIStatisticalPowerAuditResult {
 
 const DEFAULT_BASELINES = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
 const DEFAULT_EDGES = [0, 0.02, 0.05, 0.1];
-const DEFAULT_SAMPLE_SIZES = [500, 1000, 2000];
+const DEFAULT_SAMPLE_SIZES = [500, 1000, 2000, 5000];
 const DEFAULT_SPLITS = [0.5, 0.6, 0.7];
 const DEFAULT_PAIRED_IMPROVEMENTS = [0, 0.02, 0.05, 0.1];
 
