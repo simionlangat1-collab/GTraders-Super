@@ -171,4 +171,46 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.outOfSampleTradeCount).toBe(0);
         expect(result.rejectedObservations).toBe(1);
     });
+
+    it('does not veto a sound paired comparison solely because raw accuracy is regime-clustered', () => {
+        let state = 12345;
+        const random = () => {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            return state / 4294967296;
+        };
+        const observations = Array.from({ length: 400 }, (_, index) => {
+            const highAccuracyRegime = Math.floor(index / 100) % 2 === 0;
+            const draw = random();
+            let modelPredictionCorrect = false;
+            let baselinePredictionCorrect = false;
+
+            if (draw < 0.2) {
+                modelPredictionCorrect = true;
+            } else if (draw < 0.25) {
+                baselinePredictionCorrect = true;
+            } else if (draw < (highAccuracyRegime ? 0.75 : 0.30)) {
+                modelPredictionCorrect = true;
+                baselinePredictionCorrect = true;
+            }
+
+            return {
+                settledAt: 2000 + index,
+                observationIndex: index + 1,
+                modelPredictionCorrect,
+                baselinePredictionCorrect,
+            };
+        });
+
+        const result = validateAIModelOutOfSample({
+            ...baseInput,
+            observations,
+        });
+
+        expect(result.accuracyEffectiveSampleSize).toBeLessThan(200);
+        expect(result.effectiveSampleSize).toBeGreaterThanOrEqual(200);
+        expect(result.modelOnlyCorrect).toBeGreaterThan(result.baselineOnlyCorrect);
+        expect(result.adjustedPairedPValue).toBeLessThanOrEqual(0.05);
+        expect(result.evidence.validationPassed).toBe(true);
+    });
+
 });
