@@ -36,6 +36,10 @@ export interface AIPairedPowerScenario {
     power: number;
 }
 
+export interface AIWindowSelectionScenario { profile: 'CLEAR_WINNER' | 'NEAR_TIE' | 'REGIME_SHIFT'; repetitions: number; legacyStabilityPassRate: number; aggregateSelectionAvailableRate: number; aggregateAmbiguityRate: number; }
+
+export interface AIDependenceSensitivity { holdoutTicks: number; lagOneCorrelation: number; approximateEffectiveSampleSize: number; }
+
 export interface AIStatisticalPowerAuditResult {
     mode: 'SHADOW_ONLY';
     seed: number;
@@ -44,6 +48,8 @@ export interface AIStatisticalPowerAuditResult {
     confidenceLevel: number;
     contractScenarios: AIContractPowerScenario[];
     pairedScenarios: AIPairedPowerScenario[];
+    windowSelectionScenarios: AIWindowSelectionScenario[];
+    dependenceSensitivity: AIDependenceSensitivity[];
     safeguards: string[];
     interpretation: string;
 }
@@ -210,6 +216,59 @@ export const runAIStatisticalPowerAudit = (
         }
     }
 
+
+    const windowProfiles: Array<{ profile: AIWindowSelectionScenario['profile']; rates: number[][] }> = [
+        { profile: 'CLEAR_WINNER', rates: [[0.65, 0.65, 0.65], [0.57, 0.57, 0.57], [0.54, 0.54, 0.54], [0.52, 0.52, 0.52], [0.5, 0.5, 0.5]] },
+        { profile: 'NEAR_TIE', rates: [[0.55, 0.55, 0.55], [0.54, 0.54, 0.54], [0.53, 0.53, 0.53], [0.52, 0.52, 0.52], [0.51, 0.51, 0.51]] },
+        { profile: 'REGIME_SHIFT', rates: [[0.62, 0.5, 0.5], [0.5, 0.62, 0.5], [0.5, 0.5, 0.62], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]] },
+    ];
+    const windowSelectionScenarios: AIWindowSelectionScenario[] = windowProfiles.map(scenario => {
+        let legacyPasses = 0;
+        let ambiguousSelections = 0;
+        for (let run = 0; run < repetitions; run += 1) {
+            const foldAccuracies = scenario.rates.map(candidate =>
+                candidate.map(probability => countBinomial(50, probability, random) / 50)
+            );
+            const foldWinners = [0, 1, 2].map(fold =>
+                foldAccuracies.reduce((best, candidate, index) =>
+                    candidate[fold] > foldAccuracies[best][fold] ? index : best, 0)
+            );
+            const winsByCandidate = scenario.rates.map((_, candidate) =>
+                foldWinners.filter(winner => winner === candidate).length
+            );
+            const aggregateRates = scenario.rates.map((_, candidate) =>
+                foldAccuracies[candidate].reduce((sum, accuracy) => sum + accuracy, 0) / 3
+            );
+            const selected = aggregateRates.reduce((best, rate, index) =>
+                rate > aggregateRates[best] ? index : best, 0);
+            const sortedAggregate = [...aggregateRates].sort((a, b) => b - a);
+            const selectedWins = winsByCandidate[selected];
+            const selectedFolds = foldAccuracies[selected];
+            const foldMean = selectedFolds.reduce((a, b) => a + b, 0) / 3;
+            const variance = selectedFolds.reduce((sum, value) =>
+                sum + ((value - foldMean) ** 2), 0) / 3;
+            if (selectedWins / 3 >= 2 / 3 && Math.sqrt(variance) <= 0.15) legacyPasses += 1;
+            if (sortedAggregate[0] - sortedAggregate[1] <= 0.02) ambiguousSelections += 1;
+        }
+        return {
+            profile: scenario.profile,
+            repetitions,
+            legacyStabilityPassRate: legacyPasses / repetitions,
+            aggregateSelectionAvailableRate: 1,
+            aggregateAmbiguityRate: ambiguousSelections / repetitions,
+        };
+    });
+    const dependenceHoldouts = [...new Set(contractScenarios
+        .filter(item => item.interpretation !== 'NOT_RUN')
+        .map(item => item.holdoutTicks))].sort((a, b) => a - b);
+    const dependenceSensitivity: AIDependenceSensitivity[] = dependenceHoldouts.flatMap(holdoutTicks =>
+        [0, 0.1, 0.25, 0.5].map(lagOneCorrelation => ({
+            holdoutTicks,
+            lagOneCorrelation,
+            approximateEffectiveSampleSize: holdoutTicks * (1 - lagOneCorrelation) / (1 + lagOneCorrelation),
+        }))
+    );
+
     return {
         mode: 'SHADOW_ONLY',
         seed,
@@ -218,13 +277,17 @@ export const runAIStatisticalPowerAudit = (
         confidenceLevel: 0.95,
         contractScenarios,
         pairedScenarios,
+        windowSelectionScenarios,
+        dependenceSensitivity,
         safeguards: [
             'No scanner thresholds, model settings, trade decisions, or execution permissions are read or changed.',
             'No simulated result can approve a market or authorize a proposal or order.',
             'Contract power is conditional on selection using training data only; holdout must remain untouched.',
             'The family-wise adjustment is applied across the markets tested in this scan.',
             'The paired model gate is simulated separately; its evidence must not be mistaken for contract profitability.',
-            'Independent Bernoulli simulations are optimistic when ticks are serially dependent; block-bootstrap or dependence-aware validation is still required.',
+            'Independent Bernoulli simulations are optimistic when ticks are serially dependent; the effective-sample-size table is only a sensitivity approximation, not a replacement for block-bootstrap validation.',
+            'Window-selection results compare the current two-of-three fold-winner rule with aggregate ranking in shadow mode; aggregate ranking never bypasses the untouched holdout.',
+            'A close aggregate winner is labelled ambiguous rather than treated as proof that one window is superior.',
         ],
         interpretation: 'This is a Monte Carlo design audit, not evidence that any live market has an edge. Compare false-approval rates at zero edge against detection power at positive edges. Treat low power as inconclusive evidence, never as permission to weaken approval rules.',
     };
