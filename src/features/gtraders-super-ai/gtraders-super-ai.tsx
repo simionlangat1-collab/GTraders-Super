@@ -24,8 +24,11 @@ const connectionStatusLabel: Record<AIConnectionStatus, string> = {
 
 type AIMarketRejectionDiagnostic = {
     symbol: string; displayName: string; ticks: number; dataQuality: number; dataQualityReason: string;
-    contractStatus: string; contractEvidence: string; predictionStatus: string; predictionEvidence: string;
-    barrierEvidence: string; quoteEvidence: string; finalReason: string;
+    contractStatus: string; contractEvidence: string; contractRejectionReasons: string[];
+    predictionStatus: string; predictionEvidence: string; predictionRejectionReasons: string[];
+    pairedEvidence: { modelWins: number; baselineWins: number; modelOnlyWins: number; baselineOnlyWins: number; rawPValue: number; adjustedPValue: number; rejectedObservations: number };
+    windowSelection: { selectedWindow: number | null; foldCount: number; winnerShare: number; accuracyStdDev: number; stable: boolean; summary: string };
+    barrierEvidence: string; quoteEvidence: string; rejectionReasons: string[]; finalReason: string;
 };
 
 type SelectedMarketOpportunity = AIContractOpportunity & {
@@ -255,19 +258,55 @@ const GTradersSuperAI = () => {
                         ? 'Passed all scanner gates; eligible for candidate selection.'
                         : quoteIndex >= 10 ? 'Evidence passed, but no live quote was requested because this candidate ranked outside the top 10.'
                         : quoteEvidence;
+                const contractRejectionReasons = item.opportunity.rejectionReasons;
+                const predictionRejectionReasons = item.prediction.rejectionReasons;
+                const quoteRejectionReasons = barrierPassed
+                    ? quoteIndex >= 10 ? ['QUOTE_NOT_REQUESTED_TOP_RANK']
+                        : quoteResult?.status === 'rejected' ? ['QUOTE_REQUEST_FAILED']
+                            : quoteResult?.status === 'fulfilled' && !quoteResult.value.economics.allowed
+                                ? ['QUOTE_BREAKEVEN_CHECK_FAILED']
+                                : []
+                    : [];
+                const barrierRejectionReasons = contractPassed && predictionPassed && !barrierPassed
+                    ? ['PREDICTED_DIGIT_BARRIER_MISMATCH'] : [];
+                const rejectionReasons = [
+                    ...contractRejectionReasons,
+                    ...predictionRejectionReasons,
+                    ...barrierRejectionReasons,
+                    ...quoteRejectionReasons,
+                ];
                 return {
                     symbol: item.market.symbol, displayName: item.market.displayName, ticks: item.market.ticks,
                     dataQuality: item.market.dataQuality, dataQualityReason: item.market.dataQualityReason,
                     contractStatus: contractPassed ? 'PASSED' : 'REJECTED',
                     contractEvidence: `${item.opportunity.explanation} Training/holdout: ${item.opportunity.trainingSampleSize}/${item.opportunity.holdoutSampleSize}; holdout win rate ${(item.opportunity.holdoutWinRate * 100).toFixed(1)}%; fair baseline ${(item.opportunity.baselineWinRate * 100).toFixed(1)}%; adjusted lower bound ${(item.opportunity.confidenceLowerBound * 100).toFixed(1)}%.`,
+                    contractRejectionReasons,
                     predictionStatus: predictionPassed ? 'PASSED' : 'REJECTED',
-                    predictionEvidence: `${item.prediction.explanation} Training/holdout: ${item.prediction.trainingSampleSize}/${item.prediction.holdoutSampleSize}; model accuracy ${(item.prediction.modelWinRate * 100).toFixed(1)}%; matched baseline ${(item.prediction.baselineWinRate * 100).toFixed(1)}%; descriptive Wilson lower bound ${(item.prediction.confidenceLowerBound * 100).toFixed(1)}%. ${item.prediction.explanation.includes('adjusted p-value') ? item.prediction.explanation.slice(item.prediction.explanation.indexOf('Model-only wins:')) : ''}`,
+                    predictionEvidence: `${item.prediction.explanation} Training/holdout: ${item.prediction.trainingSampleSize}/${item.prediction.holdoutSampleSize}; model accuracy ${(item.prediction.modelWinRate * 100).toFixed(1)}%; matched baseline ${(item.prediction.baselineWinRate * 100).toFixed(1)}%; descriptive Wilson lower bound ${(item.prediction.confidenceLowerBound * 100).toFixed(1)}%.`,
+                    predictionRejectionReasons,
+                    pairedEvidence: {
+                        modelWins: item.prediction.modelWins,
+                        baselineWins: item.prediction.baselineWins,
+                        modelOnlyWins: item.prediction.modelOnlyCorrect,
+                        baselineOnlyWins: item.prediction.baselineOnlyCorrect,
+                        rawPValue: item.prediction.pairedPValue,
+                        adjustedPValue: item.prediction.adjustedPairedPValue,
+                        rejectedObservations: item.prediction.rejectedObservations,
+                    },
+                    windowSelection: {
+                        selectedWindow: item.prediction.selectedWindow,
+                        foldCount: item.prediction.windowSelectionFoldCount,
+                        winnerShare: item.prediction.windowSelectionWinShare,
+                        accuracyStdDev: item.prediction.windowSelectionAccuracyStdDev,
+                        stable: item.prediction.windowSelectionStable,
+                        summary: item.prediction.windowSelectionSummary,
+                    },
                     barrierEvidence: barrierPassed
                         ? `Predicted digit ${item.prediction.predictedDigit} satisfies ${item.opportunity.contractLabel} ${item.opportunity.barrier}.`
                         : contractPassed && predictionPassed
                             ? `Predicted digit ${item.prediction.predictedDigit ?? '—'} conflicts with ${item.opportunity.contractLabel} ${item.opportunity.barrier}.`
                             : 'Not evaluated because an earlier gate failed.',
-                    quoteEvidence, finalReason,
+                    quoteEvidence, rejectionReasons, finalReason,
                 };
             });
             setRejectionDiagnostics(rejectionDetails);
@@ -308,16 +347,19 @@ const GTradersSuperAI = () => {
                     ? analyseMarketDigits(statisticsMarket.digitSequence)
                     : null
             );
+            const contractRejectedCount = rejectionDetails.filter(item => item.contractStatus === 'REJECTED').length;
+            const predictionRejectedCount = rejectionDetails.filter(item => item.predictionStatus === 'REJECTED').length;
+            const barrierRejectedCount = rejectionDetails.filter(item => item.rejectionReasons.includes('PREDICTED_DIGIT_BARRIER_MISMATCH')).length;
+            const quoteRejectedCount = rejectionDetails.filter(item =>
+                item.rejectionReasons.includes('QUOTE_REQUEST_FAILED') ||
+                item.rejectionReasons.includes('QUOTE_BREAKEVEN_CHECK_FAILED')
+            ).length;
+            const quoteNotRequestedCount = rejectionDetails.filter(item =>
+                item.rejectionReasons.includes('QUOTE_NOT_REQUESTED_TOP_RANK')
+            ).length;
             setScannerOutcomeMessage(
-                selected
-                    ? ''
-                    : !contractQualified.length
-                        ? 'NO TRADE — none of the scanned Volatility markets passed the independent Over/Under holdout test. The AI will not force a selection.'
-                        : !predictionQualified.length
-                            ? 'NO TRADE — an Over/Under pattern was found, but the separate last-digit prediction model did not beat its matched baseline on unseen ticks. The AI will not force a selection.'
-                            : !qualifying.length
-                                ? 'NO TRADE — the predicted last digit conflicts with the selected Over/Under barrier. The AI will not force a selection.'
-                                : 'NO TRADE — the evidence-qualified candidates did not pass the live proposal payout/breakeven check. The AI will not force a selection.'
+                selected ? '' :
+                    `NO TRADE — ${contractRejectedCount} market(s) failed the Over/Under gate; ${predictionRejectedCount} failed prediction validation; ${barrierRejectedCount} had a prediction/barrier mismatch; ${quoteRejectedCount} failed live quote/breakeven checks; ${quoteNotRequestedCount} qualified candidate(s) were outside the top-10 quote limit. All applicable failures are reported above. No selection was forced.`
             );
             setScannedAt(Date.now());
 
