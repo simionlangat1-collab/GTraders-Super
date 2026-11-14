@@ -51,7 +51,9 @@ describe('evaluateFreshMarketPredictions', () => {
             digitSequence: Array(5000).fill(4),
         };
         const secondScan = evaluateFreshMarketPredictions([changedMarket], {
-            candidateWindows: [20, 30, 50, 75, 100],
+            // One fixed candidate isolates holdout significance from the
+            // separate ambiguity-aware multi-window selection gate.
+            candidateWindows: [20],
             trainingFraction: 0.6,
             minimumMarketSample: 500,
             minimumDataQuality: 95,
