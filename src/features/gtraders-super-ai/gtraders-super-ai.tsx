@@ -27,7 +27,7 @@ type AIMarketRejectionDiagnostic = {
     contractStatus: string; contractEvidence: string; contractRejectionReasons: string[];
     predictionStatus: string; predictionEvidence: string; predictionRejectionReasons: string[];
     pairedEvidence: { modelWins: number; baselineWins: number; modelOnlyWins: number; baselineOnlyWins: number; rawPValue: number; adjustedPValue: number; rejectedObservations: number };
-    windowSelection: { selectedWindow: number | null; foldCount: number; winnerShare: number; accuracyStdDev: number; stable: boolean; summary: string };
+    windowSelection: { selectedWindow: number | null; foldCount: number; winnerShare: number; accuracyStdDev: number; stable: boolean; summary: string; candidates: Array<{ window: number; foldWins: number; foldAccuracies: number[]; meanAccuracy: number }> };
     barrierEvidence: string; quoteEvidence: string; rejectionReasons: string[]; finalReason: string;
 };
 
@@ -300,6 +300,7 @@ const GTradersSuperAI = () => {
                         accuracyStdDev: item.prediction.windowSelectionAccuracyStdDev,
                         stable: item.prediction.windowSelectionStable,
                         summary: item.prediction.windowSelectionSummary,
+                        candidates: item.prediction.windowSelectionDiagnostics,
                     },
                     barrierEvidence: barrierPassed
                         ? `Predicted digit ${item.prediction.predictedDigit} satisfies ${item.opportunity.contractLabel} ${item.opportunity.barrier}.`
@@ -967,9 +968,25 @@ const GTradersSuperAI = () => {
                                                     <span className={item.predictionStatus === 'PASSED' ? 'is-passed' : 'is-rejected'}>Prediction: {item.predictionStatus}</span>
                                                 </div>
                                                 <span><strong>Contract evidence:</strong> {item.contractEvidence}</span>
+                                                {item.contractRejectionReasons.length > 0 && (
+                                                    <span><strong>Contract rejection codes:</strong> {item.contractRejectionReasons.join(', ')}</span>
+                                                )}
                                                 <span><strong>Prediction evidence:</strong> {item.predictionEvidence}</span>
+                                                {item.predictionRejectionReasons.length > 0 && (
+                                                    <span><strong>Prediction rejection codes:</strong> {item.predictionRejectionReasons.join(', ')}</span>
+                                                )}
+                                                <span><strong>Paired holdout evidence:</strong> model wins {item.pairedEvidence.modelWins}; baseline wins {item.pairedEvidence.baselineWins}; model-only wins {item.pairedEvidence.modelOnlyWins}; baseline-only wins {item.pairedEvidence.baselineOnlyWins}; raw p-value {item.pairedEvidence.rawPValue.toFixed(4)}; adjusted p-value {item.pairedEvidence.adjustedPValue.toFixed(4)}; rejected observations {item.pairedEvidence.rejectedObservations}.</span>
+                                                <span><strong>Window-selection stability:</strong> {item.windowSelection.summary} Selected window: {item.windowSelection.selectedWindow ?? 'none'}; winner share {(item.windowSelection.winnerShare * 100).toFixed(1)}%; accuracy SD {(item.windowSelection.accuracyStdDev * 100).toFixed(1)} pp; {item.windowSelection.stable ? 'stable' : 'not stable'}.</span>
+                                                {item.windowSelection.candidates.length > 0 && (
+                                                    <span><strong>Window fold evidence:</strong> {item.windowSelection.candidates.map(candidate =>
+                                                        `${candidate.window}t: ${candidate.foldWins} wins, mean accuracy ${(candidate.meanAccuracy * 100).toFixed(1)}%`
+                                                    ).join(' · ')}</span>
+                                                )}
                                                 <span><strong>Barrier compatibility:</strong> {item.barrierEvidence}</span>
                                                 <span><strong>Live quote:</strong> {item.quoteEvidence}</span>
+                                                {item.rejectionReasons.length > 0 && (
+                                                    <span><strong>All applicable rejection codes:</strong> {item.rejectionReasons.join(', ')}</span>
+                                                )}
                                                 <span className='gtraders-ai-diagnostics__reason'><strong>Final outcome:</strong> {item.finalReason}</span>
                                                 {marketResults.find(market => market.symbol === item.symbol)?.scanError && (
                                                     <span><strong>History request error:</strong> {marketResults.find(market => market.symbol === item.symbol)?.scanError}</span>
