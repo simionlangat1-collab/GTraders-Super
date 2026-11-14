@@ -1,4 +1,5 @@
 import { AITradeEvidence } from './ai-trade-decision';
+import { validatePairedDependence } from './ai-dependence-validation';
 
 export interface AIValidationObservation {
     /** Timestamp when this prediction was evaluated/settled, in Unix seconds. */
@@ -23,6 +24,8 @@ export interface AIModelValidationInput {
     multipleComparisonCount?: number;
     /** Chronologically timestamped, settled predictions from the untouched holdout period. */
     observations: AIValidationObservation[];
+    /** Deterministic circular block-bootstrap repetitions; defaults to 2,000. */
+    dependenceBootstrapRepetitions?: number;
 }
 
 export interface AIModelValidationResult {
@@ -33,6 +36,11 @@ export interface AIModelValidationResult {
     baselineOnlyCorrect: number;
     pairedPValue: number;
     adjustedPairedPValue: number;
+    lagOneCorrelation: number;
+    effectiveSampleSize: number;
+    bootstrapBlockLength: number;
+    blockBootstrapPValue: number;
+    dependenceAdjustedPValue: number;
     rejectedObservations: number;
     explanation: string;
 }
@@ -163,10 +171,17 @@ export const validateAIModelOutOfSample = (
         !item.modelPredictionCorrect && item.baselinePredictionCorrect
     ).length;
     const pairedPValue = calculatePairedExactPValue(modelOnlyCorrect, baselineOnlyCorrect);
+    const dependence = validatePairedDependence(
+        eligible.map(item => Number(item.modelPredictionCorrect) - Number(item.baselinePredictionCorrect)),
+        input.dependenceBootstrapRepetitions ?? 2000
+    );
+    // Never let the dependence-aware result make the independent paired test
+    // more permissive. The larger raw p-value controls before family correction.
+    const dependenceAdjustedPValue = Math.max(pairedPValue, dependence.blockBootstrapPValue);
     const comparisonCount = Number.isFinite(input.multipleComparisonCount)
         ? Math.max(1, Math.floor(input.multipleComparisonCount!))
         : 1;
-    const adjustedPairedPValue = Math.min(1, pairedPValue * comparisonCount);
+    const adjustedPairedPValue = Math.min(1, dependenceAdjustedPValue * comparisonCount);
     const observedWinRate = sampleSize ? modelWins / sampleSize : 0;
     const baselineWinRate = sampleSize ? baselineWins / sampleSize : 0;
     const confidenceZ = getFamilyWiseConfidenceZ(input.multipleComparisonCount);
@@ -177,6 +192,7 @@ export const validateAIModelOutOfSample = (
         validInput &&
         rejectedObservations === 0 &&
         sampleSize >= MINIMUM_HOLDOUT_TRADES &&
+        dependence.effectiveSampleSize >= MINIMUM_HOLDOUT_TRADES &&
         adjustedPairedPValue <= 0.05;
 
     const evidence: AITradeEvidence = {
@@ -201,9 +217,14 @@ export const validateAIModelOutOfSample = (
         baselineOnlyCorrect,
         pairedPValue,
         adjustedPairedPValue,
+        lagOneCorrelation: dependence.lagOneCorrelation,
+        effectiveSampleSize: dependence.effectiveSampleSize,
+        bootstrapBlockLength: dependence.blockLength,
+        blockBootstrapPValue: dependence.blockBootstrapPValue,
+        dependenceAdjustedPValue,
         rejectedObservations,
         explanation: validationPassed
-            ? `Untouched chronological holdout passed the paired exact test. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; raw p-value: ${pairedPValue.toFixed(4)}; family-wise adjusted p-value: ${adjustedPairedPValue.toFixed(4)}. Separate evidence and risk gates must still approve; no trade is authorized by validation alone.`
-            : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and a paired exact McNemar test with family-wise adjusted p-value at or below 0.05. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; adjusted p-value: ${adjustedPairedPValue.toFixed(4)}.`,
+            ? `Untouched chronological holdout passed the dependence-aware paired test. Lag-1 correlation: ${dependence.lagOneCorrelation.toFixed(3)}; effective sample: ${dependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; circular block length: ${dependence.blockLength}; block-bootstrap p-value: ${dependence.blockBootstrapPValue.toFixed(4)}. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; raw p-value: ${pairedPValue.toFixed(4)}; family-wise adjusted p-value: ${adjustedPairedPValue.toFixed(4)}. Separate evidence and risk gates must still approve; no trade is authorized by validation alone.`
+            : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and at least ${MINIMUM_HOLDOUT_TRADES} effective observations after lag-1 dependence adjustment. Require both the exact paired McNemar reference and circular block-bootstrap p-value to pass after family-wise correction (adjusted p-value at or below 0.05). Lag-1 correlation: ${dependence.lagOneCorrelation.toFixed(3)}; effective sample: ${dependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; block length: ${dependence.blockLength}; block-bootstrap p-value: ${dependence.blockBootstrapPValue.toFixed(4)}. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; adjusted p-value: ${adjustedPairedPValue.toFixed(4)}.`,
     };
 };
