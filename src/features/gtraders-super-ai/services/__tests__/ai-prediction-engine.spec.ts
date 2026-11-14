@@ -38,6 +38,9 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionAccuracyStdDev).toBe(0);
         expect(result.windowSelectionStable).toBe(true);
         expect(result.windowSelectionSummary).toContain('fold winners');
+        expect(result.windowSelectionDiagnostics).toHaveLength(5);
+        expect(result.windowSelectionDiagnostics.every(item => item.foldAccuracies.length === 3)).toBe(true);
+        expect(result.windowSelectionDiagnostics.reduce((sum, item) => sum + item.foldWins, 0)).toBe(3);
         expect(result.modelWinRate).toBeGreaterThan(result.baselineWinRate);
         expect(result.validationPassed).toBe(true);
         expect(result.decision).toBe('PREDICTION_CANDIDATE');
@@ -64,6 +67,8 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionFoldCount).toBe(3);
         expect(result.windowSelectionAccuracyStdDev).toBeGreaterThan(0);
         expect(result.windowSelectionStable).toBe(false);
+        expect(result.windowSelectionDiagnostics).toHaveLength(2);
+        expect(result.windowSelectionDiagnostics[0].foldAccuracies).toHaveLength(3);
         expect(result.explanation).toContain('selection was unstable');
         expect(result.explanation).toContain('stability FAILED');
     });
