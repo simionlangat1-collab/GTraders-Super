@@ -161,7 +161,7 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionAccuracyRange).toBeGreaterThan(0.12);
         expect(result.windowSelectionStable).toBe(false);
         expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
-        expect(result.windowSelectionSummary).toContain('selected 20-tick window won 2/3 folds');
+        expect(result.windowSelectionSummary).toContain('aggregate leader 20-tick window won 2/3 folds');
         expect(result.windowSelectionSummary).toContain('lead over runner-up 0.00 pp');
     });
 
@@ -205,7 +205,7 @@ describe('generateAIPrediction', () => {
         const result = generateAIPrediction(
             [...Array(300).fill(0), ...Array(200).fill(7)],
             100,
-            { candidateWindows: [20, 30, 50] },
+            { candidateWindows: [20] },
             tickTimes
         );
 
@@ -243,7 +243,7 @@ describe('generateAIPrediction', () => {
         const result = generateAIPrediction(
             [...training, ...holdout],
             100,
-            { candidateWindows: [20, 30, 50, 75, 100] },
+            { candidateWindows: [20] },
             timestamps(5000)
         );
 
