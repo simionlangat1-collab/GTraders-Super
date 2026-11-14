@@ -99,7 +99,7 @@ describe('validateAIModelOutOfSample', () => {
         const family = validateAIModelOutOfSample({
             ...baseInput,
             multipleComparisonCount: 13,
-            observations: makeObservations(200, index => index < 120, index => index >= 120),
+            observations: makeObservations(200, index => index < 119, index => index >= 119),
         });
         expect(single.modelOnlyCorrect).toBe(119);
         expect(single.baselineOnlyCorrect).toBe(81);
