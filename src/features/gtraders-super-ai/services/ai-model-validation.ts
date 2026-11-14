@@ -135,6 +135,7 @@ export const validateAIModelOutOfSample = (
         ? input.observations.filter(item => {
             const isValid =
                 Number.isFinite(item.settledAt) &&
+                item.settledAt > input.trainingCutoffTimestamp &&
                 item.settledAt >= previousTimestamp &&
                 Number.isInteger(item.observationIndex) &&
                 item.observationIndex > previousIndex &&
