@@ -24,7 +24,7 @@ describe('generateAIPrediction', () => {
         expect(result.predictedDigit).toBeNull();
     });
 
-    it('scores the training-selected candidate and baseline only on the same unseen chronological holdout', () => {
+    it('selects a window across three chronological training folds before the untouched holdout', () => {
         const digits = [...Array(300).fill(0), ...Array(200).fill(7)];
         const result = generateAIPrediction(digits, 100, {
             candidateWindows: [20, 30, 50, 75, 100],
@@ -32,12 +32,55 @@ describe('generateAIPrediction', () => {
 
         expect(result.trainingSampleSize).toBe(300);
         expect(result.holdoutSampleSize).toBe(200);
+        expect(result.windowSelectionFoldCount).toBe(3);
+        expect(result.selectedWindow).toBe(20);
+        expect(result.windowSelectionWinShare).toBe(1);
+        expect(result.windowSelectionAccuracyStdDev).toBe(0);
+        expect(result.windowSelectionStable).toBe(true);
+        expect(result.windowSelectionSummary).toContain('fold winners');
         expect(result.modelWinRate).toBeGreaterThan(result.baselineWinRate);
         expect(result.validationPassed).toBe(true);
         expect(result.decision).toBe('PREDICTION_CANDIDATE');
         expect(result.predictedDigit).toBe(7);
-        expect(result.explanation).toContain('selected inside training');
+        expect(result.explanation).toContain('stable chronological training folds');
         expect(result.explanation).toContain('does not authorize an order');
+    });
+
+    it('rejects a window whose fold performance varies beyond the stability limit', () => {
+        const digits = [
+            ...Array(200).fill(0),
+            ...Array(50).fill(1),
+            ...Array(50).fill(0),
+            ...Array(200).fill(7),
+        ];
+        const result = generateAIPrediction(digits, 100, {
+            candidateWindows: [20, 30],
+            maximumWindowSelectionAccuracyStdDev: 0,
+        }, timestamps(500));
+
+        expect(result.decision).toBe('NO_TRADE');
+        expect(result.validationPassed).toBe(false);
+        expect(result.selectedWindow).toBe(20);
+        expect(result.windowSelectionFoldCount).toBe(3);
+        expect(result.windowSelectionAccuracyStdDev).toBeGreaterThan(0);
+        expect(result.windowSelectionStable).toBe(false);
+        expect(result.explanation).toContain('selection was unstable');
+        expect(result.explanation).toContain('stability FAILED');
+    });
+
+    it('keeps window selection completely unchanged when only holdout observations change', () => {
+        const training = Array(300).fill(0);
+        const first = generateAIPrediction([...training, ...Array(200).fill(7)], 100, {
+            candidateWindows: [20, 30, 50],
+        }, timestamps(500));
+        const second = generateAIPrediction([...training, ...Array(200).fill(9)], 100, {
+            candidateWindows: [20, 30, 50],
+        }, timestamps(500));
+
+        expect(first.selectedWindow).toBe(second.selectedWindow);
+        expect(first.windowSelectionSummary).toBe(second.windowSelectionSummary);
+        expect(first.windowSelectionWinShare).toBe(second.windowSelectionWinShare);
+        expect(first.windowSelectionAccuracyStdDev).toBe(second.windowSelectionAccuracyStdDev);
     });
 
     it('does not claim a statistical edge when candidate matches the baseline', () => {
