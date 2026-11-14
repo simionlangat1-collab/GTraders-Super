@@ -1,0 +1,72 @@
+.gtraders-ai-power-audit {
+    margin: 16px 0;
+    padding: 14px;
+    border: 1px solid var(--border-normal, #3b4658);
+    border-radius: 12px;
+    background: var(--general-section-1, #18243a);
+    color: var(--text-general, #fff);
+
+    &__heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+
+        > div {
+            display: grid;
+            gap: 4px;
+        }
+
+        strong { font-size: 14px; }
+        span { font-size: 11px; opacity: 0.75; }
+
+        button {
+            flex: 0 0 auto;
+            padding: 8px 11px;
+            border: 0;
+            border-radius: 7px;
+            background: #2583ff;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+
+            &:disabled { opacity: 0.6; cursor: wait; }
+        }
+    }
+
+    &__notice {
+        font-size: 11px;
+        line-height: 1.5;
+        opacity: 0.8;
+    }
+
+    &__table-wrap {
+        overflow-x: auto;
+        margin: 10px 0;
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        th, td {
+            padding: 7px 6px;
+            border-bottom: 1px solid var(--border-normal, #3b4658);
+            text-align: left;
+        }
+
+        th { opacity: 0.75; }
+    }
+
+    &__summary {
+        display: grid;
+        gap: 6px;
+        margin: 12px 0;
+        font-size: 11px;
+        line-height: 1.5;
+
+        strong { font-size: 12px; }
+    }
+}
