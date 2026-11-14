@@ -82,10 +82,11 @@ const AIStatisticalPowerAuditPanel = () => {
                     </div>
                     <div className='gtraders-ai-power-audit__summary'>
                         <strong>Ambiguity-aware window-selection shadow test</strong>
-                        <span>Aggregate ranking is not automatically a candidate. It must have a meaningful lead and stable fold behaviour; otherwise it is classified as ambiguous or regime-unstable.</span>
+                        <span>Same five candidate windows, same 2-of-3 fold rule, same 2 pp lead requirement and same 12 pp maximum fold range. Only the synthetic observations per fold change (50, 100, 200).</span>
+                        <span>These are sample-size sensitivity scenarios, not actual live-market sample counts. No threshold is relaxed and no shadow result selects a live window.</span>
                         {windowShadow.map(item => (
-                            <span key={item.profile}>
-                                {item.profile.replace(/_/g, ' ')}: current rule passes {(item.currentRulePassRate * 100).toFixed(1)}%; clear aggregate candidate {(item.aggregateClearCandidateRate * 100).toFixed(1)}%; ambiguous {(item.ambiguousRate * 100).toFixed(1)}%; regime-unstable {(item.regimeUnstableRate * 100).toFixed(1)}%.
+                            <span key={`${item.profile}-${item.foldObservationsPerFold}`}>
+                                {item.profile.replace(/_/g, ' ')} · {item.foldObservationsPerFold} observations/fold: current rule passes {(item.currentRulePassRate * 100).toFixed(1)}%; clear candidate {(item.aggregateClearCandidateRate * 100).toFixed(1)}%; ambiguous {(item.ambiguousRate * 100).toFixed(1)}%; regime-unstable {(item.regimeUnstableRate * 100).toFixed(1)}%.
                             </span>
                         ))}
                     </div>
