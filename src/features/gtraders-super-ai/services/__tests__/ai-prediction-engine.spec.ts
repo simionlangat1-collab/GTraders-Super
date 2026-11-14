@@ -73,6 +73,39 @@ describe('generateAIPrediction', () => {
         expect(result.explanation).toContain('stability FAILED');
     });
 
+    it('accepts window selection when the winner takes exactly two-thirds of training folds', () => {
+        let state = 3;
+        const random = () => {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            return state / 4294967296;
+        };
+        const training = Array.from({ length: 150 }, () => Math.floor(random() * 10));
+        const foldPersistence = [0.85, 0.35, 0.85];
+
+        for (let fold = 0; fold < 3; fold += 1) {
+            for (let index = 0; index < 50; index += 1) {
+                if (index > 0 && random() < foldPersistence[fold]) {
+                    training.push(training[training.length - 1]);
+                } else {
+                    training.push(Math.floor(random() * 10));
+                }
+            }
+        }
+
+        const result = generateAIPrediction(
+            [...training, ...Array(200).fill(7)],
+            100,
+            { candidateWindows: [20, 30] },
+            timestamps(500)
+        );
+
+        expect(result.selectedWindow).toBe(20);
+        expect(result.windowSelectionWinShare).toBeCloseTo(2 / 3, 10);
+        expect(result.windowSelectionAccuracyStdDev).toBeLessThanOrEqual(0.15);
+        expect(result.windowSelectionStable).toBe(true);
+        expect(result.windowSelectionSummary).toContain('selected 20-tick window won 2/3 folds');
+    });
+
     it('keeps window selection completely unchanged when only holdout observations change', () => {
         const training = Array(300).fill(0);
         const first = generateAIPrediction([...training, ...Array(200).fill(7)], 100, {
@@ -86,6 +119,7 @@ describe('generateAIPrediction', () => {
         expect(first.windowSelectionSummary).toBe(second.windowSelectionSummary);
         expect(first.windowSelectionWinShare).toBe(second.windowSelectionWinShare);
         expect(first.windowSelectionAccuracyStdDev).toBe(second.windowSelectionAccuracyStdDev);
+        expect(first.windowSelectionDiagnostics).toEqual(second.windowSelectionDiagnostics);
     });
 
     it('breaks exact fold-score ties deterministically in favour of the shorter window', () => {
