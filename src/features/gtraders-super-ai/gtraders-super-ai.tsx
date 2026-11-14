@@ -802,6 +802,8 @@ const GTradersSuperAI = () => {
                             </p>
                         )}
 
+                        <AIStatisticalPowerAuditPanel />
+
                         {isConnected && account && (
                             <section className='gtraders-ai-risk'>
                                 <div className='gtraders-ai-risk__heading'>
@@ -927,7 +929,6 @@ const GTradersSuperAI = () => {
                                         {isScanning ? 'Scanning markets…' : 'Market Scanner'}
                                     </button>
                                 </div>
-                                <AIStatisticalPowerAuditPanel />
                                 {scannerError && (
                                     <p className='gtraders-ai-panel__error' role='alert'>
                                         {scannerError}
