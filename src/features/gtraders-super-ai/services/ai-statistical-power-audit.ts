@@ -285,7 +285,7 @@ export const runAIStatisticalPowerAudit = (
             'Contract power is conditional on selection using training data only; holdout must remain untouched.',
             'The family-wise adjustment is applied across the markets tested in this scan.',
             'The paired model gate is simulated separately; its evidence must not be mistaken for contract profitability.',
-            'Independent Bernoulli simulations are optimistic when ticks are serially dependent; the effective-sample-size table is only a sensitivity approximation, not a replacement for block-bootstrap validation.',
+            'Independent Bernoulli simulations are optimistic when ticks are serially dependent; the effective-sample-size table is only a sensitivity approximation. Live paired holdout validation separately uses a circular moving-block bootstrap and an effective-sample-size gate.',
             'Window-selection results compare the current two-of-three fold-winner rule with aggregate ranking in shadow mode; aggregate ranking never bypasses the untouched holdout.',
             'A close aggregate winner is labelled ambiguous rather than treated as proof that one window is superior.',
         ],
