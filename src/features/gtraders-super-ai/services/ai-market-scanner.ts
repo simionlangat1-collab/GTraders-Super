@@ -58,6 +58,7 @@ export const isVolatilityIndexMarket = (market: AIMarketSymbol): boolean =>
     market.exchange_is_open !== 0;
 
 const MAX_DIGIT_PRECISION = 10;
+const MAX_HISTORY_TICKS = 5000;
 
 const inferPricePrecision = (prices: Array<string | number>): number =>
     Math.min(
@@ -109,7 +110,8 @@ export class AIMarketScanner {
         const response = await this.request<TickHistoryResponse>({
             ticks_history: symbol,
             adjust_start_time: 1,
-            count: Math.max(100, Math.min(1000, Math.floor(count))),
+            // Request up to 5,000 explicitly; the current API default is only 1,000.
+            count: Math.max(100, Math.min(MAX_HISTORY_TICKS, Math.floor(count))),
             end: 'latest',
             style: 'ticks',
         });
