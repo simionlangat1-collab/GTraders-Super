@@ -17,11 +17,18 @@ describe('validatePairedDependence', () => {
         expect(result.blockLength).toBeGreaterThan(1);
     });
 
-    it('does not report significance when paired outcomes show no positive improvement', () => {
+    it('does not report significance under either independent-like or clustered zero-edge outcomes', () => {
         const balanced = Array.from({ length: 240 }, (_, index) => index % 2 === 0 ? 1 : -1);
-        const result = validatePairedDependence(balanced);
+        const clusteredNull = Array.from({ length: 240 }, (_, index) =>
+            Math.floor(index / 20) % 2 === 0 ? 1 : -1
+        );
+        const independentLikeResult = validatePairedDependence(balanced);
+        const clusteredResult = validatePairedDependence(clusteredNull);
 
-        expect(result.blockBootstrapPValue).toBe(1);
+        expect(independentLikeResult.blockBootstrapPValue).toBe(1);
+        expect(clusteredResult.blockBootstrapPValue).toBe(1);
+        expect(clusteredResult.lagOneCorrelation).toBeGreaterThan(0.5);
+        expect(clusteredResult.effectiveSampleSize).toBeLessThan(100);
     });
 
     it('returns a conservative finite p-value for a positive, dispersed paired edge', () => {
