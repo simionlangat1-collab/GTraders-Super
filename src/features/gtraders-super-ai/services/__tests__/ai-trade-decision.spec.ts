@@ -7,6 +7,10 @@ const strongEvidence: AITradeEvidence = {
     baselineWinRate: 0.45,
     observedWinRate: 0.52,
     winRateConfidenceLowerBound: 0.48,
+    modelOnlyCorrect: 40,
+    baselineOnlyCorrect: 10,
+    pairedPValue: 0.001,
+    adjustedPairedPValue: 0.013,
     validationPassed: true,
 };
 
@@ -32,11 +36,12 @@ describe('evaluateAITradeEvidence', () => {
         expect(result.explanation).toContain('NO TRADE');
     });
 
-    it('rejects a high observed win rate when its confidence bound does not beat baseline', () => {
+    it('rejects paired evidence when its family-wise adjusted p-value exceeds 0.05', () => {
         const result = evaluateAITradeEvidence({
             ...strongEvidence,
             observedWinRate: 0.8,
             winRateConfidenceLowerBound: 0.44,
+            adjustedPairedPValue: 0.08,
         });
 
         expect(result.decision).toBe('NO_TRADE');
