@@ -37,7 +37,7 @@ export interface AIModelValidationResult {
     pairedPValue: number;
     adjustedPairedPValue: number;
     lagOneCorrelation: number;
-    /** Conservative minimum effective sample across paired outcomes and model accuracy. */
+    /** Effective sample size of the paired model-minus-baseline outcomes used by the inferential test. */
     effectiveSampleSize: number;
     bootstrapBlockLength: number;
     blockBootstrapPValue: number;
@@ -204,7 +204,6 @@ export const validateAIModelOutOfSample = (
         rejectedObservations === 0 &&
         sampleSize >= MINIMUM_HOLDOUT_TRADES &&
         dependence.effectiveSampleSize >= MINIMUM_HOLDOUT_TRADES &&
-        accuracyDependence.effectiveSampleSize >= MINIMUM_HOLDOUT_TRADES &&
         adjustedPairedPValue <= 0.05;
 
     const evidence: AITradeEvidence = {
@@ -230,11 +229,10 @@ export const validateAIModelOutOfSample = (
         pairedPValue,
         adjustedPairedPValue,
         lagOneCorrelation: dependence.lagOneCorrelation,
-        // A holdout is only as independent as its more dependent evidence stream.
-        effectiveSampleSize: Math.min(
-            dependence.effectiveSampleSize,
-            accuracyDependence.effectiveSampleSize
-        ),
+        // The paired effective sample governs the paired model-vs-baseline test.
+        // Raw model-accuracy dependence remains visible as a descriptive diagnostic,
+        // but must not independently veto a valid paired comparison.
+        effectiveSampleSize: dependence.effectiveSampleSize,
         bootstrapBlockLength: dependence.blockLength,
         blockBootstrapPValue: dependence.blockBootstrapPValue,
         dependenceAdjustedPValue,
@@ -242,7 +240,7 @@ export const validateAIModelOutOfSample = (
         accuracyEffectiveSampleSize: accuracyDependence.effectiveSampleSize,
         rejectedObservations,
         explanation: validationPassed
-            ? `Untouched chronological holdout passed the dependence-aware paired test. Lag-1 correlation: ${dependence.lagOneCorrelation.toFixed(3)}; paired effective sample: ${dependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; accuracy lag-1 correlation: ${accuracyDependence.lagOneCorrelation.toFixed(3)}; accuracy effective sample: ${accuracyDependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; circular block length: ${dependence.blockLength}; block-bootstrap p-value: ${dependence.blockBootstrapPValue.toFixed(4)}. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; raw p-value: ${pairedPValue.toFixed(4)}; family-wise adjusted p-value: ${adjustedPairedPValue.toFixed(4)}. Separate evidence and risk gates must still approve; no trade is authorized by validation alone.`
-            : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and at least ${MINIMUM_HOLDOUT_TRADES} effective observations for both paired differences and model-accuracy outcomes after lag-1 dependence adjustment. Require both the exact paired McNemar reference and circular block-bootstrap p-value to pass after family-wise correction (adjusted p-value at or below 0.05). Lag-1 correlation: ${dependence.lagOneCorrelation.toFixed(3)}; paired effective sample: ${dependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; accuracy lag-1 correlation: ${accuracyDependence.lagOneCorrelation.toFixed(3)}; accuracy effective sample: ${accuracyDependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; block length: ${dependence.blockLength}; block-bootstrap p-value: ${dependence.blockBootstrapPValue.toFixed(4)}. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; adjusted p-value: ${adjustedPairedPValue.toFixed(4)}.`,
+            ? `Untouched chronological holdout passed the dependence-aware paired test. Lag-1 correlation: ${dependence.lagOneCorrelation.toFixed(3)}; paired effective sample: ${dependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; accuracy lag-1 correlation: ${accuracyDependence.lagOneCorrelation.toFixed(3)}; descriptive accuracy effective sample: ${accuracyDependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; circular block length: ${dependence.blockLength}; block-bootstrap p-value: ${dependence.blockBootstrapPValue.toFixed(4)}. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; raw p-value: ${pairedPValue.toFixed(4)}; family-wise adjusted p-value: ${adjustedPairedPValue.toFixed(4)}. Separate evidence and risk gates must still approve; no trade is authorized by validation alone.`
+            : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and at least ${MINIMUM_HOLDOUT_TRADES} effective observations for the paired model-minus-baseline outcomes after multi-lag dependence adjustment. Require both the exact paired McNemar reference and circular block-bootstrap p-value to pass after family-wise correction (adjusted p-value at or below 0.05). Lag-1 correlation: ${dependence.lagOneCorrelation.toFixed(3)}; paired effective sample: ${dependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; accuracy lag-1 correlation: ${accuracyDependence.lagOneCorrelation.toFixed(3)}; accuracy effective sample: ${accuracyDependence.effectiveSampleSize.toFixed(0)}/${sampleSize}; block length: ${dependence.blockLength}; block-bootstrap p-value: ${dependence.blockBootstrapPValue.toFixed(4)}. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; adjusted p-value: ${adjustedPairedPValue.toFixed(4)}.`,
     };
 };
