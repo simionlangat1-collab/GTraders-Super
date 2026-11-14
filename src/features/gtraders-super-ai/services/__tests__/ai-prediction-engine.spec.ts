@@ -2,6 +2,30 @@ import { generateAIPrediction } from '../ai-prediction-engine';
 
 const timestamps = (count: number) => Array.from({ length: count }, (_, index) => 1_700_000_000 + index);
 
+/** Deterministic regime changes with independent within-regime noise.
+ * The initial zero-dominated history keeps the full-history baseline distinct;
+ * the recent 20-tick mode can adapt to each new regime.
+ */
+const makePredictiveDigits = (count: number): number[] => {
+    const digits = Array<number>(Math.min(1500, count)).fill(0);
+    let state = 0x5eed;
+    const random = () => {
+        state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+        return state / 4294967296;
+    };
+
+    for (let index = digits.length; index < count; index += 1) {
+        const regimeDigit = (Math.floor((index - 1500) / 100) % 9) + 1;
+        if (random() < 0.9) {
+            digits.push(regimeDigit);
+        } else {
+            const offset = Math.floor(random() * 8) + 1;
+            digits.push(((regimeDigit - 1 + offset) % 9) + 1);
+        }
+    }
+    return digits;
+};
+
 describe('generateAIPrediction', () => {
     it('defaults to NO TRADE when the sample is too small', () => {
         const result = generateAIPrediction(Array(120).fill(7), 100, {}, timestamps(120));
@@ -25,17 +49,16 @@ describe('generateAIPrediction', () => {
     });
 
     it('selects a window across three chronological training folds before the untouched holdout', () => {
-        const digits = [...Array(300).fill(0), ...Array(200).fill(7)];
+        const digits = makePredictiveDigits(5000);
         const result = generateAIPrediction(digits, 100, {
             candidateWindows: [20, 30, 50, 75, 100],
-        }, timestamps(500));
+        }, timestamps(digits.length));
 
-        expect(result.trainingSampleSize).toBe(300);
-        expect(result.holdoutSampleSize).toBe(200);
+        expect(result.trainingSampleSize).toBe(3000);
+        expect(result.holdoutSampleSize).toBe(2000);
         expect(result.windowSelectionFoldCount).toBe(3);
         expect(result.selectedWindow).toBe(20);
         expect(result.windowSelectionWinShare).toBe(1);
-        expect(result.windowSelectionAccuracyStdDev).toBe(0);
         expect(result.windowSelectionStable).toBe(true);
         expect(result.windowSelectionSummary).toContain('fold winners');
         expect(result.windowSelectionDiagnostics).toHaveLength(5);
@@ -43,18 +66,33 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionDiagnostics.reduce((sum, item) => sum + item.foldWins, 0)).toBe(3);
         expect(result.modelWinRate).toBeGreaterThan(result.baselineWinRate);
         expect(result.validationPassed).toBe(true);
+        expect(result.effectiveSampleSize).toBeGreaterThanOrEqual(200);
+        expect(result.accuracyEffectiveSampleSize).toBeGreaterThanOrEqual(200);
         expect(result.rejectionReasons).toEqual([]);
-        expect(result.modelWins).toBe(189);
-        expect(result.baselineWins).toBe(0);
-        expect(result.modelOnlyCorrect).toBe(189);
-        expect(result.baselineOnlyCorrect).toBe(0);
+        expect(result.modelWins).toBeGreaterThan(result.baselineWins);
+        expect(result.modelOnlyCorrect).toBeGreaterThan(result.baselineOnlyCorrect);
         expect(result.pairedPValue).toBeLessThan(0.001);
         expect(result.adjustedPairedPValue).toBeLessThan(0.05);
         expect(result.rejectedObservations).toBe(0);
         expect(result.decision).toBe('PREDICTION_CANDIDATE');
-        expect(result.predictedDigit).toBe(7);
+        expect(result.predictedDigit).not.toBeNull();
         expect(result.explanation).toContain('stable chronological training folds');
         expect(result.explanation).toContain('does not authorize an order');
+    });
+
+    it('rejects a highly clustered holdout even when its raw win count looks strong', () => {
+        const digits = [...Array(300).fill(0), ...Array(200).fill(7)];
+        const result = generateAIPrediction(digits, 100, {
+            candidateWindows: [20, 30, 50, 75, 100],
+        }, timestamps(500));
+
+        expect(result.windowSelectionStable).toBe(true);
+        expect(result.holdoutEvaluated).toBe(true);
+        expect(result.modelWins).toBeGreaterThan(180);
+        expect(result.effectiveSampleSize).toBeLessThan(200);
+        expect(result.validationPassed).toBe(false);
+        expect(result.decision).toBe('NO_TRADE');
+        expect(result.rejectionReasons).toContain('DEPENDENCE_ADJUSTED_SAMPLE_BELOW_MINIMUM');
     });
 
     it('rejects a window whose fold performance varies beyond the stability limit', () => {
