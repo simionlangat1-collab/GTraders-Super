@@ -43,6 +43,14 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionDiagnostics.reduce((sum, item) => sum + item.foldWins, 0)).toBe(3);
         expect(result.modelWinRate).toBeGreaterThan(result.baselineWinRate);
         expect(result.validationPassed).toBe(true);
+        expect(result.rejectionReasons).toEqual([]);
+        expect(result.modelWins).toBe(200);
+        expect(result.baselineWins).toBe(0);
+        expect(result.modelOnlyCorrect).toBe(200);
+        expect(result.baselineOnlyCorrect).toBe(0);
+        expect(result.pairedPValue).toBeLessThan(0.001);
+        expect(result.adjustedPairedPValue).toBeLessThan(0.05);
+        expect(result.rejectedObservations).toBe(0);
         expect(result.decision).toBe('PREDICTION_CANDIDATE');
         expect(result.predictedDigit).toBe(7);
         expect(result.explanation).toContain('stable chronological training folds');
@@ -67,6 +75,7 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionFoldCount).toBe(3);
         expect(result.windowSelectionAccuracyStdDev).toBeGreaterThan(0);
         expect(result.windowSelectionStable).toBe(false);
+        expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
         expect(result.windowSelectionDiagnostics).toHaveLength(2);
         expect(result.windowSelectionDiagnostics[0].foldAccuracies).toHaveLength(3);
         expect(result.explanation).toContain('selection was unstable');
@@ -153,6 +162,8 @@ describe('generateAIPrediction', () => {
         expect(result.decision).toBe('NO_TRADE');
         expect(result.validationPassed).toBe(false);
         expect(result.explanation).toContain('199 clean settled holdout observations were accepted and 1 rejected');
+        expect(result.rejectionReasons).toContain('INVALID_HOLDOUT_OBSERVATIONS');
+        expect(result.rejectedObservations).toBe(1);
     });
 
     it('does not claim a statistical edge when candidate matches the baseline', () => {
