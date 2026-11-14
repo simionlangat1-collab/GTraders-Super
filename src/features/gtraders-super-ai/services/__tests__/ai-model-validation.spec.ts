@@ -88,7 +88,7 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.outOfSampleTradeCount).toBe(250);
     });
 
-    it('accepts a clean constant positive paired advantage when every holdout pair favours the model', () => {
+    it('fails closed when a constant positive paired series cannot identify serial dependence', () => {
         const result = validateAIModelOutOfSample({
             ...baseInput,
             observations: makeObservations(240, () => true, () => false),
@@ -96,10 +96,10 @@ describe('validateAIModelOutOfSample', () => {
 
         expect(result.modelOnlyCorrect).toBe(240);
         expect(result.baselineOnlyCorrect).toBe(0);
-        expect(result.effectiveSampleSize).toBe(240);
-        expect(result.blockBootstrapPValue).toBeCloseTo(1 / 2001, 12);
-        expect(result.adjustedPairedPValue).toBeLessThan(0.05);
-        expect(result.evidence.validationPassed).toBe(true);
+        expect(result.effectiveSampleSize).toBe(1);
+        expect(result.blockBootstrapPValue).toBe(1);
+        expect(result.adjustedPairedPValue).toBe(1);
+        expect(result.evidence.validationPassed).toBe(false);
     });
 
     it('rejects a holdout when paired predictions have no discordant advantage', () => {
