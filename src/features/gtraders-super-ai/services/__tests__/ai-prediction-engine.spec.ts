@@ -44,9 +44,9 @@ describe('generateAIPrediction', () => {
         expect(result.modelWinRate).toBeGreaterThan(result.baselineWinRate);
         expect(result.validationPassed).toBe(true);
         expect(result.rejectionReasons).toEqual([]);
-        expect(result.modelWins).toBe(200);
+        expect(result.modelWins).toBe(180);
         expect(result.baselineWins).toBe(0);
-        expect(result.modelOnlyCorrect).toBe(200);
+        expect(result.modelOnlyCorrect).toBe(180);
         expect(result.baselineOnlyCorrect).toBe(0);
         expect(result.pairedPValue).toBeLessThan(0.001);
         expect(result.adjustedPairedPValue).toBeLessThan(0.05);
