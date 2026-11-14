@@ -156,7 +156,7 @@ const GTradersSuperAI = () => {
             // tick history. Demo confirmation performs another complete scan.
             const freshScan = await scanner.scanFreshVolatilityMarkets({
                 maxMarkets: 100,
-                historyCount: 500,
+                historyCount: 1000,
                 concurrency: 3,
             });
             setAvailableMarketCount(freshScan.availableMarketCount);
