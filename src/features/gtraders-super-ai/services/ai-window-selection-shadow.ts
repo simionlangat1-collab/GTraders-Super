@@ -58,8 +58,6 @@ export const runAIWindowSelectionShadowAudit = (
             const best = ranking[0];
             const margin = best.mean - ranking[1].mean;
             const bestFoldRange = Math.max(...folds[best.index]) - Math.min(...folds[best.index]);
-            const mean = folds[best.index].reduce((a,b) => a+b,0)/3;
-            const variance = folds[best.index].reduce((sum,value) => sum+(value-mean)**2,0)/3;
             // Keep the shadow pass-rate definition identical to the live selector:
             // 2/3 fold wins, >2 pp aggregate lead, and <=12 pp fold range.
             const bestFoldRange = Math.max(...folds[best.index]) - Math.min(...folds[best.index]);
