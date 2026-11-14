@@ -29,6 +29,13 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.observedWinRate).toBe(0.8);
         expect(result.evidence.baselineWinRate).toBe(0.5);
         expect(result.evidence.validationPassed).toBe(true);
+        expect(result.modelWins).toBe(240);
+        expect(result.baselineWins).toBe(150);
+        expect(result.modelOnlyCorrect).toBe(90);
+        expect(result.baselineOnlyCorrect).toBe(0);
+        expect(result.pairedPValue).toBeLessThan(0.001);
+        expect(result.adjustedPairedPValue).toBe(result.pairedPValue);
+        expect(result.rejectedObservations).toBe(0);
         expect(result.evidence.winRateConfidenceLowerBound).toBeGreaterThan(0.5);
     });
 
