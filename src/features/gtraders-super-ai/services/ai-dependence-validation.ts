@@ -46,8 +46,16 @@ const estimateMultiLagEffectiveSampleSize = (values: number[]): number => {
     const maximumLag = Math.min(MAX_DEPENDENCE_LAG, values.length - 2);
     let positiveAutocorrelationSum = 0;
 
-    for (let lag = 1; lag <= maximumLag; lag += 1) {
-        positiveAutocorrelationSum += Math.max(0, correlationAtLag(values, lag));
+    // Pair adjacent autocorrelations before applying the positive-sequence
+    // truncation. This reduces the upward noise bias from independently
+    // summing every positive sample autocorrelation, while retaining
+    // sensitivity to patterns where lag 1 is negative but lag 2 is positive.
+    for (let lag = 1; lag <= maximumLag; lag += 2) {
+        const pairedCorrelation =
+            correlationAtLag(values, lag) +
+            (lag + 1 <= maximumLag ? correlationAtLag(values, lag + 1) : 0);
+        if (pairedCorrelation <= 0) break;
+        positiveAutocorrelationSum += pairedCorrelation;
     }
 
     return clamp(
