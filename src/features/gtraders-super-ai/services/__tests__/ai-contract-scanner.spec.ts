@@ -28,6 +28,7 @@ describe('evaluateAIContractOpportunity', () => {
         const result = evaluateAIContractOpportunity(digits, 100);
 
         expect(result.decision).toBe('MARKET_CANDIDATE');
+        expect(result.rejectionReasons).toEqual([]);
         expect(result.contractLabel).toBe('Over');
         expect(result.barrier).toBe(7);
         expect(result.trainingSampleSize).toBe(300);
@@ -41,15 +42,18 @@ describe('evaluateAIContractOpportunity', () => {
         const result = evaluateAIContractOpportunity(digits, 100);
 
         expect(result.decision).toBe('NO_TRADE');
+        expect(result.rejectionReasons).toContain('NO_POSITIVE_TRAINING_EDGE');
         expect(result.contractType).toBeNull();
         expect(result.explanation).toContain('NO TRADE');
     });
 
     it('rejects insufficient history and poor data quality', () => {
-        expect(evaluateAIContractOpportunity(Array(300).fill(8), 100).decision)
-            .toBe('NO_TRADE');
-        expect(evaluateAIContractOpportunity(Array(500).fill(8), 80).decision)
-            .toBe('NO_TRADE');
+        const insufficient = evaluateAIContractOpportunity(Array(300).fill(8), 100);
+        const poorQuality = evaluateAIContractOpportunity(Array(500).fill(8), 80);
+        expect(insufficient.decision).toBe('NO_TRADE');
+        expect(insufficient.rejectionReasons).toContain('INSUFFICIENT_TRAINING_OR_HOLDOUT');
+        expect(poorQuality.decision).toBe('NO_TRADE');
+        expect(poorQuality.rejectionReasons).toContain('DATA_QUALITY_BELOW_THRESHOLD');
     });
 
     it('rejects invalid digits instead of silently dropping them', () => {
@@ -58,6 +62,7 @@ describe('evaluateAIContractOpportunity', () => {
         const result = evaluateAIContractOpportunity(digits, 100);
 
         expect(result.decision).toBe('NO_TRADE');
+        expect(result.rejectionReasons).toContain('INVALID_TICK_HISTORY');
         expect(result.marketSampleSize).toBe(0);
     });
 
@@ -66,6 +71,7 @@ describe('evaluateAIContractOpportunity', () => {
         const result = evaluateAIContractOpportunity(digits, 100);
 
         expect(result.decision).toBe('NO_TRADE');
+        expect(result.rejectionReasons).toContain('HOLDOUT_CONFIDENCE_BOUND_FAILED');
         expect(result.contractType).toBeNull();
     });
 });
