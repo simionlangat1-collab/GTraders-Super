@@ -34,6 +34,14 @@ export interface AIPredictionResult {
     baselineWinRate: number;
     confidenceLowerBound: number;
     validationPassed: boolean;
+    /** Structured paired-test evidence from the untouched holdout. */
+    modelWins: number;
+    baselineWins: number;
+    modelOnlyCorrect: number;
+    baselineOnlyCorrect: number;
+    pairedPValue: number;
+    adjustedPairedPValue: number;
+    rejectedObservations: number;
     selectedWindow: number | null;
     windowSelectionFoldCount: number;
     windowSelectionWinShare: number;
@@ -239,6 +247,13 @@ export const generateAIPrediction = (
         baselineWinRate: 0,
         confidenceLowerBound: 0,
         validationPassed: false,
+        modelWins: 0,
+        baselineWins: 0,
+        modelOnlyCorrect: 0,
+        baselineOnlyCorrect: 0,
+        pairedPValue: 1,
+        adjustedPairedPValue: 1,
+        rejectedObservations: 0,
         selectedWindow: selection?.window ?? null,
         windowSelectionFoldCount: selection?.foldCount ?? 0,
         windowSelectionWinShare: selection?.winnerShare ?? 0,
@@ -322,6 +337,13 @@ export const generateAIPrediction = (
             modelWinRate: validation.evidence.observedWinRate,
             baselineWinRate: validation.evidence.baselineWinRate,
             confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
+            modelWins: validation.modelWins,
+            baselineWins: validation.baselineWins,
+            modelOnlyCorrect: validation.modelOnlyCorrect,
+            baselineOnlyCorrect: validation.baselineOnlyCorrect,
+            pairedPValue: validation.pairedPValue,
+            adjustedPairedPValue: validation.adjustedPairedPValue,
+            rejectedObservations: validation.rejectedObservations,
         };
     }
 
@@ -341,6 +363,13 @@ export const generateAIPrediction = (
         baselineWinRate: validation.evidence.baselineWinRate,
         confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
         validationPassed: true,
+        modelWins: validation.modelWins,
+        baselineWins: validation.baselineWins,
+        modelOnlyCorrect: validation.modelOnlyCorrect,
+        baselineOnlyCorrect: validation.baselineOnlyCorrect,
+        pairedPValue: validation.pairedPValue,
+        adjustedPairedPValue: validation.adjustedPairedPValue,
+        rejectedObservations: validation.rejectedObservations,
         selectedWindow,
         windowSelectionFoldCount: selection.foldCount,
         windowSelectionWinShare: selection.winnerShare,
