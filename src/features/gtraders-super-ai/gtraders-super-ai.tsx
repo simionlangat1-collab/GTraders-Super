@@ -26,7 +26,7 @@ type AIMarketRejectionDiagnostic = {
     symbol: string; displayName: string; ticks: number; dataQuality: number; dataQualityReason: string;
     contractStatus: string; contractEvidence: string; contractRejectionReasons: string[];
     predictionStatus: string; predictionEvidence: string; predictionRejectionReasons: string[];
-    pairedEvidence: { modelWins: number; baselineWins: number; modelOnlyWins: number; baselineOnlyWins: number; rawPValue: number; adjustedPValue: number; rejectedObservations: number };
+    pairedEvidence: { evaluated: boolean; modelWins: number; baselineWins: number; modelOnlyWins: number; baselineOnlyWins: number; rawPValue: number; adjustedPValue: number; rejectedObservations: number };
     windowSelection: { selectedWindow: number | null; foldCount: number; winnerShare: number; accuracyStdDev: number; stable: boolean; summary: string; candidates: Array<{ window: number; foldWins: number; foldAccuracies: number[]; meanAccuracy: number }> };
     barrierEvidence: string; quoteEvidence: string; rejectionReasons: string[]; finalReason: string;
 };
@@ -285,6 +285,7 @@ const GTradersSuperAI = () => {
                     predictionEvidence: `${item.prediction.explanation} Training/holdout: ${item.prediction.trainingSampleSize}/${item.prediction.holdoutSampleSize}; model accuracy ${(item.prediction.modelWinRate * 100).toFixed(1)}%; matched baseline ${(item.prediction.baselineWinRate * 100).toFixed(1)}%; descriptive Wilson lower bound ${(item.prediction.confidenceLowerBound * 100).toFixed(1)}%.`,
                     predictionRejectionReasons,
                     pairedEvidence: {
+                        evaluated: item.prediction.holdoutEvaluated,
                         modelWins: item.prediction.modelWins,
                         baselineWins: item.prediction.baselineWins,
                         modelOnlyWins: item.prediction.modelOnlyCorrect,
@@ -975,7 +976,11 @@ const GTradersSuperAI = () => {
                                                 {item.predictionRejectionReasons.length > 0 && (
                                                     <span><strong>Prediction rejection codes:</strong> {item.predictionRejectionReasons.join(', ')}</span>
                                                 )}
-                                                <span><strong>Paired holdout evidence:</strong> model wins {item.pairedEvidence.modelWins}; baseline wins {item.pairedEvidence.baselineWins}; model-only wins {item.pairedEvidence.modelOnlyWins}; baseline-only wins {item.pairedEvidence.baselineOnlyWins}; raw p-value {item.pairedEvidence.rawPValue.toFixed(4)}; adjusted p-value {item.pairedEvidence.adjustedPValue.toFixed(4)}; rejected observations {item.pairedEvidence.rejectedObservations}.</span>
+                                                {item.pairedEvidence.evaluated ? (
+                                                    <span><strong>Paired holdout evidence:</strong> model wins {item.pairedEvidence.modelWins}; baseline wins {item.pairedEvidence.baselineWins}; model-only wins {item.pairedEvidence.modelOnlyWins}; baseline-only wins {item.pairedEvidence.baselineOnlyWins}; raw p-value {item.pairedEvidence.rawPValue.toFixed(4)}; adjusted p-value {item.pairedEvidence.adjustedPValue.toFixed(4)}; rejected observations {item.pairedEvidence.rejectedObservations}.</span>
+                                                ) : (
+                                                    <span><strong>Paired holdout evidence:</strong> NOT EVALUATED — prediction validation stopped before the untouched holdout was tested.</span>
+                                                )}
                                                 <span><strong>Window-selection stability:</strong> {item.windowSelection.summary} Selected window: {item.windowSelection.selectedWindow ?? 'none'}; winner share {(item.windowSelection.winnerShare * 100).toFixed(1)}%; accuracy SD {(item.windowSelection.accuracyStdDev * 100).toFixed(1)} pp; {item.windowSelection.stable ? 'stable' : 'not stable'}.</span>
                                                 {item.windowSelection.candidates.length > 0 && (
                                                     <span><strong>Window fold evidence:</strong> {item.windowSelection.candidates.map(candidate =>
