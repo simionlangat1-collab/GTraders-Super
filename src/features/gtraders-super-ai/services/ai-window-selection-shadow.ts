@@ -3,6 +3,7 @@ export type AIWindowShadowClassification = 'CLEAR_CANDIDATE' | 'AMBIGUOUS' | 'RE
 
 export interface AIWindowShadowScenario {
     profile: AIWindowShadowProfile;
+    foldObservationsPerFold: number;
     repetitions: number;
     currentRulePassRate: number;
     aggregateClearCandidateRate: number;
@@ -10,7 +11,10 @@ export interface AIWindowShadowScenario {
     regimeUnstableRate: number;
 }
 
-/** Deterministic simulation only. It never selects a live market window. */
+/**
+ * Deterministic simulation only. It never selects a live market window.
+ * Fold sizes are explicit design sensitivities, not claims about live data.
+ */
 export const runAIWindowSelectionShadowAudit = (
     repetitions = 500,
     seed = 20261114
@@ -24,21 +28,24 @@ export const runAIWindowSelectionShadowAudit = (
         value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
         return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
     };
-    const binomialRate = (p: number) => {
-        let wins = 0;
-        for (let i = 0; i < 50; i += 1) if (random() < p) wins += 1;
-        return wins / 50;
-    };
     const profiles: Array<{ profile: AIWindowShadowProfile; rates: number[][] }> = [
         { profile: 'CLEAR_WINNER', rates: [[.65,.65,.65],[.57,.57,.57],[.54,.54,.54],[.52,.52,.52],[.50,.50,.50]] },
         { profile: 'NEAR_TIE', rates: [[.55,.55,.55],[.54,.54,.54],[.53,.53,.53],[.52,.52,.52],[.51,.51,.51]] },
         { profile: 'REGIME_SHIFT', rates: [[.62,.50,.50],[.50,.62,.50],[.50,.50,.62],[.50,.50,.50],[.50,.50,.50]] },
     ];
-    return profiles.map(({ profile, rates }) => {
+    const foldSampleSizes = [50, 100, 200];
+    return profiles.flatMap(({ profile, rates }) => foldSampleSizes.map(foldObservationsPerFold => {
         let currentPasses = 0;
         let clearCandidates = 0;
         let ambiguous = 0;
         let regimeUnstable = 0;
+        const binomialRate = (p: number) => {
+            let wins = 0;
+            for (let i = 0; i < foldObservationsPerFold; i += 1) {
+                if (random() < p) wins += 1;
+            }
+            return wins / foldObservationsPerFold;
+        };
         for (let run = 0; run < count; run += 1) {
             const folds = rates.map(candidate => candidate.map(binomialRate));
             const winners = [0,1,2].map(fold => folds.reduce((best, row, index) =>
@@ -62,13 +69,14 @@ export const runAIWindowSelectionShadowAudit = (
         }
         return {
             profile,
+            foldObservationsPerFold,
             repetitions: count,
             currentRulePassRate: currentPasses / count,
             aggregateClearCandidateRate: clearCandidates / count,
             ambiguousRate: ambiguous / count,
             regimeUnstableRate: regimeUnstable / count,
         };
-    });
+    }));
 };
 
 /** A design-power label only; never classifies a live market or changes a gate. */
