@@ -143,16 +143,15 @@ export const validatePairedDependence = (
     const centered = values.map(value => value - observedMean);
     const centeredVariance = centered.reduce((sum, value) => sum + value * value, 0);
     if (centeredVariance === 0) {
-        // A constant positive paired-difference series is maximally clear
-        // evidence in the tested direction, not a null result. Under the
-        // centered null bootstrap its resampled statistic is always zero,
-        // below the strictly positive observed mean. Preserve the plus-one
-        // correction and report the minimum attainable Monte Carlo p-value.
+        // With no variation, serial dependence is not estimable. In
+        // particular, a constant positive run may be one persistent regime,
+        // not many independent confirmations. Fail closed rather than
+        // allowing the undefined autocorrelation to imply ESS = sampleSize.
         return {
             lagOneCorrelation,
-            effectiveSampleSize,
+            effectiveSampleSize: 1,
             blockLength,
-            blockBootstrapPValue: 1 / (bootstrapRepetitions + 1),
+            blockBootstrapPValue: 1,
             bootstrapRepetitions,
         };
     }
