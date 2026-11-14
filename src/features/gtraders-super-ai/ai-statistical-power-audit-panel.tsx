@@ -4,15 +4,18 @@ import {
     runAIStatisticalPowerAudit,
 } from './services/ai-statistical-power-audit';
 import './ai-statistical-power-audit.scss';
+import { classifyPowerEvidence, runAIWindowSelectionShadowAudit } from './services/ai-window-selection-shadow';
 
 const AIStatisticalPowerAuditPanel = () => {
     const [result, setResult] = useState<AIStatisticalPowerAuditResult | null>(null);
     const [running, setRunning] = useState(false);
+    const [windowShadow, setWindowShadow] = useState<ReturnType<typeof runAIWindowSelectionShadowAudit>>([]);
 
     const runAudit = () => {
         if (running) return;
         setRunning(true);
         try {
+            setWindowShadow(runAIWindowSelectionShadowAudit(500, 20261114));
             setResult(runAIStatisticalPowerAudit({
                 repetitions: 500,
                 marketCount: 13,
@@ -59,6 +62,7 @@ const AIStatisticalPowerAuditPanel = () => {
                                     <th>True edge</th>
                                     <th>Result rate</th>
                                     <th>Meaning</th>
+                                    <th>Evidence status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -70,18 +74,24 @@ const AIStatisticalPowerAuditPanel = () => {
                                         <td>+{(item.trueEdge * 100).toFixed(0)} pp</td>
                                         <td>{(item.approvalRate * 100).toFixed(1)}%</td>
                                         <td>{item.interpretation === 'POWER' ? 'Detection power' : 'False approval'}</td>
+                                        <td>{item.trueEdge === 0 ? 'False-approval control' : classifyPowerEvidence(item.approvalRate).replace(/_/g, ' ')}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                     <div className='gtraders-ai-power-audit__summary'>
-                        <strong>Window-selection stress test</strong>
-                        {result.windowSelectionScenarios.map(item => (
+                        <strong>Ambiguity-aware window-selection shadow test</strong>
+                        <span>Aggregate ranking is not automatically a candidate. It must have a meaningful lead and stable fold behaviour; otherwise it is classified as ambiguous or regime-unstable.</span>
+                        {windowShadow.map(item => (
                             <span key={item.profile}>
-                                {item.profile.replace(/_/g, ' ')}: current rule passes {(item.legacyStabilityPassRate * 100).toFixed(1)}%; aggregate alternative finds a candidate in {(item.aggregateSelectionAvailableRate * 100).toFixed(0)}%; close/ambiguous result {(item.aggregateAmbiguityRate * 100).toFixed(1)}%.
+                                {item.profile.replace(/_/g, ' ')}: current rule passes {(item.currentRulePassRate * 100).toFixed(1)}%; clear aggregate candidate {(item.aggregateClearCandidateRate * 100).toFixed(1)}%; ambiguous {(item.ambiguousRate * 100).toFixed(1)}%; regime-unstable {(item.regimeUnstableRate * 100).toFixed(1)}%.
                             </span>
                         ))}
+                    </div>
+                    <div className='gtraders-ai-power-audit__summary'>
+                        <strong>How to read evidence status</strong>
+                        <span>INSUFFICIENT EVIDENCE means the simulated design has less than 80% power to detect the configured edge. It is not a live-market rejection, and it never authorizes relaxing a trading gate.</span>
                     </div>
                     <div className='gtraders-ai-power-audit__summary'>
                         <strong>Paired prediction validation power</strong>
