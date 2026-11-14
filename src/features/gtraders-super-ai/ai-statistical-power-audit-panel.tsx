@@ -82,7 +82,7 @@ const AIStatisticalPowerAuditPanel = () => {
                     </div>
                     <div className='gtraders-ai-power-audit__summary'>
                         <strong>Ambiguity-aware window-selection shadow test</strong>
-                        <span>Same five candidate windows, same 2-of-3 fold rule, same 2 pp lead requirement and same 12 pp maximum fold range. Only the synthetic observations per fold change (50, 100, 200).</span>
+                        <span>Same five candidate windows and live gates: at least 2 of 3 fold wins, more than 2 pp aggregate lead, and no more than 12 pp fold range. Scenarios use 50, 100, 200 and 500 synthetic observations per fold; 500 matches the current 5,000-tick scan's 60% training split and three selection folds.</span>
                         <span>These are sample-size sensitivity scenarios, not actual live-market sample counts. No threshold is relaxed and no shadow result selects a live window.</span>
                         {windowShadow.map(item => (
                             <span key={`${item.profile}-${item.foldObservationsPerFold}`}>
