@@ -89,7 +89,7 @@ const GTradersSuperAI = () => {
         };
     }, [connection, liveTickStream]);
 
-    const connectAI = async () => {
+    const connectAI = useCallback(async () => {
         setConnectionError('');
         try {
             const connectedAccount = await connection.connect();
