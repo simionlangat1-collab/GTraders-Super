@@ -79,7 +79,7 @@ const AIStatisticalPowerAuditPanel = () => {
                         <strong>Window-selection stress test</strong>
                         {result.windowSelectionScenarios.map(item => (
                             <span key={item.profile}>
-                                {item.profile.replaceAll('_', ' ')}: current rule passes {(item.legacyStabilityPassRate * 100).toFixed(1)}%; aggregate alternative finds a candidate in {(item.aggregateSelectionAvailableRate * 100).toFixed(0)}%; close/ambiguous result {(item.aggregateAmbiguityRate * 100).toFixed(1)}%.
+                                {item.profile.replace(/_/g, ' ')}: current rule passes {(item.legacyStabilityPassRate * 100).toFixed(1)}%; aggregate alternative finds a candidate in {(item.aggregateSelectionAvailableRate * 100).toFixed(0)}%; close/ambiguous result {(item.aggregateAmbiguityRate * 100).toFixed(1)}%.
                             </span>
                         ))}
                     </div>
