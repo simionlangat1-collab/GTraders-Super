@@ -91,8 +91,8 @@ const populationStdDev = (values: number[]): number => {
  * inside the training segment. Every prediction in a fold uses only ticks
  * strictly earlier than its target tick. No holdout observation is consulted.
  *
- * The selected window must win at least the configured share of folds and
- * must have sufficiently consistent fold accuracy. Unstable selection is
+ * The selected window must win at least two-thirds of folds and must have
+ * sufficiently consistent fold accuracy. Unstable selection is
  * rejected instead of silently choosing the highest aggregate score.
  */
 const selectWindowWithinTraining = (
