@@ -33,7 +33,9 @@ export const runAIWindowSelectionShadowAudit = (
         { profile: 'NEAR_TIE', rates: [[.55,.55,.55],[.54,.54,.54],[.53,.53,.53],[.52,.52,.52],[.51,.51,.51]] },
         { profile: 'REGIME_SHIFT', rates: [[.62,.50,.50],[.50,.62,.50],[.50,.50,.62],[.50,.50,.50],[.50,.50,.50]] },
     ];
-    const foldSampleSizes = [50, 100, 200];
+    // 500 observations/fold represents the current 5,000-tick live scan
+    // with 60% training, a 50% training-only selection segment, and 3 folds.
+    const foldSampleSizes = [50, 100, 200, 500];
     return profiles.flatMap(({ profile, rates }) => foldSampleSizes.map(foldObservationsPerFold => {
         let currentPasses = 0;
         let clearCandidates = 0;
