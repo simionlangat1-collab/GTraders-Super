@@ -138,6 +138,7 @@ describe('validateAIModelOutOfSample', () => {
 
         expect(result.lagOneCorrelation).toBeGreaterThan(0);
         expect(result.effectiveSampleSize).toBeLessThan(200);
+        expect(result.accuracyEffectiveSampleSize).toBeLessThan(200);
         expect(result.bootstrapBlockLength).toBeGreaterThan(1);
         expect(result.blockBootstrapPValue).toBeGreaterThan(0);
         expect(result.evidence.validationPassed).toBe(false);
