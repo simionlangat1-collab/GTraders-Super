@@ -88,6 +88,39 @@ describe('generateAIPrediction', () => {
         expect(first.windowSelectionAccuracyStdDev).toBe(second.windowSelectionAccuracyStdDev);
     });
 
+    it('breaks exact fold-score ties deterministically in favour of the shorter window', () => {
+        const result = generateAIPrediction(Array(500).fill(4), 100, {
+            candidateWindows: [50, 20, 30],
+        }, timestamps(500));
+
+        expect(result.selectedWindow).toBe(20);
+        expect(result.windowSelectionFoldCount).toBe(3);
+        expect(result.windowSelectionWinShare).toBe(1);
+        expect(result.windowSelectionStable).toBe(true);
+        expect(result.windowSelectionDiagnostics.map(item => item.window)).toEqual([20, 30, 50]);
+        expect(result.windowSelectionDiagnostics.map(item => item.foldWins)).toEqual([3, 0, 0]);
+        expect(result.decision).toBe('NO_TRADE');
+        expect(result.validationPassed).toBe(false);
+    });
+
+    it('rejects a holdout tick sharing the final training timestamp instead of treating it as later evidence', () => {
+        const tickTimes = timestamps(500);
+        tickTimes[300] = tickTimes[299];
+
+        const result = generateAIPrediction(
+            [...Array(300).fill(0), ...Array(200).fill(7)],
+            100,
+            { candidateWindows: [20, 30, 50] },
+            tickTimes
+        );
+
+        expect(result.windowSelectionStable).toBe(true);
+        expect(result.selectedWindow).toBe(20);
+        expect(result.decision).toBe('NO_TRADE');
+        expect(result.validationPassed).toBe(false);
+        expect(result.explanation).toContain('199 clean settled holdout observations were accepted and 1 rejected');
+    });
+
     it('does not claim a statistical edge when candidate matches the baseline', () => {
         const result = generateAIPrediction(Array(500).fill(4), 100, {}, timestamps(500));
         expect(result.decision).toBe('NO_TRADE');
