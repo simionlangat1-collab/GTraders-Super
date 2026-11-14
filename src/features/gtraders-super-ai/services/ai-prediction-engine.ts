@@ -16,6 +16,13 @@ export interface AIPredictionEngineOptions {
     windowSelectionFoldCount?: number;
 }
 
+export interface AIWindowSelectionDiagnostic {
+    window: number;
+    foldWins: number;
+    foldAccuracies: number[];
+    meanAccuracy: number;
+}
+
 export interface AIPredictionResult {
     decision: 'PREDICTION_CANDIDATE' | 'NO_TRADE';
     predictedDigit: number | null;
@@ -33,6 +40,7 @@ export interface AIPredictionResult {
     windowSelectionAccuracyStdDev: number;
     windowSelectionStable: boolean;
     windowSelectionSummary: string;
+    windowSelectionDiagnostics: AIWindowSelectionDiagnostic[];
     explanation: string;
 }
 
@@ -74,6 +82,7 @@ interface WindowSelectionResult {
     accuracyStdDev: number;
     stable: boolean;
     summary: string;
+    diagnostics: AIWindowSelectionDiagnostic[];
 }
 
 const MINIMUM_WINDOW_SELECTION_WIN_SHARE = 2 / 3;
@@ -179,6 +188,12 @@ const selectWindowWithinTraining = (
         accuracyStdDev,
         stable,
         summary,
+        diagnostics: aggregate.map(item => ({
+            window: item.window,
+            foldWins: item.foldWins,
+            foldAccuracies: item.foldAccuracies,
+            meanAccuracy: item.accuracy,
+        })),
     };
 };
 
@@ -230,6 +245,7 @@ export const generateAIPrediction = (
         windowSelectionAccuracyStdDev: selection?.accuracyStdDev ?? 0,
         windowSelectionStable: selection?.stable ?? false,
         windowSelectionSummary: selection?.summary ?? 'Window selection was not completed.',
+        windowSelectionDiagnostics: selection?.diagnostics ?? [],
         explanation: `NO TRADE — ${explanation}${selection ? ` ${selection.summary}` : ''}`,
     });
 
@@ -331,6 +347,7 @@ export const generateAIPrediction = (
         windowSelectionAccuracyStdDev: selection.accuracyStdDev,
         windowSelectionStable: selection.stable,
         windowSelectionSummary: selection.summary,
+        windowSelectionDiagnostics: selection.diagnostics,
         explanation: `Research candidate only: the ${selectedWindow}-tick recent-window model was selected across stable chronological training folds and passed the separate chronological holdout comparison. ${selection.summary} Historical share is not a calibrated next-tick probability and this result does not authorize an order.`,
     };
 };
