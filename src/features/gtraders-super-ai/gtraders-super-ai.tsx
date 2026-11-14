@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     AIDerivConnection,
     AIAccountSnapshot,
@@ -109,7 +109,13 @@ const GTradersSuperAI = () => {
                 error instanceof Error ? error.message : 'Unable to connect to Deriv.'
             );
         }
-    };
+    }, [connection]);
+
+    useEffect(() => {
+        if (isOpen && connection.getStatus() !== 'connected' && connection.getStatus() !== 'connecting') {
+            void connectAI();
+        }
+    }, [isOpen, connection, connectAI]);
 
     const scanMarkets = async (balanceOverride?: number): Promise<SelectedMarketOpportunity | null> => {
         if (!riskInputsReady) {
@@ -1126,19 +1132,6 @@ const GTradersSuperAI = () => {
                                 disabled={!isBotRunning && (!marketOpportunity || !riskInputsReady || account.account_type !== 'demo' || !sessionLedger || Boolean(ledgerError) || !sessionSnapshot || sessionSnapshot.openContractId !== null || sessionSnapshot.executionUncertain || isExecuting)}>
                                 {isBotRunning ? '■ Stop Bot' : '▶ Run Bot'}
                             </button>
-                        )}
-
-                        {!isConnected && (
-                            <div className='gtraders-ai-panel__actions'>
-                                <button
-                                    type='button'
-                                    className='gtraders-ai-panel__connect'
-                                    onClick={connectAI}
-                                    disabled={isConnecting}
-                                >
-                                    {isConnecting ? 'Connecting…' : 'Connect AI to Deriv'}
-                                </button>
-                            </div>
                         )}
 
                         <p className='gtraders-ai-panel__notice'>
