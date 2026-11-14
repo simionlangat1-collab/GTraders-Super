@@ -223,14 +223,11 @@ describe('generateAIPrediction', () => {
 
     it('rejects a lag-2 dependent holdout even when lag-1 dependence looks harmless', () => {
         const training = [...Array(1500).fill(0), ...Array(1500).fill(1)];
-        let state = 0x1badf00d;
-        const random = () => {
-            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-            return state / 4294967296;
-        };
         const holdout = Array.from({ length: 2000 }, (_, index) => {
-            if (index % 2 === 0) return 1;
-            return random() < 0.5 ? 0 : 1;
+            const pairIndex = Math.floor(index / 2);
+            const dependenceBlock = Math.floor(pairIndex / 50);
+            const state = dependenceBlock % 2 === 0 ? 1 : 0;
+            return index % 2 === 0 ? state : 1 - state;
         });
 
         const result = generateAIPrediction(
