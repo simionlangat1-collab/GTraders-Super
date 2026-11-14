@@ -44,7 +44,10 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.modelOnlyCorrect).toBe(90);
         expect(result.baselineOnlyCorrect).toBe(0);
         expect(result.pairedPValue).toBeLessThan(0.001);
-        expect(result.adjustedPairedPValue).toBe(result.pairedPValue);
+        expect(result.adjustedPairedPValue).toBeGreaterThanOrEqual(result.pairedPValue);
+        expect(result.adjustedPairedPValue).toBe(
+            Math.max(result.pairedPValue, result.blockBootstrapPValue)
+        );
         expect(result.rejectedObservations).toBe(0);
         expect(result.evidence.winRateConfidenceLowerBound).toBeGreaterThan(0.5);
     });
