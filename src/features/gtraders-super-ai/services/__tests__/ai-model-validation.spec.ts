@@ -1,4 +1,4 @@
-import { getFamilyWiseConfidenceZ, validateAIModelOutOfSample } from '../ai-model-validation';
+import { calculatePairedExactPValue, getFamilyWiseConfidenceZ, validateAIModelOutOfSample } from '../ai-model-validation';
 
 const makeObservations = (
     count: number,
@@ -68,16 +68,16 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.outOfSampleTradeCount).toBe(250);
     });
 
-    it('rejects a holdout that does not beat the matched baseline', () => {
+    it('rejects a holdout when paired predictions have no discordant advantage', () => {
         const result = validateAIModelOutOfSample({
             ...baseInput,
             observations: makeObservations(300, () => true, () => true),
         });
 
         expect(result.evidence.validationPassed).toBe(false);
-        expect(result.evidence.winRateConfidenceLowerBound).toBeLessThanOrEqual(
-            result.evidence.baselineWinRate
-        );
+        expect(result.adjustedPairedPValue).toBe(1);
+        expect(result.modelOnlyCorrect).toBe(0);
+        expect(result.baselineOnlyCorrect).toBe(0);
     });
 
     it('requires at least 200 clean settled holdout observations', () => {
@@ -87,6 +87,26 @@ describe('validateAIModelOutOfSample', () => {
         });
 
         expect(result.evidence.validationPassed).toBe(false);
+    });
+
+    it('uses exact paired discordances and family-wise adjusted p-values', () => {
+        expect(calculatePairedExactPValue(10, 0)).toBeCloseTo(1 / 1024, 8);
+        expect(calculatePairedExactPValue(5, 5)).toBeGreaterThan(0.5);
+        const single = validateAIModelOutOfSample({
+            ...baseInput,
+            observations: makeObservations(200, index => index < 120, index => index >= 120),
+        });
+        const family = validateAIModelOutOfSample({
+            ...baseInput,
+            multipleComparisonCount: 13,
+            observations: makeObservations(200, index => index < 120, index => index >= 120),
+        });
+        expect(single.modelOnlyCorrect).toBe(120);
+        expect(single.baselineOnlyCorrect).toBe(80);
+        expect(family.adjustedPairedPValue).toBeCloseTo(
+            Math.min(1, single.pairedPValue * 13), 10
+        );
+        expect(family.evidence.validationPassed).toBe(false);
     });
 
     it('uses a stricter confidence bound when more markets are compared', () => {
