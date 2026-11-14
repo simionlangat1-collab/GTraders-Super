@@ -12,6 +12,12 @@ export interface AIPredictionEngineOptions {
     minimumDataQuality?: number;
     /** Number of markets tested in the same scan; adjusts the holdout confidence bound. */
     multipleComparisonCount?: number;
+    /** Number of chronological validation folds used only within training. Defaults to 3. */
+    windowSelectionFoldCount?: number;
+    /** Required fraction of folds won by the selected window. Defaults to 2/3. */
+    minimumWindowSelectionWinShare?: number;
+    /** Maximum population standard deviation of fold accuracies. Defaults to 0.15. */
+    maximumWindowSelectionAccuracyStdDev?: number;
 }
 
 export interface AIPredictionResult {
@@ -25,6 +31,12 @@ export interface AIPredictionResult {
     baselineWinRate: number;
     confidenceLowerBound: number;
     validationPassed: boolean;
+    selectedWindow: number | null;
+    windowSelectionFoldCount: number;
+    windowSelectionWinShare: number;
+    windowSelectionAccuracyStdDev: number;
+    windowSelectionStable: boolean;
+    windowSelectionSummary: string;
     explanation: string;
 }
 
@@ -52,49 +64,138 @@ const normalizeWindows = (options: AIPredictionEngineOptions): number[] => {
         .sort((a, b) => a - b);
 };
 
-interface WindowScore {
+interface WindowFoldScore {
     window: number;
     correct: number;
     total: number;
+    accuracy: number;
 }
 
+interface WindowSelectionResult {
+    window: number;
+    foldCount: number;
+    winnerShare: number;
+    accuracyStdDev: number;
+    stable: boolean;
+    summary: string;
+}
+
+const populationStdDev = (values: number[]): number => {
+    if (!values.length) return 1;
+    const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const variance = values.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / values.length;
+    return Math.sqrt(variance);
+};
+
 /**
- * Chooses among pre-declared recent-window models using only the final 20%
- * of the training segment. The later untouched holdout is not involved in
- * model/window selection. Ties prefer the shorter window.
+ * Compares pre-declared windows across chronological folds contained entirely
+ * inside the training segment. Every prediction in a fold uses only ticks
+ * strictly earlier than its target tick. No holdout observation is consulted.
+ *
+ * The selected window must win at least the configured share of folds and
+ * must have sufficiently consistent fold accuracy. Unstable selection is
+ * rejected instead of silently choosing the highest aggregate score.
  */
 const selectWindowWithinTraining = (
     digits: number[],
     trainingSampleSize: number,
-    windows: number[]
-): WindowScore | null => {
-    const selectionStart = Math.floor(trainingSampleSize * 0.8);
+    windows: number[],
+    options: AIPredictionEngineOptions
+): WindowSelectionResult | null => {
+    const foldCount = Number.isFinite(options.windowSelectionFoldCount)
+        ? Math.max(3, Math.min(5, Math.floor(options.windowSelectionFoldCount!)))
+        : 3;
+    const minimumWinShare = Number.isFinite(options.minimumWindowSelectionWinShare)
+        ? Math.max(0, Math.min(1, options.minimumWindowSelectionWinShare!))
+        : 2 / 3;
+    const maximumAccuracyStdDev = Number.isFinite(options.maximumWindowSelectionAccuracyStdDev)
+        ? Math.max(0, options.maximumWindowSelectionAccuracyStdDev!)
+        : 0.15;
+
+    const selectionStart = Math.floor(trainingSampleSize * 0.5);
     const selectionSize = trainingSampleSize - selectionStart;
-    if (!windows.length || selectionSize < 40 || selectionStart < Math.max(...windows)) {
+    const minimumFoldSize = 30;
+    if (
+        !windows.length ||
+        selectionStart < Math.max(...windows) ||
+        selectionSize < foldCount * minimumFoldSize
+    ) {
         return null;
     }
 
-    const scores = windows.map(window => {
-        let correct = 0;
-        for (let index = selectionStart; index < trainingSampleSize; index += 1) {
-            const prediction = modeDigit(digits.slice(index - window, index));
-            if (prediction === digits[index]) correct += 1;
-        }
-        return { window, correct, total: selectionSize };
+    const foldScores: WindowFoldScore[][] = [];
+    const foldWinners: number[] = [];
+
+    for (let fold = 0; fold < foldCount; fold += 1) {
+        const foldStart = selectionStart + Math.floor((selectionSize * fold) / foldCount);
+        const foldEnd = selectionStart + Math.floor((selectionSize * (fold + 1)) / foldCount);
+        const scores = windows.map(window => {
+            let correct = 0;
+            for (let index = foldStart; index < foldEnd; index += 1) {
+                const prediction = modeDigit(digits.slice(index - window, index));
+                if (prediction === digits[index]) correct += 1;
+            }
+            const total = foldEnd - foldStart;
+            return { window, correct, total, accuracy: total ? correct / total : 0 };
+        });
+
+        const winner = [...scores].sort((a, b) =>
+            b.accuracy - a.accuracy || a.window - b.window
+        )[0];
+        if (!winner) return null;
+        foldScores.push(scores);
+        foldWinners.push(winner.window);
+    }
+
+    const winnerCounts = new Map<number, number>();
+    foldWinners.forEach(window => winnerCounts.set(window, (winnerCounts.get(window) ?? 0) + 1));
+
+    const aggregate = windows.map(window => {
+        const scores = foldScores.map(fold => fold.find(score => score.window === window)!);
+        const correct = scores.reduce((sum, score) => sum + score.correct, 0);
+        const total = scores.reduce((sum, score) => sum + score.total, 0);
+        return {
+            window,
+            correct,
+            total,
+            accuracy: total ? correct / total : 0,
+            foldWins: winnerCounts.get(window) ?? 0,
+            foldAccuracies: scores.map(score => score.accuracy),
+        };
     });
 
-    return scores.sort((a, b) =>
-        b.correct / b.total - a.correct / a.total || a.window - b.window
-    )[0] ?? null;
+    const selected = aggregate.sort((a, b) =>
+        b.foldWins - a.foldWins ||
+        b.accuracy - a.accuracy ||
+        a.window - b.window
+    )[0];
+    if (!selected) return null;
+
+    const winnerShare = selected.foldWins / foldCount;
+    const accuracyStdDev = populationStdDev(selected.foldAccuracies);
+    const stable = winnerShare >= minimumWinShare &&
+        accuracyStdDev <= maximumAccuracyStdDev;
+    const frequency = windows
+        .map(window => `${window}t: ${winnerCounts.get(window) ?? 0}/${foldCount}`)
+        .join(', ');
+    const summary = `Chronological training folds: ${foldCount}; fold winners (${frequency}); selected ${selected.window}-tick window won ${selected.foldWins}/${foldCount} folds; fold accuracy SD ${(accuracyStdDev * 100).toFixed(1)} percentage points; stability ${stable ? 'PASSED' : 'FAILED'}.`;
+
+    return {
+        window: selected.window,
+        foldCount,
+        winnerShare,
+        accuracyStdDev,
+        stable,
+        summary,
+    };
 };
 
 /**
  * Conservative walk-forward last-digit research engine.
  *
- * A small, pre-declared family of recent-window models is compared only
- * inside the training period. The winning window is frozen before the final
- * chronological holdout. Its predictions and the all-history mode baseline
- * are then scored on the exact same later ticks.
+ * Candidate windows are compared across multiple chronological folds within
+ * training. The selected window and stability decision are frozen before the
+ * final chronological holdout. The holdout is used only for final evaluation.
  *
  * This is a research signal only. It never sends orders and never treats
  * historical frequency as certainty.
@@ -117,7 +218,10 @@ export const generateAIPrediction = (
     const trainingSampleSize = Math.floor(digits.length * trainingFraction);
     const holdoutSampleSize = digits.length - trainingSampleSize;
 
-    const noTrade = (explanation: string): AIPredictionResult => ({
+    const noTrade = (
+        explanation: string,
+        selection?: WindowSelectionResult | null
+    ): AIPredictionResult => ({
         decision: 'NO_TRADE',
         predictedDigit: null,
         historicalShare: null,
@@ -128,7 +232,13 @@ export const generateAIPrediction = (
         baselineWinRate: 0,
         confidenceLowerBound: 0,
         validationPassed: false,
-        explanation: `NO TRADE — ${explanation}`,
+        selectedWindow: selection?.window ?? null,
+        windowSelectionFoldCount: selection?.foldCount ?? 0,
+        windowSelectionWinShare: selection?.winnerShare ?? 0,
+        windowSelectionAccuracyStdDev: selection?.accuracyStdDev ?? 0,
+        windowSelectionStable: selection?.stable ?? false,
+        windowSelectionSummary: selection?.summary ?? 'Window selection was not completed.',
+        explanation: `NO TRADE — ${explanation}${selection ? ` ${selection.summary}` : ''}`,
     });
 
     if (!isArrayInput || digits.length !== input.length) {
@@ -157,11 +267,15 @@ export const generateAIPrediction = (
         return noTrade('the training period is too small for training-only model selection or the untouched holdout is too small.');
     }
 
-    const selected = selectWindowWithinTraining(digits, trainingSampleSize, candidateWindows);
-    if (!selected) {
-        return noTrade('the pre-declared prediction windows could not be compared within the training period.');
+    const selection = selectWindowWithinTraining(digits, trainingSampleSize, candidateWindows, options);
+    if (!selection) {
+        return noTrade('there is insufficient training history for the configured chronological window-selection folds.');
     }
-    const selectedWindow = selected.window;
+    if (!selection.stable) {
+        return noTrade('candidate-window selection was unstable across chronological training folds; no window will be trusted.', selection);
+    }
+
+    const selectedWindow = selection.window;
     const trainingCutoffIndex = trainingSampleSize - 1;
     const trainingCutoffTimestamp = tickTimestamps[trainingCutoffIndex];
     const observations = [];
@@ -171,7 +285,7 @@ export const generateAIPrediction = (
         const candidatePrediction = modeDigit(history.slice(-selectedWindow));
         const baselinePrediction = modeDigit(history);
         if (candidatePrediction === null || baselinePrediction === null) {
-            return noTrade('walk-forward predictions could not be generated.');
+            return noTrade('walk-forward predictions could not be generated.', selection);
         }
         observations.push({
             settledAt: tickTimestamps[index],
@@ -193,22 +307,18 @@ export const generateAIPrediction = (
 
     if (!validation.evidence.validationPassed || gate.decision !== 'TRADE_CANDIDATE') {
         return {
-            decision: 'NO_TRADE',
-            predictedDigit: null,
-            historicalShare: null,
-            marketSampleSize: digits.length,
-            trainingSampleSize,
-            holdoutSampleSize,
+            ...noTrade(
+                `training-only selection chose a ${selectedWindow}-tick window. ${validation.explanation} ${gate.explanation}`,
+                selection
+            ),
             modelWinRate: validation.evidence.observedWinRate,
             baselineWinRate: validation.evidence.baselineWinRate,
             confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
-            validationPassed: false,
-            explanation: `NO TRADE — training-only selection chose a ${selectedWindow}-tick window. ${validation.explanation} ${gate.explanation}`,
         };
     }
 
     const predictedDigit = modeDigit(digits.slice(-selectedWindow));
-    if (predictedDigit === null) return noTrade('no current prediction can be calculated.');
+    if (predictedDigit === null) return noTrade('no current prediction can be calculated.', selection);
     const recentCounts = countDigits(digits.slice(-selectedWindow));
     const historicalShare = recentCounts[predictedDigit] / selectedWindow;
 
@@ -223,7 +333,13 @@ export const generateAIPrediction = (
         baselineWinRate: validation.evidence.baselineWinRate,
         confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
         validationPassed: true,
-        explanation: `Research candidate only: the ${selectedWindow}-tick recent-window model was selected inside training and passed the separate chronological holdout comparison. Historical share is not a calibrated next-tick probability and this result does not authorize an order.`,
+        selectedWindow,
+        windowSelectionFoldCount: selection.foldCount,
+        windowSelectionWinShare: selection.winnerShare,
+        windowSelectionAccuracyStdDev: selection.accuracyStdDev,
+        windowSelectionStable: selection.stable,
+        windowSelectionSummary: selection.summary,
+        explanation: `Research candidate only: the ${selectedWindow}-tick recent-window model was selected across stable chronological training folds and passed the separate chronological holdout comparison. ${selection.summary} Historical share is not a calibrated next-tick probability and this result does not authorize an order.`,
     };
 };
 
