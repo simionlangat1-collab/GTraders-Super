@@ -694,12 +694,16 @@
     }
 }
 
-/* Settled contract result: fill the complete digit circle, not only its ring. */
+/* Settled winning digit: Deriv-style teal fill with a clear cyan ring glow. */
 .manual-trader .manual-trader-analysis .analysis-tool__digit-circle.is-trade-result-win {
-    background: #d4a017;
-    border-color: #f5cf55;
-    color: #ffffff;
-    box-shadow: 0 0 0 .2rem rgba(212,160,23,.35), 0 0 1.4rem rgba(212,160,23,.65);
+    background: #16b8b0 !important;
+    border-color: #22d3ee !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 .2rem rgba(34, 211, 238, .28), 0 0 1.45rem rgba(34, 211, 238, .62) !important;
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
 }
 .manual-trader .manual-trader-analysis .analysis-tool__digit-circle.is-trade-result-loss {
     background: #dc2626;
@@ -726,14 +730,23 @@
     box-shadow: 0 0 0 1px rgba(234, 179, 8, .22), 0 0 .95rem rgba(234, 179, 8, .22);
 }
 
-/* Final settlement highlight: keep the whole circle filled and make the fill itself blink. */
+/* Subtle cyan ring glow across the digit circles, matching the reference terminal. */
+.manual-trader .manual-trader-analysis .analysis-tool__digit-circle:not(.is-barrier):not(.is-trade-result-win):not(.is-trade-result-loss) {
+    border-color: rgba(34, 211, 238, .62);
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, .12), 0 0 .8rem rgba(34, 211, 238, .2);
+}
+
+/* Keep the winning digit steady: teal fill and a soft, persistent cyan halo. */
 .manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-win {
-    background: #d4a017 !important;
-    border-color: #f5cf55 !important;
+    background: #16b8b0 !important;
+    border-color: #22d3ee !important;
     color: #ffffff !important;
-    box-shadow: 0 0 0 .2rem rgba(212,160,23,.42), 0 0 1.8rem rgba(212,160,23,.9) !important;
-    animation: manual-trader-trade-win 520ms ease-in-out 2 both !important;
-    will-change: opacity, filter, transform;
+    box-shadow: 0 0 0 .2rem rgba(34, 211, 238, .28), 0 0 1.45rem rgba(34, 211, 238, .62) !important;
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    will-change: auto;
 }
 .manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-loss {
     background: #dc2626 !important;
