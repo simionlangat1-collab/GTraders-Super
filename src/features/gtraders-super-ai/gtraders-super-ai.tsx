@@ -1072,6 +1072,9 @@ const GTradersSuperAI = () => {
                                                     <span>Recent-window historical share: {((marketOpportunity.prediction.historicalShare ?? 0) * 100).toFixed(1)}% (not a calibrated probability)</span>
                                                     <span>Prediction holdout accuracy: {(marketOpportunity.prediction.modelWinRate * 100).toFixed(1)}%</span>
                                                     <span>Matched baseline accuracy: {(marketOpportunity.prediction.baselineWinRate * 100).toFixed(1)}%</span>
+                                                    <span>Lag-1 paired-outcome correlation: {marketOpportunity.prediction.lagOneCorrelation.toFixed(3)}</span>
+                                                    <span>Dependence-adjusted effective holdout: {marketOpportunity.prediction.effectiveSampleSize.toFixed(0)} / {marketOpportunity.prediction.holdoutSampleSize}</span>
+                                                    <span>Circular block-bootstrap p-value: {marketOpportunity.prediction.blockBootstrapPValue.toFixed(4)} · block length {marketOpportunity.prediction.bootstrapBlockLength}</span>
                                                     <span>Prediction descriptive Wilson lower bound: {(marketOpportunity.prediction.confidenceLowerBound * 100).toFixed(1)}%</span>
                                                     <span>Training win rate: {(marketOpportunity.trainingWinRate * 100).toFixed(1)}%</span>
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
