@@ -88,6 +88,20 @@ describe('validateAIModelOutOfSample', () => {
         expect(result.evidence.outOfSampleTradeCount).toBe(250);
     });
 
+    it('accepts a clean constant positive paired advantage when every holdout pair favours the model', () => {
+        const result = validateAIModelOutOfSample({
+            ...baseInput,
+            observations: makeObservations(240, () => true, () => false),
+        });
+
+        expect(result.modelOnlyCorrect).toBe(240);
+        expect(result.baselineOnlyCorrect).toBe(0);
+        expect(result.effectiveSampleSize).toBe(240);
+        expect(result.blockBootstrapPValue).toBeCloseTo(1 / 2001, 12);
+        expect(result.adjustedPairedPValue).toBeLessThan(0.05);
+        expect(result.evidence.validationPassed).toBe(true);
+    });
+
     it('rejects a holdout when paired predictions have no discordant advantage', () => {
         const result = validateAIModelOutOfSample({
             ...baseInput,
