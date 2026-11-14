@@ -34,6 +34,7 @@ export type AIPredictionRejectionReasonCode =
     | 'INVALID_HOLDOUT_OBSERVATIONS'
     | 'HOLDOUT_SAMPLE_BELOW_MINIMUM'
     | 'PAIRED_TEST_NOT_SIGNIFICANT'
+    | 'DEPENDENCE_ADJUSTED_SAMPLE_BELOW_MINIMUM'
     | 'TRADE_EVIDENCE_GATE_FAILED'
     | 'PREDICTION_UNAVAILABLE';
 
@@ -58,6 +59,10 @@ export interface AIPredictionResult {
     baselineOnlyCorrect: number;
     pairedPValue: number;
     adjustedPairedPValue: number;
+    lagOneCorrelation: number;
+    effectiveSampleSize: number;
+    bootstrapBlockLength: number;
+    blockBootstrapPValue: number;
     rejectedObservations: number;
     selectedWindow: number | null;
     windowSelectionFoldCount: number;
@@ -273,6 +278,10 @@ export const generateAIPrediction = (
         baselineOnlyCorrect: 0,
         pairedPValue: 1,
         adjustedPairedPValue: 1,
+        lagOneCorrelation: 0,
+        effectiveSampleSize: 0,
+        bootstrapBlockLength: 0,
+        blockBootstrapPValue: 1,
         rejectedObservations: 0,
         selectedWindow: selection?.window ?? null,
         windowSelectionFoldCount: selection?.foldCount ?? 0,
@@ -357,6 +366,7 @@ export const generateAIPrediction = (
                     ...(validation.rejectedObservations > 0 ? ['INVALID_HOLDOUT_OBSERVATIONS' as const] : []),
                     ...(validation.evidence.outOfSampleTradeCount < 200 ? ['HOLDOUT_SAMPLE_BELOW_MINIMUM' as const] : []),
                     ...(validation.adjustedPairedPValue > 0.05 ? ['PAIRED_TEST_NOT_SIGNIFICANT' as const] : []),
+                    ...(validation.effectiveSampleSize < 200 ? ['DEPENDENCE_ADJUSTED_SAMPLE_BELOW_MINIMUM' as const] : []),
                     ...(gate.decision !== 'TRADE_CANDIDATE' ? ['TRADE_EVIDENCE_GATE_FAILED' as const] : []),
                 ]
             ),
@@ -370,6 +380,10 @@ export const generateAIPrediction = (
             baselineOnlyCorrect: validation.baselineOnlyCorrect,
             pairedPValue: validation.pairedPValue,
             adjustedPairedPValue: validation.adjustedPairedPValue,
+            lagOneCorrelation: validation.lagOneCorrelation,
+            effectiveSampleSize: validation.effectiveSampleSize,
+            bootstrapBlockLength: validation.bootstrapBlockLength,
+            blockBootstrapPValue: validation.blockBootstrapPValue,
             rejectedObservations: validation.rejectedObservations,
         };
     }
@@ -398,6 +412,10 @@ export const generateAIPrediction = (
         baselineOnlyCorrect: validation.baselineOnlyCorrect,
         pairedPValue: validation.pairedPValue,
         adjustedPairedPValue: validation.adjustedPairedPValue,
+        lagOneCorrelation: validation.lagOneCorrelation,
+        effectiveSampleSize: validation.effectiveSampleSize,
+        bootstrapBlockLength: validation.bootstrapBlockLength,
+        blockBootstrapPValue: validation.blockBootstrapPValue,
         rejectedObservations: validation.rejectedObservations,
         selectedWindow,
         windowSelectionFoldCount: selection.foldCount,
@@ -406,7 +424,7 @@ export const generateAIPrediction = (
         windowSelectionStable: selection.stable,
         windowSelectionSummary: selection.summary,
         windowSelectionDiagnostics: selection.diagnostics,
-        explanation: `Research candidate only: the ${selectedWindow}-tick recent-window model was selected across stable chronological training folds and passed the separate chronological holdout comparison. ${selection.summary} Historical share is not a calibrated next-tick probability and this result does not authorize an order.`,
+        explanation: `Research candidate only: the ${selectedWindow}-tick recent-window model was selected across stable chronological training folds and passed the separate chronological holdout comparison. ${validation.explanation} ${selection.summary} Historical share is not a calibrated next-tick probability and this result does not authorize an order.`,
     };
 };
 
