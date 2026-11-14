@@ -13,6 +13,7 @@ import { AIPredictionResult, generateAIPrediction } from './services/ai-predicti
 import { requestFreshAIProposal } from './services/ai-proposal-service';
 import { executeAIDemoTrade } from './services/ai-demo-execution';
 import { AISessionLedger, AISessionSnapshot } from './services/ai-session-ledger';
+import AIStatisticalPowerAuditPanel from './ai-statistical-power-audit-panel';
 import './gtraders-super-ai.scss';
 
 const connectionStatusLabel: Record<AIConnectionStatus, string> = {
@@ -926,6 +927,7 @@ const GTradersSuperAI = () => {
                                         {isScanning ? 'Scanning markets…' : 'Market Scanner'}
                                     </button>
                                 </div>
+                                <AIStatisticalPowerAuditPanel />
                                 {scannerError && (
                                     <p className='gtraders-ai-panel__error' role='alert'>
                                         {scannerError}
