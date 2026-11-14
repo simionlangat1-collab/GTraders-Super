@@ -14,6 +14,7 @@ describe('AI shadow window selection', () => {
         const results = runAIWindowSelectionShadowAudit(500, 20261114);
         expect(results.every(item =>
             item.currentRulePassRate >= 0 && item.currentRulePassRate <= 1 &&
+            item.currentRulePassRate === item.aggregateClearCandidateRate &&
             item.aggregateClearCandidateRate + item.ambiguousRate + item.regimeUnstableRate
                 > 0.999999
         )).toBe(true);
