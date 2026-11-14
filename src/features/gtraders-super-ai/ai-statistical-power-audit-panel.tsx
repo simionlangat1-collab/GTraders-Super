@@ -96,7 +96,8 @@ const AIStatisticalPowerAuditPanel = () => {
                     </div>
                     <div className='gtraders-ai-power-audit__summary'>
                         <strong>Paired prediction validation power</strong>
-                        {result.pairedScenarios.filter(item => [200, 800].includes(item.holdoutTicks) && [0, 0.05].includes(item.trueModelImprovement)).map(item => (
+                        <span>These paired-power scenarios assume independent outcomes; live serial dependence can reduce effective sample size and actual detection power. The 2,000-observation row represents the current 5,000-tick scan with a 60% training split.</span>
+                        {result.pairedScenarios.filter(item => [200, 800, 2000].includes(item.holdoutTicks) && [0, 0.05].includes(item.trueModelImprovement)).map(item => (
                             <span key={`${item.holdoutTicks}-${item.trueModelImprovement}`}>
                                 {item.holdoutTicks} holdout observations · +{(item.trueModelImprovement * 100).toFixed(0)} pp improvement: {(item.power * 100).toFixed(1)}% significant.
                             </span>
