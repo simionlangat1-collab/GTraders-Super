@@ -31,6 +31,27 @@ describe('validatePairedDependence', () => {
         expect(clusteredResult.effectiveSampleSize).toBeLessThan(100);
     });
 
+    it('detects persistent lag-two dependence even when lag-one correlation is near zero', () => {
+        let state = 123;
+        const random = () => {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            return state / 4294967296;
+        };
+        const chainStates = [1, 0];
+        const values = [1, 0];
+        for (let index = 2; index < 2000; index += 1) {
+            const chain = index % 2;
+            if (random() >= 0.95) chainStates[chain] = 1 - chainStates[chain];
+            values.push(chainStates[chain]);
+        }
+
+        const result = validatePairedDependence(values, 1000);
+
+        expect(Math.abs(result.lagOneCorrelation)).toBeLessThan(0.15);
+        expect(result.effectiveSampleSize).toBeLessThan(200);
+        expect(result.blockLength).toBeGreaterThan(1);
+    });
+
     it('fails closed when a constant positive series makes serial dependence unidentifiable', () => {
         const result = validatePairedDependence(Array(240).fill(1), 1000);
 
