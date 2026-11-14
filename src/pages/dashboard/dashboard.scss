@@ -1014,3 +1014,15 @@
         box-sizing: border-box;
     }
 }
+
+/* GTRADERS SUPER - GOLD EDGE ACCENT FOR THE FOUR DASHBOARD ACTION PANELS */
+.tab__dashboard__table__block {
+    border: 2px solid #d4af37;
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.16),
+        0 3px 12px rgba(212, 175, 55, 0.12);
+
+    &:hover,
+    &:active {
+        border-color: #e5c65a;
+    }
+}
