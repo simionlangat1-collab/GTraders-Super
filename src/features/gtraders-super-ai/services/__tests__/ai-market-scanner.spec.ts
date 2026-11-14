@@ -57,6 +57,39 @@ describe('AIMarketScanner', () => {
         );
     });
 
+
+    it('requests up to 5000 ticks when a larger evidence window is configured', async () => {
+        const request = jest.fn(async () => ({
+            history: { prices: [], times: [] },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
+
+        await scanner.getTickHistory('R_100', 5000);
+
+        expect(request).toHaveBeenCalledWith(expect.objectContaining({
+            ticks_history: 'R_100',
+            count: 5000,
+            end: 'latest',
+            style: 'ticks',
+        }));
+    });
+
+    it('caps oversized history requests at the supported 5000-tick window', async () => {
+        const request = jest.fn(async () => ({
+            history: { prices: [], times: [] },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
+
+        await scanner.getTickHistory('R_100', 10000);
+
+        expect(request).toHaveBeenCalledWith(expect.objectContaining({
+            ticks_history: 'R_100',
+            count: 5000,
+        }));
+    });
+
     it('infers precision from original price strings when pip_size is missing', async () => {
         const request = jest.fn(async () => ({
             history: {
