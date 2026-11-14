@@ -37,6 +37,24 @@ const correlationAtLagOne = (values: number[]): number => {
     return denominator > 0 ? clamp(numerator / denominator, -0.99, 0.99) : 0;
 };
 
+export interface AIEffectiveSampleEstimate {
+    lagOneCorrelation: number;
+    effectiveSampleSize: number;
+}
+
+/** Conservative lag-1 effective-sample estimate; negative correlation is not credited. */
+export const estimateEffectiveSampleSize = (values: number[]): AIEffectiveSampleEstimate => {
+    const valid = values.filter(Number.isFinite);
+    const lagOneCorrelation = correlationAtLagOne(valid);
+    const positiveCorrelation = Math.max(0, lagOneCorrelation);
+    return {
+        lagOneCorrelation,
+        effectiveSampleSize: valid.length
+            ? clamp(valid.length * (1 - positiveCorrelation) / (1 + positiveCorrelation), 1, valid.length)
+            : 0,
+    };
+};
+
 /**
  * Dependence-aware one-sided test of the paired model-minus-baseline outcome.
  * A circular moving-block bootstrap resamples contiguous blocks of the
