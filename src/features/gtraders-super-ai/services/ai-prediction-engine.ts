@@ -63,6 +63,8 @@ export interface AIPredictionResult {
     effectiveSampleSize: number;
     bootstrapBlockLength: number;
     blockBootstrapPValue: number;
+    accuracyLagOneCorrelation: number;
+    accuracyEffectiveSampleSize: number;
     rejectedObservations: number;
     selectedWindow: number | null;
     windowSelectionFoldCount: number;
@@ -282,6 +284,8 @@ export const generateAIPrediction = (
         effectiveSampleSize: 0,
         bootstrapBlockLength: 0,
         blockBootstrapPValue: 1,
+        accuracyLagOneCorrelation: 0,
+        accuracyEffectiveSampleSize: 0,
         rejectedObservations: 0,
         selectedWindow: selection?.window ?? null,
         windowSelectionFoldCount: selection?.foldCount ?? 0,
@@ -384,6 +388,8 @@ export const generateAIPrediction = (
             effectiveSampleSize: validation.effectiveSampleSize,
             bootstrapBlockLength: validation.bootstrapBlockLength,
             blockBootstrapPValue: validation.blockBootstrapPValue,
+            accuracyLagOneCorrelation: validation.accuracyLagOneCorrelation,
+            accuracyEffectiveSampleSize: validation.accuracyEffectiveSampleSize,
             rejectedObservations: validation.rejectedObservations,
         };
     }
@@ -416,6 +422,8 @@ export const generateAIPrediction = (
         effectiveSampleSize: validation.effectiveSampleSize,
         bootstrapBlockLength: validation.bootstrapBlockLength,
         blockBootstrapPValue: validation.blockBootstrapPValue,
+        accuracyLagOneCorrelation: validation.accuracyLagOneCorrelation,
+        accuracyEffectiveSampleSize: validation.accuracyEffectiveSampleSize,
         rejectedObservations: validation.rejectedObservations,
         selectedWindow,
         windowSelectionFoldCount: selection.foldCount,
