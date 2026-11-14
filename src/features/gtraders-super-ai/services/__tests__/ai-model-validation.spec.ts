@@ -20,9 +20,19 @@ const baseInput = {
 
 describe('validateAIModelOutOfSample', () => {
     it('validates only a clean chronological holdout with a statistically stronger model', () => {
+        const indices = Array.from({ length: 300 }, (_, index) => index);
+        const modelOnly = new Set(indices.filter(index => (index * 3) % 10 < 3));
+        const remaining = indices.filter(index => !modelOnly.has(index));
+        const bothCorrect = new Set(remaining.filter((_, rank) =>
+            Math.floor((rank + 1) * 150 / remaining.length) > Math.floor(rank * 150 / remaining.length)
+        ));
         const result = validateAIModelOutOfSample({
             ...baseInput,
-            observations: makeObservations(300, index => index < 240, index => index < 150),
+            observations: makeObservations(
+                300,
+                index => modelOnly.has(index) || bothCorrect.has(index),
+                index => bothCorrect.has(index)
+            ),
         });
 
         expect(result.evidence.outOfSampleTradeCount).toBe(300);
@@ -99,22 +109,38 @@ describe('validateAIModelOutOfSample', () => {
     it('uses exact paired discordances and family-wise adjusted p-values', () => {
         expect(calculatePairedExactPValue(10, 0)).toBeCloseTo(1 / 1024, 8);
         expect(calculatePairedExactPValue(5, 5)).toBeGreaterThan(0.5);
+        const modelOnly = (index: number) => (index * 119) % 200 < 119;
         const single = validateAIModelOutOfSample({
             ...baseInput,
-            observations: makeObservations(200, index => index < 119, index => index >= 119),
+            observations: makeObservations(200, modelOnly, index => !modelOnly(index)),
         });
         const family = validateAIModelOutOfSample({
             ...baseInput,
             multipleComparisonCount: 13,
-            observations: makeObservations(200, index => index < 119, index => index >= 119),
+            observations: makeObservations(200, modelOnly, index => !modelOnly(index)),
         });
         expect(single.modelOnlyCorrect).toBe(119);
         expect(single.baselineOnlyCorrect).toBe(81);
-        expect(family.adjustedPairedPValue).toBeCloseTo(0.0566962581, 8);
+        expect(family.adjustedPairedPValue).toBeGreaterThanOrEqual(
+            Math.min(1, single.pairedPValue * 13)
+        );
         expect(family.adjustedPairedPValue).toBeCloseTo(
-            Math.min(1, single.pairedPValue * 13), 10
+            Math.min(1, family.dependenceAdjustedPValue * 13), 10
         );
         expect(family.evidence.validationPassed).toBe(false);
+    });
+
+    it('reports dependence diagnostics and refuses a serially clustered holdout with low effective size', () => {
+        const result = validateAIModelOutOfSample({
+            ...baseInput,
+            observations: makeObservations(400, index => index < 320, index => index < 200),
+        });
+
+        expect(result.lagOneCorrelation).toBeGreaterThan(0);
+        expect(result.effectiveSampleSize).toBeLessThan(200);
+        expect(result.bootstrapBlockLength).toBeGreaterThan(1);
+        expect(result.blockBootstrapPValue).toBeGreaterThan(0);
+        expect(result.evidence.validationPassed).toBe(false);
     });
 
     it('uses a stricter confidence bound when more markets are compared', () => {
