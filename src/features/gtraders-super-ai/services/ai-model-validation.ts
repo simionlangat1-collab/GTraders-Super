@@ -39,7 +39,7 @@ export interface AIModelValidationResult {
 
 const MINIMUM_HOLDOUT_TRADES = 200;
 
-/** Acklam inverse-normal approximation, used for one-sided Bonferroni bounds. */
+/** Acklam inverse-normal approximation, retained for descriptive Wilson intervals. */
 const inverseNormalCdf = (probability: number): number => {
     const a = [-39.6968302866538, 220.946098424521, -275.928510446969,
         138.357751867269, -30.6647980661472, 2.50662827745924];
@@ -65,7 +65,7 @@ const inverseNormalCdf = (probability: number): number => {
         (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 };
 
-/** One-sided family-wise 95% critical value for a pre-declared comparison family. */
+/** One-sided family-wise 95% critical value for the descriptive accuracy interval. */
 export const getFamilyWiseConfidenceZ = (comparisonCount = 1): number => {
     const count = Number.isFinite(comparisonCount) ? Math.max(1, Math.floor(comparisonCount)) : 1;
     return inverseNormalCdf(1 - 0.05 / count);
@@ -202,7 +202,7 @@ export const validateAIModelOutOfSample = (
         adjustedPairedPValue,
         rejectedObservations,
         explanation: validationPassed
-            ? 'Untouched chronological holdout passed the initial statistical check. The separate evidence and risk gates must still approve; no trade is authorized by validation alone.'
+            ? `Untouched chronological holdout passed the paired exact test. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; raw p-value: ${pairedPValue.toFixed(4)}; family-wise adjusted p-value: ${adjustedPairedPValue.toFixed(4)}. Separate evidence and risk gates must still approve; no trade is authorized by validation alone.`
             : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and a paired exact McNemar test with family-wise adjusted p-value at or below 0.05. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; adjusted p-value: ${adjustedPairedPValue.toFixed(4)}.`,
     };
 };
