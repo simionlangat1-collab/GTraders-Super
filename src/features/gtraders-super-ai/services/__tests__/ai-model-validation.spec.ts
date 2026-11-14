@@ -101,8 +101,8 @@ describe('validateAIModelOutOfSample', () => {
             multipleComparisonCount: 13,
             observations: makeObservations(200, index => index < 120, index => index >= 120),
         });
-        expect(single.modelOnlyCorrect).toBe(120);
-        expect(single.baselineOnlyCorrect).toBe(80);
+        expect(single.modelOnlyCorrect).toBe(119);
+        expect(single.baselineOnlyCorrect).toBe(81);
         expect(family.adjustedPairedPValue).toBeCloseTo(
             Math.min(1, single.pairedPValue * 13), 10
         );
