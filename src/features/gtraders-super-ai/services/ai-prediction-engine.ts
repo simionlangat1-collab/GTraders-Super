@@ -70,6 +70,8 @@ export interface AIPredictionResult {
     windowSelectionFoldCount: number;
     windowSelectionWinShare: number;
     windowSelectionAccuracyStdDev: number;
+    windowSelectionAccuracyRange: number;
+    windowSelectionLeadMargin: number;
     windowSelectionStable: boolean;
     windowSelectionSummary: string;
     windowSelectionDiagnostics: AIWindowSelectionDiagnostic[];
@@ -112,13 +114,16 @@ interface WindowSelectionResult {
     foldCount: number;
     winnerShare: number;
     accuracyStdDev: number;
+    accuracyRange: number;
+    leadMargin: number;
     stable: boolean;
     summary: string;
     diagnostics: AIWindowSelectionDiagnostic[];
 }
 
 const MINIMUM_WINDOW_SELECTION_WIN_SHARE = 2 / 3;
-const MAXIMUM_WINDOW_SELECTION_ACCURACY_STD_DEV = 0.15;
+const MINIMUM_WINDOW_SELECTION_LEAD = 0.02;
+const MAXIMUM_WINDOW_SELECTION_ACCURACY_RANGE = 0.12;
 
 const populationStdDev = (values: number[]): number => {
     if (!values.length) return 1;
@@ -197,27 +202,38 @@ const selectWindowWithinTraining = (
         };
     });
 
-    const selected = aggregate.sort((a, b) =>
-        b.foldWins - a.foldWins ||
-        b.accuracy - a.accuracy ||
-        a.window - b.window
-    )[0];
+    // Rank by aggregate training-fold accuracy, as the shadow audit does.
+    // Fold wins remain a separate stability requirement, not the ranking score.
+    const ranking = [...aggregate].sort((a, b) =>
+        b.accuracy - a.accuracy || a.window - b.window
+    );
+    const selected = ranking[0];
     if (!selected) return null;
 
+    const runnerUp = ranking[1];
+    const leadMargin = runnerUp ? selected.accuracy - runnerUp.accuracy : 1;
     const winnerShare = selected.foldWins / foldCount;
     const accuracyStdDev = populationStdDev(selected.foldAccuracies);
+    const accuracyRange = selected.foldAccuracies.length
+        ? Math.max(...selected.foldAccuracies) - Math.min(...selected.foldAccuracies)
+        : 1;
+    // A candidate is clear only when it wins at least 2/3 folds, leads the
+    // runner-up by more than 2 pp, and its fold range is no greater than 12 pp.
     const stable = winnerShare >= MINIMUM_WINDOW_SELECTION_WIN_SHARE &&
-        accuracyStdDev <= MAXIMUM_WINDOW_SELECTION_ACCURACY_STD_DEV;
+        leadMargin > MINIMUM_WINDOW_SELECTION_LEAD &&
+        accuracyRange <= MAXIMUM_WINDOW_SELECTION_ACCURACY_RANGE;
     const frequency = windows
         .map(window => `${window}t: ${winnerCounts.get(window) ?? 0}/${foldCount}`)
         .join(', ');
-    const summary = `Chronological training folds: ${foldCount}; fold winners (${frequency}); selected ${selected.window}-tick window won ${selected.foldWins}/${foldCount} folds; fold accuracy SD ${(accuracyStdDev * 100).toFixed(1)} percentage points; stability ${stable ? 'PASSED' : 'FAILED'}.`;
+    const summary = `Chronological training folds: ${foldCount}; fold winners (${frequency}); aggregate leader ${selected.window}-tick window won ${selected.foldWins}/${foldCount} folds; lead over runner-up ${(leadMargin * 100).toFixed(2)} pp (required >2.00 pp); maximum fold range ${(accuracyRange * 100).toFixed(1)} pp (maximum 12.0 pp); fold accuracy SD ${(accuracyStdDev * 100).toFixed(1)} pp; stability ${stable ? 'PASSED' : 'FAILED'}.`;
 
     return {
         window: selected.window,
         foldCount,
         winnerShare,
         accuracyStdDev,
+        accuracyRange,
+        leadMargin,
         stable,
         summary,
         diagnostics: aggregate.map(item => ({
@@ -291,6 +307,8 @@ export const generateAIPrediction = (
         windowSelectionFoldCount: selection?.foldCount ?? 0,
         windowSelectionWinShare: selection?.winnerShare ?? 0,
         windowSelectionAccuracyStdDev: selection?.accuracyStdDev ?? 0,
+        windowSelectionAccuracyRange: selection?.accuracyRange ?? 0,
+        windowSelectionLeadMargin: selection?.leadMargin ?? 0,
         windowSelectionStable: selection?.stable ?? false,
         windowSelectionSummary: selection?.summary ?? 'Window selection was not completed.',
         windowSelectionDiagnostics: selection?.diagnostics ?? [],
@@ -429,6 +447,8 @@ export const generateAIPrediction = (
         windowSelectionFoldCount: selection.foldCount,
         windowSelectionWinShare: selection.winnerShare,
         windowSelectionAccuracyStdDev: selection.accuracyStdDev,
+        windowSelectionAccuracyRange: selection.accuracyRange,
+        windowSelectionLeadMargin: selection.leadMargin,
         windowSelectionStable: selection.stable,
         windowSelectionSummary: selection.summary,
         windowSelectionDiagnostics: selection.diagnostics,
