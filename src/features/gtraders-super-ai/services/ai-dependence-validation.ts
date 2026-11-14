@@ -20,14 +20,14 @@ const createSeededRandom = (seed: number): (() => number) => {
     };
 };
 
-const correlationAtLagOne = (values: number[]): number => {
-    if (values.length < 3) return 0;
+const correlationAtLag = (values: number[], lag: number): number => {
+    if (lag < 1 || values.length <= lag + 1) return 0;
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
     let numerator = 0;
     let leftSquares = 0;
     let rightSquares = 0;
-    for (let index = 1; index < values.length; index += 1) {
-        const left = values[index - 1] - mean;
+    for (let index = lag; index < values.length; index += 1) {
+        const left = values[index - lag] - mean;
         const right = values[index] - mean;
         numerator += left * right;
         leftSquares += left * left;
@@ -37,20 +37,39 @@ const correlationAtLagOne = (values: number[]): number => {
     return denominator > 0 ? clamp(numerator / denominator, -0.99, 0.99) : 0;
 };
 
+const correlationAtLagOne = (values: number[]): number => correlationAtLag(values, 1);
+
+const MAX_DEPENDENCE_LAG = 20;
+
+const estimateMultiLagEffectiveSampleSize = (values: number[]): number => {
+    if (values.length < 3) return values.length;
+    const maximumLag = Math.min(MAX_DEPENDENCE_LAG, values.length - 2);
+    let positiveAutocorrelationSum = 0;
+
+    for (let lag = 1; lag <= maximumLag; lag += 1) {
+        positiveAutocorrelationSum += Math.max(0, correlationAtLag(values, lag));
+    }
+
+    return clamp(
+        values.length / (1 + 2 * positiveAutocorrelationSum),
+        1,
+        values.length
+    );
+};
+
 export interface AIEffectiveSampleEstimate {
     lagOneCorrelation: number;
     effectiveSampleSize: number;
 }
 
-/** Conservative lag-1 effective-sample estimate; negative correlation is not credited. */
+/** Conservative multi-lag effective-sample estimate; negative correlation is not credited. */
 export const estimateEffectiveSampleSize = (values: number[]): AIEffectiveSampleEstimate => {
     const valid = values.filter(Number.isFinite);
     const lagOneCorrelation = correlationAtLagOne(valid);
-    const positiveCorrelation = Math.max(0, lagOneCorrelation);
     return {
         lagOneCorrelation,
         effectiveSampleSize: valid.length
-            ? clamp(valid.length * (1 - positiveCorrelation) / (1 + positiveCorrelation), 1, valid.length)
+            ? estimateMultiLagEffectiveSampleSize(valid)
             : 0,
     };
 };
@@ -60,9 +79,12 @@ export const estimateEffectiveSampleSize = (values: number[]): AIEffectiveSample
  * A circular moving-block bootstrap resamples contiguous blocks of the
  * centered paired-difference series, preserving short-range ordering.
  *
- * The block-length rule is a transparent lag-1 heuristic, not an optimal
- * block-length estimator. The bootstrap p-value is used conservatively:
- * callers should never replace a larger independent-test p-value with it.
+ * The block-length rule uses the strongest short-range autocorrelation and
+ * is intentionally conservative rather than an optimal block-length
+ * estimator. Effective sample size separately checks multiple lags so a
+ * dependence pattern that hides at lag 1 cannot be treated as independent.
+ * The bootstrap p-value is used conservatively: callers should never replace
+ * a larger independent-test p-value with it.
  */
 export const validatePairedDependence = (
     pairedDifferences: number[],
@@ -74,11 +96,17 @@ export const validatePairedDependence = (
     );
     const sampleSize = values.length;
     const lagOneCorrelation = correlationAtLagOne(values);
-    const positiveCorrelation = Math.max(0, lagOneCorrelation);
     const effectiveSampleSize = sampleSize
-        ? clamp(sampleSize * (1 - positiveCorrelation) / (1 + positiveCorrelation), 1, sampleSize)
+        ? estimateMultiLagEffectiveSampleSize(values)
         : 0;
-    const absoluteCorrelation = Math.abs(lagOneCorrelation);
+    let strongestAbsoluteCorrelation = 0;
+    for (let lag = 1; lag <= Math.min(MAX_DEPENDENCE_LAG, Math.max(1, sampleSize - 2)); lag += 1) {
+        strongestAbsoluteCorrelation = Math.max(
+            strongestAbsoluteCorrelation,
+            Math.abs(correlationAtLag(values, lag))
+        );
+    }
+    const absoluteCorrelation = strongestAbsoluteCorrelation;
     const rawBlockLength = absoluteCorrelation >= 0.99
         ? sampleSize
         : Math.ceil((1 + absoluteCorrelation) / (1 - absoluteCorrelation));
