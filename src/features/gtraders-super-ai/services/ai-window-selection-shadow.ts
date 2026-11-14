@@ -60,7 +60,6 @@ export const runAIWindowSelectionShadowAudit = (
             const bestFoldRange = Math.max(...folds[best.index]) - Math.min(...folds[best.index]);
             // Keep the shadow pass-rate definition identical to the live selector:
             // 2/3 fold wins, >2 pp aggregate lead, and <=12 pp fold range.
-            const bestFoldRange = Math.max(...folds[best.index]) - Math.min(...folds[best.index]);
             if (foldWins[best.index] >= 2 && margin > .02 && bestFoldRange <= .12) currentPasses += 1;
             let classification: AIWindowShadowClassification;
             if (margin <= .02) classification = 'AMBIGUOUS';
