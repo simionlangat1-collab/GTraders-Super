@@ -27,7 +27,15 @@ export const doesAIPredictionSupportContract = (
     return barrier >= 1 && barrier <= 9 && predictedDigit < barrier;
 };
 
+export type AIContractRejectionReasonCode =
+    | 'INVALID_TICK_HISTORY'
+    | 'DATA_QUALITY_BELOW_THRESHOLD'
+    | 'INSUFFICIENT_TRAINING_OR_HOLDOUT'
+    | 'NO_POSITIVE_TRAINING_EDGE'
+    | 'HOLDOUT_CONFIDENCE_BOUND_FAILED';
+
 export interface AIContractOpportunity {
+    rejectionReasons: AIContractRejectionReasonCode[];
     decision: 'MARKET_CANDIDATE' | 'NO_TRADE';
     contractType: AIContractType | null;
     contractLabel: 'Over' | 'Under' | null;
@@ -102,8 +110,10 @@ const noTrade = (
     dataQuality: number,
     trainingSampleSize: number,
     holdoutSampleSize: number,
-    explanation: string
+    explanation: string,
+    rejectionReasons: AIContractRejectionReasonCode[]
 ): AIContractOpportunity => ({
+    rejectionReasons,
     decision: 'NO_TRADE',
     contractType: null,
     contractLabel: null,
@@ -147,11 +157,11 @@ export const evaluateAIContractOpportunity = (
         digit => !Number.isInteger(digit) || digit < 0 || digit > 9
     )) {
         return noTrade([], Number.isFinite(dataQuality) ? dataQuality : 0, 0, 0,
-            'tick history contains invalid last digits.');
+            'tick history contains invalid last digits.', ['INVALID_TICK_HISTORY']);
     }
     if (!Number.isFinite(dataQuality) || dataQuality < minimumDataQuality || dataQuality > 100) {
         return noTrade(digits, dataQuality, trainingSampleSize, holdoutSampleSize,
-            'market data quality is below the required threshold.');
+            'market data quality is below the required threshold.', ['DATA_QUALITY_BELOW_THRESHOLD']);
     }
     if (
         !Number.isFinite(trainingFraction) ||
@@ -162,7 +172,7 @@ export const evaluateAIContractOpportunity = (
         holdoutSampleSize < minimumHoldoutSample
     ) {
         return noTrade(digits, dataQuality, trainingSampleSize, holdoutSampleSize,
-            'there is not enough valid history for separate training and unseen holdout periods.');
+            'there is not enough valid history for separate training and unseen holdout periods.', ['INSUFFICIENT_TRAINING_OR_HOLDOUT']);
     }
 
     const trainingDigits = digits.slice(0, trainingSampleSize);
@@ -183,7 +193,7 @@ export const evaluateAIContractOpportunity = (
     const selected = rankedRules[0];
     if (!selected || selected.trainingEdge <= 0) {
         return noTrade(digits, dataQuality, trainingSampleSize, holdoutSampleSize,
-            'no Over/Under barrier showed a positive training-period edge over its fair baseline.');
+            'no Over/Under barrier showed a positive training-period edge over its fair baseline.', ['NO_POSITIVE_TRAINING_EDGE']);
     }
 
     const holdoutWins = countWins(holdoutDigits, selected.rule);
@@ -207,11 +217,13 @@ export const evaluateAIContractOpportunity = (
             trainingSampleSize,
             holdoutSampleSize,
             dataQuality,
+            rejectionReasons: ['HOLDOUT_CONFIDENCE_BOUND_FAILED'],
             explanation: 'NO TRADE — the training-selected contract did not beat its fair baseline with the conservative holdout confidence bound.',
         };
     }
 
     return {
+        rejectionReasons: [],
         decision: 'MARKET_CANDIDATE',
         contractType: selected.rule.contractType,
         contractLabel: selected.rule.contractLabel,
