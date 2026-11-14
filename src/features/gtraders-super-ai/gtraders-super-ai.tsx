@@ -261,7 +261,7 @@ const GTradersSuperAI = () => {
                     contractStatus: contractPassed ? 'PASSED' : 'REJECTED',
                     contractEvidence: `${item.opportunity.explanation} Training/holdout: ${item.opportunity.trainingSampleSize}/${item.opportunity.holdoutSampleSize}; holdout win rate ${(item.opportunity.holdoutWinRate * 100).toFixed(1)}%; fair baseline ${(item.opportunity.baselineWinRate * 100).toFixed(1)}%; adjusted lower bound ${(item.opportunity.confidenceLowerBound * 100).toFixed(1)}%.`,
                     predictionStatus: predictionPassed ? 'PASSED' : 'REJECTED',
-                    predictionEvidence: `${item.prediction.explanation} Training/holdout: ${item.prediction.trainingSampleSize}/${item.prediction.holdoutSampleSize}; model accuracy ${(item.prediction.modelWinRate * 100).toFixed(1)}%; matched baseline ${(item.prediction.baselineWinRate * 100).toFixed(1)}%; confidence lower bound ${(item.prediction.confidenceLowerBound * 100).toFixed(1)}%.`,
+                    predictionEvidence: `${item.prediction.explanation} Training/holdout: ${item.prediction.trainingSampleSize}/${item.prediction.holdoutSampleSize}; model accuracy ${(item.prediction.modelWinRate * 100).toFixed(1)}%; matched baseline ${(item.prediction.baselineWinRate * 100).toFixed(1)}%; descriptive Wilson lower bound ${(item.prediction.confidenceLowerBound * 100).toFixed(1)}%. ${item.prediction.explanation.includes('adjusted p-value') ? item.prediction.explanation.slice(item.prediction.explanation.indexOf('Model-only wins:')) : ''}`,
                     barrierEvidence: barrierPassed
                         ? `Predicted digit ${item.prediction.predictedDigit} satisfies ${item.opportunity.contractLabel} ${item.opportunity.barrier}.`
                         : contractPassed && predictionPassed
@@ -999,7 +999,7 @@ const GTradersSuperAI = () => {
                                                     <span>Recent-window historical share: {((marketOpportunity.prediction.historicalShare ?? 0) * 100).toFixed(1)}% (not a calibrated probability)</span>
                                                     <span>Prediction holdout accuracy: {(marketOpportunity.prediction.modelWinRate * 100).toFixed(1)}%</span>
                                                     <span>Matched baseline accuracy: {(marketOpportunity.prediction.baselineWinRate * 100).toFixed(1)}%</span>
-                                                    <span>Prediction confidence lower bound: {(marketOpportunity.prediction.confidenceLowerBound * 100).toFixed(1)}%</span>
+                                                    <span>Prediction descriptive Wilson lower bound: {(marketOpportunity.prediction.confidenceLowerBound * 100).toFixed(1)}%</span>
                                                     <span>Training win rate: {(marketOpportunity.trainingWinRate * 100).toFixed(1)}%</span>
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
