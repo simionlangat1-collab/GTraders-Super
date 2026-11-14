@@ -49,6 +49,8 @@ export interface AIPredictionResult {
     baselineWinRate: number;
     confidenceLowerBound: number;
     validationPassed: boolean;
+    /** True only when walk-forward predictions were evaluated on the untouched holdout. */
+    holdoutEvaluated: boolean;
     /** Structured paired-test evidence from the untouched holdout. */
     modelWins: number;
     baselineWins: number;
@@ -264,6 +266,7 @@ export const generateAIPrediction = (
         baselineWinRate: 0,
         confidenceLowerBound: 0,
         validationPassed: false,
+        holdoutEvaluated: false,
         modelWins: 0,
         baselineWins: 0,
         modelOnlyCorrect: 0,
@@ -357,6 +360,7 @@ export const generateAIPrediction = (
                     ...(gate.decision !== 'TRADE_CANDIDATE' ? ['TRADE_EVIDENCE_GATE_FAILED' as const] : []),
                 ]
             ),
+            holdoutEvaluated: true,
             modelWinRate: validation.evidence.observedWinRate,
             baselineWinRate: validation.evidence.baselineWinRate,
             confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
@@ -371,7 +375,7 @@ export const generateAIPrediction = (
     }
 
     const predictedDigit = modeDigit(digits.slice(-selectedWindow));
-    if (predictedDigit === null) return noTrade('no current prediction can be calculated.', selection, ['PREDICTION_UNAVAILABLE']);
+    if (predictedDigit === null) return { ...noTrade('no current prediction can be calculated.', selection, ['PREDICTION_UNAVAILABLE']), holdoutEvaluated: true };
     const recentCounts = countDigits(digits.slice(-selectedWindow));
     const historicalShare = recentCounts[predictedDigit] / selectedWindow;
 
@@ -387,6 +391,7 @@ export const generateAIPrediction = (
         baselineWinRate: validation.evidence.baselineWinRate,
         confidenceLowerBound: validation.evidence.winRateConfidenceLowerBound,
         validationPassed: true,
+        holdoutEvaluated: true,
         modelWins: validation.modelWins,
         baselineWins: validation.baselineWins,
         modelOnlyCorrect: validation.modelOnlyCorrect,
