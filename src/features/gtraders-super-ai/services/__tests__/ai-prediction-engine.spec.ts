@@ -76,6 +76,9 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionAccuracyStdDev).toBeGreaterThan(0);
         expect(result.windowSelectionStable).toBe(false);
         expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
+        expect(result.holdoutEvaluated).toBe(false);
+        expect(result.modelWins).toBe(0);
+        expect(result.pairedPValue).toBe(1);
         expect(result.windowSelectionDiagnostics).toHaveLength(2);
         expect(result.windowSelectionDiagnostics[0].foldAccuracies).toHaveLength(3);
         expect(result.explanation).toContain('selection was unstable');
@@ -170,6 +173,7 @@ describe('generateAIPrediction', () => {
         const result = generateAIPrediction(Array(500).fill(4), 100, {}, timestamps(500));
         expect(result.decision).toBe('NO_TRADE');
         expect(result.validationPassed).toBe(false);
+        expect(result.holdoutEvaluated).toBe(true);
         expect(result.predictedDigit).toBeNull();
     });
 
