@@ -23,7 +23,22 @@ export interface AIWindowSelectionDiagnostic {
     meanAccuracy: number;
 }
 
+export type AIPredictionRejectionReasonCode =
+    | 'INVALID_TICK_HISTORY'
+    | 'INVALID_TICK_TIMESTAMPS'
+    | 'DATA_QUALITY_BELOW_THRESHOLD'
+    | 'INSUFFICIENT_TRAINING_OR_HOLDOUT'
+    | 'WINDOW_SELECTION_UNAVAILABLE'
+    | 'WINDOW_SELECTION_UNSTABLE'
+    | 'WALK_FORWARD_PREDICTION_UNAVAILABLE'
+    | 'INVALID_HOLDOUT_OBSERVATIONS'
+    | 'HOLDOUT_SAMPLE_BELOW_MINIMUM'
+    | 'PAIRED_TEST_NOT_SIGNIFICANT'
+    | 'TRADE_EVIDENCE_GATE_FAILED'
+    | 'PREDICTION_UNAVAILABLE';
+
 export interface AIPredictionResult {
+    rejectionReasons: AIPredictionRejectionReasonCode[];
     decision: 'PREDICTION_CANDIDATE' | 'NO_TRADE';
     predictedDigit: number | null;
     historicalShare: number | null;
@@ -235,8 +250,10 @@ export const generateAIPrediction = (
 
     const noTrade = (
         explanation: string,
-        selection?: WindowSelectionResult | null
+        selection?: WindowSelectionResult | null,
+        rejectionReasons: AIPredictionRejectionReasonCode[] = []
     ): AIPredictionResult => ({
+        rejectionReasons,
         decision: 'NO_TRADE',
         predictedDigit: null,
         historicalShare: null,
@@ -265,7 +282,7 @@ export const generateAIPrediction = (
     });
 
     if (!isArrayInput || digits.length !== input.length) {
-        return noTrade('tick history contains invalid last digits.');
+        return noTrade('tick history contains invalid last digits.', null, ['INVALID_TICK_HISTORY']);
     }
     if (
         !Array.isArray(tickTimestamps) ||
@@ -274,28 +291,28 @@ export const generateAIPrediction = (
             !Number.isFinite(timestamp) || (index > 0 && timestamp < tickTimestamps[index - 1])
         )
     ) {
-        return noTrade('real tick timestamps are missing, misaligned, or out of chronological order.');
+        return noTrade('real tick timestamps are missing, misaligned, or out of chronological order.', null, ['INVALID_TICK_TIMESTAMPS']);
     }
     if (!Number.isFinite(dataQuality) || dataQuality < minimumDataQuality || dataQuality > 100) {
-        return noTrade('market data quality is below the required threshold.');
+        return noTrade('market data quality is below the required threshold.', null, ['DATA_QUALITY_BELOW_THRESHOLD']);
     }
     if (digits.length < minimumMarketSample || trainingFraction <= 0 || trainingFraction >= 1) {
-        return noTrade('there are not enough valid ticks for a separate training period and unseen holdout.');
+        return noTrade('there are not enough valid ticks for a separate training period and unseen holdout.', null, ['INSUFFICIENT_TRAINING_OR_HOLDOUT']);
     }
     if (
         !candidateWindows.length ||
         trainingSampleSize < Math.max(...candidateWindows) + 40 ||
         holdoutSampleSize < 200
     ) {
-        return noTrade('the training period is too small for training-only model selection or the untouched holdout is too small.');
+        return noTrade('the training period is too small for training-only model selection or the untouched holdout is too small.', null, ['INSUFFICIENT_TRAINING_OR_HOLDOUT']);
     }
 
     const selection = selectWindowWithinTraining(digits, trainingSampleSize, candidateWindows, options);
     if (!selection) {
-        return noTrade('there is insufficient training history for the configured chronological window-selection folds.');
+        return noTrade('there is insufficient training history for the configured chronological window-selection folds.', null, ['WINDOW_SELECTION_UNAVAILABLE']);
     }
     if (!selection.stable) {
-        return noTrade('candidate-window selection was unstable across chronological training folds; no window will be trusted.', selection);
+        return noTrade('candidate-window selection was unstable across chronological training folds; no window will be trusted.', selection, ['WINDOW_SELECTION_UNSTABLE']);
     }
 
     const selectedWindow = selection.window;
@@ -308,7 +325,7 @@ export const generateAIPrediction = (
         const candidatePrediction = modeDigit(history.slice(-selectedWindow));
         const baselinePrediction = modeDigit(history);
         if (candidatePrediction === null || baselinePrediction === null) {
-            return noTrade('walk-forward predictions could not be generated.', selection);
+            return noTrade('walk-forward predictions could not be generated.', selection, ['WALK_FORWARD_PREDICTION_UNAVAILABLE']);
         }
         observations.push({
             settledAt: tickTimestamps[index],
@@ -332,7 +349,13 @@ export const generateAIPrediction = (
         return {
             ...noTrade(
                 `training-only selection chose a ${selectedWindow}-tick window. ${validation.explanation} ${gate.explanation}`,
-                selection
+                selection,
+                [
+                    ...(validation.rejectedObservations > 0 ? ['INVALID_HOLDOUT_OBSERVATIONS' as const] : []),
+                    ...(validation.evidence.outOfSampleTradeCount < 200 ? ['HOLDOUT_SAMPLE_BELOW_MINIMUM' as const] : []),
+                    ...(validation.adjustedPairedPValue > 0.05 ? ['PAIRED_TEST_NOT_SIGNIFICANT' as const] : []),
+                    ...(gate.decision !== 'TRADE_CANDIDATE' ? ['TRADE_EVIDENCE_GATE_FAILED' as const] : []),
+                ]
             ),
             modelWinRate: validation.evidence.observedWinRate,
             baselineWinRate: validation.evidence.baselineWinRate,
@@ -348,11 +371,12 @@ export const generateAIPrediction = (
     }
 
     const predictedDigit = modeDigit(digits.slice(-selectedWindow));
-    if (predictedDigit === null) return noTrade('no current prediction can be calculated.', selection);
+    if (predictedDigit === null) return noTrade('no current prediction can be calculated.', selection, ['PREDICTION_UNAVAILABLE']);
     const recentCounts = countDigits(digits.slice(-selectedWindow));
     const historicalShare = recentCounts[predictedDigit] / selectedWindow;
 
     return {
+        rejectionReasons: [],
         decision: 'PREDICTION_CANDIDATE',
         predictedDigit,
         historicalShare,
