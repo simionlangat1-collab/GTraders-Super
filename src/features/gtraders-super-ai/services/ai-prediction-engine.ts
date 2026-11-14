@@ -14,10 +14,6 @@ export interface AIPredictionEngineOptions {
     multipleComparisonCount?: number;
     /** Number of chronological validation folds used only within training. Defaults to 3. */
     windowSelectionFoldCount?: number;
-    /** Required fraction of folds won by the selected window. Defaults to 2/3. */
-    minimumWindowSelectionWinShare?: number;
-    /** Maximum population standard deviation of fold accuracies. Defaults to 0.15. */
-    maximumWindowSelectionAccuracyStdDev?: number;
 }
 
 export interface AIPredictionResult {
@@ -80,6 +76,9 @@ interface WindowSelectionResult {
     summary: string;
 }
 
+const MINIMUM_WINDOW_SELECTION_WIN_SHARE = 2 / 3;
+const MAXIMUM_WINDOW_SELECTION_ACCURACY_STD_DEV = 0.15;
+
 const populationStdDev = (values: number[]): number => {
     if (!values.length) return 1;
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -105,13 +104,6 @@ const selectWindowWithinTraining = (
     const foldCount = Number.isFinite(options.windowSelectionFoldCount)
         ? Math.max(3, Math.min(5, Math.floor(options.windowSelectionFoldCount!)))
         : 3;
-    const minimumWinShare = Number.isFinite(options.minimumWindowSelectionWinShare)
-        ? Math.max(0, Math.min(1, options.minimumWindowSelectionWinShare!))
-        : 2 / 3;
-    const maximumAccuracyStdDev = Number.isFinite(options.maximumWindowSelectionAccuracyStdDev)
-        ? Math.max(0, options.maximumWindowSelectionAccuracyStdDev!)
-        : 0.15;
-
     const selectionStart = Math.floor(trainingSampleSize * 0.5);
     const selectionSize = trainingSampleSize - selectionStart;
     const minimumFoldSize = 30;
@@ -173,8 +165,8 @@ const selectWindowWithinTraining = (
 
     const winnerShare = selected.foldWins / foldCount;
     const accuracyStdDev = populationStdDev(selected.foldAccuracies);
-    const stable = winnerShare >= minimumWinShare &&
-        accuracyStdDev <= maximumAccuracyStdDev;
+    const stable = winnerShare >= MINIMUM_WINDOW_SELECTION_WIN_SHARE &&
+        accuracyStdDev <= MAXIMUM_WINDOW_SELECTION_ACCURACY_STD_DEV;
     const frequency = windows
         .map(window => `${window}t: ${winnerCounts.get(window) ?? 0}/${foldCount}`)
         .join(', ');
