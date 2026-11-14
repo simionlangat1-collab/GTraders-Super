@@ -19,7 +19,7 @@ const AIStatisticalPowerAuditPanel = () => {
             setResult(runAIStatisticalPowerAudit({
                 repetitions: 500,
                 marketCount: 13,
-                sampleSizes: [500, 1000, 2000],
+                sampleSizes: [500, 1000, 2000, 5000],
                 trainingFractions: [0.5, 0.6, 0.7],
                 baselines: [0.5, 0.7, 0.9],
                 trueEdges: [0, 0.02, 0.05, 0.1],
@@ -105,7 +105,7 @@ const AIStatisticalPowerAuditPanel = () => {
                     <div className='gtraders-ai-power-audit__summary'>
                         <strong>Stage 6 · dependence-aware holdout validation</strong>
                         <span>Live paired prediction validation now measures lag-1 dependence in both ordered model-minus-baseline outcomes and model-correctness outcomes, then runs a deterministic circular moving-block bootstrap.</span>
-                        <span>The more conservative p-value from block bootstrap and exact paired McNemar is used before family-wise correction. Validation also requires at least 200 effective observations in both series and uses a dependence-adjusted Wilson lower bound; dependence can therefore keep a market at NO TRADE even when its raw holdout count is 200 or more.</span>
+                        <span>The more conservative p-value from block bootstrap and exact paired McNemar is used before family-wise correction. Validation requires at least 200 effective observations in the paired model-minus-baseline series. Raw model-accuracy dependence is still reported for its descriptive confidence interval, but does not independently veto a statistically sound paired comparison.</span>
                         <span>The sensitivity rows below remain synthetic approximations. They do not represent live-market dependence measurements.</span>
                     </div>
                     <div className='gtraders-ai-power-audit__summary'>
