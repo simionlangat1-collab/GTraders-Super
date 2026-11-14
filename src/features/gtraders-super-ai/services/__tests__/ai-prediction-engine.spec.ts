@@ -66,7 +66,7 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionDiagnostics.reduce((sum, item) => sum + item.foldWins, 0)).toBe(3);
         expect(result.modelWinRate).toBeGreaterThan(result.baselineWinRate);
         expect(result.validationPassed).toBe(true);
-        expect(result.effectiveSampleSize).toBeLessThan(200);
+        expect(result.effectiveSampleSize).toBeGreaterThanOrEqual(200);
         expect(result.accuracyEffectiveSampleSize).toBeGreaterThanOrEqual(200);
         expect(result.rejectionReasons).toEqual([]);
         expect(result.modelWins).toBeGreaterThan(result.baselineWins);
@@ -240,7 +240,7 @@ describe('generateAIPrediction', () => {
         expect(result.modelWins).toBeGreaterThan(result.baselineWins);
         expect(result.pairedPValue).toBeLessThan(0.05);
         expect(result.lagOneCorrelation).toBeLessThan(0);
-        expect(result.effectiveSampleSize).toBeGreaterThanOrEqual(200);
+        expect(result.effectiveSampleSize).toBeLessThan(200);
         expect(result.validationPassed).toBe(false);
         expect(result.decision).toBe('NO_TRADE');
         expect(result.rejectionReasons).toContain('DEPENDENCE_ADJUSTED_SAMPLE_BELOW_MINIMUM');
