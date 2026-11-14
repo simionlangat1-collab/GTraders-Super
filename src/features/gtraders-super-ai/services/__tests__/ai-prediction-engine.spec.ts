@@ -60,6 +60,10 @@ describe('generateAIPrediction', () => {
         expect(result.selectedWindow).toBe(20);
         expect(result.windowSelectionWinShare).toBe(1);
         expect(result.windowSelectionStable).toBe(true);
+        expect(result.windowSelectionLeadMargin).toBeGreaterThan(0.02);
+        expect(result.windowSelectionAccuracyRange).toBeLessThanOrEqual(0.12);
+        expect(result.windowSelectionSummary).toContain('required >2.00 pp');
+        expect(result.windowSelectionSummary).toContain('maximum 12.0 pp');
         expect(result.windowSelectionSummary).toContain('fold winners');
         expect(result.windowSelectionDiagnostics).toHaveLength(5);
         expect(result.windowSelectionDiagnostics.every(item => item.foldAccuracies.length === 3)).toBe(true);
@@ -123,7 +127,7 @@ describe('generateAIPrediction', () => {
         expect(result.explanation).toContain('stability FAILED');
     });
 
-    it('accepts window selection when the winner takes exactly two-thirds of training folds', () => {
+    it('rejects a two-of-three fold winner when its aggregate lead is still ambiguous', () => {
         let state = 3;
         const random = () => {
             state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
@@ -151,9 +155,12 @@ describe('generateAIPrediction', () => {
 
         expect(result.selectedWindow).toBe(20);
         expect(result.windowSelectionWinShare).toBeCloseTo(2 / 3, 10);
-        expect(result.windowSelectionAccuracyStdDev).toBeLessThanOrEqual(0.15);
-        expect(result.windowSelectionStable).toBe(true);
+        expect(result.windowSelectionLeadMargin).toBeCloseTo(0, 10);
+        expect(result.windowSelectionAccuracyRange).toBeGreaterThan(0.12);
+        expect(result.windowSelectionStable).toBe(false);
+        expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
         expect(result.windowSelectionSummary).toContain('selected 20-tick window won 2/3 folds');
+        expect(result.windowSelectionSummary).toContain('lead over runner-up 0.00 pp');
     });
 
     it('keeps window selection completely unchanged when only holdout observations change', () => {
@@ -180,7 +187,9 @@ describe('generateAIPrediction', () => {
         expect(result.selectedWindow).toBe(20);
         expect(result.windowSelectionFoldCount).toBe(3);
         expect(result.windowSelectionWinShare).toBe(1);
-        expect(result.windowSelectionStable).toBe(true);
+        expect(result.windowSelectionStable).toBe(false);
+        expect(result.windowSelectionLeadMargin).toBe(0);
+        expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
         expect(result.windowSelectionDiagnostics.map(item => item.window)).toEqual([20, 30, 50]);
         expect(result.windowSelectionDiagnostics.map(item => item.foldWins)).toEqual([3, 0, 0]);
         expect(result.decision).toBe('NO_TRADE');
