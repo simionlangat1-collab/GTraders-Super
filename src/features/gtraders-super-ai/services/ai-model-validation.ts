@@ -29,6 +29,10 @@ export interface AIModelValidationResult {
     evidence: AITradeEvidence;
     modelWins: number;
     baselineWins: number;
+    modelOnlyCorrect: number;
+    baselineOnlyCorrect: number;
+    pairedPValue: number;
+    adjustedPairedPValue: number;
     rejectedObservations: number;
     explanation: string;
 }
@@ -82,6 +86,31 @@ const wilsonLowerBound = (wins: number, sampleSize: number, z: number): number =
 };
 
 /**
+ * Exact one-sided McNemar/binomial test for paired predictions.
+ * Only discordant pairs contribute: model-only wins versus baseline-only wins.
+ */
+export const calculatePairedExactPValue = (
+    modelOnlyCorrect: number,
+    baselineOnlyCorrect: number
+): number => {
+    const wins = Math.max(0, Math.floor(modelOnlyCorrect));
+    const losses = Math.max(0, Math.floor(baselineOnlyCorrect));
+    const discordant = wins + losses;
+    if (!discordant) return 1;
+
+    // P[X >= wins], X ~ Binomial(discordant, 0.5).
+    let probability = Math.pow(0.5, discordant);
+    let tail = 0;
+    for (let k = 0; k <= discordant; k += 1) {
+        if (k >= wins) tail += probability;
+        if (k < discordant) {
+            probability *= (discordant - k) / (k + 1);
+        }
+    }
+    return Math.min(1, Math.max(0, tail));
+};
+
+/**
  * Evaluates only settled observations strictly after the training cutoff.
  * The model and baseline are scored on the exact same holdout observations.
  * This function does not train a model, create predictions, or place trades.
@@ -126,6 +155,17 @@ export const validateAIModelOutOfSample = (
     const modelWins = eligible.filter(item => item.modelPredictionCorrect).length;
     const baselineWins = eligible.filter(item => item.baselinePredictionCorrect).length;
     const sampleSize = eligible.length;
+    const modelOnlyCorrect = eligible.filter(item =>
+        item.modelPredictionCorrect && !item.baselinePredictionCorrect
+    ).length;
+    const baselineOnlyCorrect = eligible.filter(item =>
+        !item.modelPredictionCorrect && item.baselinePredictionCorrect
+    ).length;
+    const pairedPValue = calculatePairedExactPValue(modelOnlyCorrect, baselineOnlyCorrect);
+    const comparisonCount = Number.isFinite(input.multipleComparisonCount)
+        ? Math.max(1, Math.floor(input.multipleComparisonCount!))
+        : 1;
+    const adjustedPairedPValue = Math.min(1, pairedPValue * comparisonCount);
     const observedWinRate = sampleSize ? modelWins / sampleSize : 0;
     const baselineWinRate = sampleSize ? baselineWins / sampleSize : 0;
     const confidenceZ = getFamilyWiseConfidenceZ(input.multipleComparisonCount);
@@ -136,7 +176,7 @@ export const validateAIModelOutOfSample = (
         validInput &&
         rejectedObservations === 0 &&
         sampleSize >= MINIMUM_HOLDOUT_TRADES &&
-        confidenceLowerBound > baselineWinRate;
+        adjustedPairedPValue <= 0.05;
 
     const evidence: AITradeEvidence = {
         marketSampleSize: validInput ? input.marketSampleSize : 0,
@@ -145,6 +185,10 @@ export const validateAIModelOutOfSample = (
         baselineWinRate,
         observedWinRate,
         winRateConfidenceLowerBound: confidenceLowerBound,
+        modelOnlyCorrect,
+        baselineOnlyCorrect,
+        pairedPValue,
+        adjustedPairedPValue,
         validationPassed,
     };
 
@@ -152,9 +196,13 @@ export const validateAIModelOutOfSample = (
         evidence,
         modelWins,
         baselineWins,
+        modelOnlyCorrect,
+        baselineOnlyCorrect,
+        pairedPValue,
+        adjustedPairedPValue,
         rejectedObservations,
         explanation: validationPassed
             ? 'Untouched chronological holdout passed the initial statistical check. The separate evidence and risk gates must still approve; no trade is authorized by validation alone.'
-            : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and a family-wise adjusted confidence lower bound above the matched baseline.`,
+            : `Model not validated. ${sampleSize} clean settled holdout observations were accepted and ${rejectedObservations} rejected; require at least ${MINIMUM_HOLDOUT_TRADES}, strictly later tick positions, non-decreasing real timestamps, and a paired exact McNemar test with family-wise adjusted p-value at or below 0.05. Model-only wins: ${modelOnlyCorrect}; baseline-only wins: ${baselineOnlyCorrect}; adjusted p-value: ${adjustedPairedPValue.toFixed(4)}.`,
     };
 };
