@@ -179,25 +179,8 @@
         span { grid-column: 1 / -1; justify-self: start; font-size: 1.3rem; font-weight: 900; }
         small { justify-self: start; font-size: .9rem; opacity: .85; }
         strong { justify-self: end; font-size: 1.35rem; }
-        &--over {
-            background: #4aa39d;
-            color: #ffffff;
-        }
-        &--under {
-            background: #bc3e42;
-            color: #ffffff;
-        }
-        &--over span::before,
-        &--under span::before {
-            display: inline-block;
-            margin-right: .55rem;
-            font-size: 1.55rem;
-            line-height: 1;
-            vertical-align: -.08rem;
-            font-weight: 900;
-        }
-        &--over span::before { content: '↗'; }
-        &--under span::before { content: '↘'; }
+        &--over { background: #65c96e; color: #102f18; }
+        &--under { background: #b91c36; color: #ffffff; }
         &.is-active { box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 .4rem 1rem rgba(0,0,0,.18); }
     }
     &__setup-hint { margin-top: .8rem; color: var(--text-less-prominent); font-size: .85rem; text-align: center; }
@@ -694,16 +677,12 @@
     }
 }
 
-/* Settled winning digit: Deriv-style teal fill with a clear cyan ring glow. */
+/* Settled contract result: fill the complete digit circle, not only its ring. */
 .manual-trader .manual-trader-analysis .analysis-tool__digit-circle.is-trade-result-win {
-    background: #16b8b0 !important;
-    border-color: #22d3ee !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 0 .2rem rgba(34, 211, 238, .28), 0 0 1.45rem rgba(34, 211, 238, .62) !important;
-    animation: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    transform: none !important;
+    background: #d4a017;
+    border-color: #f5cf55;
+    color: #ffffff;
+    box-shadow: 0 0 0 .2rem rgba(212,160,23,.35), 0 0 1.4rem rgba(212,160,23,.65);
 }
 .manual-trader .manual-trader-analysis .analysis-tool__digit-circle.is-trade-result-loss {
     background: #dc2626;
@@ -730,23 +709,14 @@
     box-shadow: 0 0 0 1px rgba(234, 179, 8, .22), 0 0 .95rem rgba(234, 179, 8, .22);
 }
 
-/* Subtle cyan ring glow across the digit circles, matching the reference terminal. */
-.manual-trader .manual-trader-analysis .analysis-tool__digit-circle:not(.is-barrier):not(.is-trade-result-win):not(.is-trade-result-loss) {
-    border-color: rgba(34, 211, 238, .62);
-    box-shadow: 0 0 0 1px rgba(34, 211, 238, .12), 0 0 .8rem rgba(34, 211, 238, .2);
-}
-
-/* Keep the winning digit steady: teal fill and a soft, persistent cyan halo. */
+/* Final settlement highlight: keep the whole circle filled and make the fill itself blink. */
 .manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-win {
-    background: #16b8b0 !important;
-    border-color: #22d3ee !important;
+    background: #d4a017 !important;
+    border-color: #f5cf55 !important;
     color: #ffffff !important;
-    box-shadow: 0 0 0 .2rem rgba(34, 211, 238, .28), 0 0 1.45rem rgba(34, 211, 238, .62) !important;
-    animation: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    transform: none !important;
-    will-change: auto;
+    box-shadow: 0 0 0 .2rem rgba(212,160,23,.42), 0 0 1.8rem rgba(212,160,23,.9) !important;
+    animation: manual-trader-trade-win 520ms ease-in-out 2 both !important;
+    will-change: opacity, filter, transform;
 }
 .manual-trader .manual-trader-analysis .analysis-tool__digit-card .analysis-tool__digit-circle.is-trade-result-loss {
     background: #dc2626 !important;
