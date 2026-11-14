@@ -220,4 +220,35 @@ describe('generateAIPrediction', () => {
         expect(result.decision).toBe('NO_TRADE');
         expect(result.explanation).toContain('timestamps');
     });
+
+    it('rejects a lag-2 dependent holdout even when lag-1 dependence looks harmless', () => {
+        const training = [...Array(1500).fill(0), ...Array(1500).fill(1)];
+        let state = 0x1badf00d;
+        const random = () => {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            return state / 4294967296;
+        };
+        const holdout = Array.from({ length: 2000 }, (_, index) => {
+            if (index % 2 === 0) return 1;
+            return random() < 0.5 ? 0 : 1;
+        });
+
+        const result = generateAIPrediction(
+            [...training, ...holdout],
+            100,
+            { candidateWindows: [20, 30, 50, 75, 100] },
+            timestamps(5000)
+        );
+
+        expect(result.holdoutEvaluated).toBe(true);
+        expect(result.modelWins).toBeGreaterThan(result.baselineWins);
+        expect(result.pairedPValue).toBeLessThan(0.05);
+        expect(result.lagOneCorrelation).toBeLessThan(0);
+        expect(result.effectiveSampleSize).toBeGreaterThanOrEqual(200);
+        expect(result.validationPassed).toBe(false);
+        expect(result.decision).toBe('NO_TRADE');
+        expect(result.rejectionReasons).toContain('DEPENDENCE_ADJUSTED_SAMPLE_BELOW_MINIMUM');
+        expect(result.explanation).toContain('dependence');
+    });
+
 });
