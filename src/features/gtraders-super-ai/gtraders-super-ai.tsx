@@ -28,7 +28,7 @@ type AIMarketRejectionDiagnostic = {
     contractStatus: string; contractEvidence: string; contractRejectionReasons: string[];
     predictionStatus: string; predictionEvidence: string; predictionRejectionReasons: string[];
     pairedEvidence: { evaluated: boolean; modelWins: number; baselineWins: number; modelOnlyWins: number; baselineOnlyWins: number; rawPValue: number; adjustedPValue: number; rejectedObservations: number };
-    windowSelection: { selectedWindow: number | null; foldCount: number; winnerShare: number; accuracyStdDev: number; stable: boolean; summary: string; candidates: Array<{ window: number; foldWins: number; foldAccuracies: number[]; meanAccuracy: number }> };
+    windowSelection: { selectedWindow: number | null; foldCount: number; winnerShare: number; accuracyStdDev: number; accuracyRange: number; leadMargin: number; stable: boolean; summary: string; candidates: Array<{ window: number; foldWins: number; foldAccuracies: number[]; meanAccuracy: number }> };
     barrierEvidence: string; quoteEvidence: string; rejectionReasons: string[]; finalReason: string;
 };
 
@@ -306,6 +306,8 @@ const GTradersSuperAI = () => {
                         foldCount: item.prediction.windowSelectionFoldCount,
                         winnerShare: item.prediction.windowSelectionWinShare,
                         accuracyStdDev: item.prediction.windowSelectionAccuracyStdDev,
+                        accuracyRange: item.prediction.windowSelectionAccuracyRange,
+                        leadMargin: item.prediction.windowSelectionLeadMargin,
                         stable: item.prediction.windowSelectionStable,
                         summary: item.prediction.windowSelectionSummary,
                         candidates: item.prediction.windowSelectionDiagnostics,
@@ -990,7 +992,7 @@ const GTradersSuperAI = () => {
                                                 ) : (
                                                     <span><strong>Paired holdout evidence:</strong> NOT EVALUATED — prediction validation stopped before the untouched holdout was tested.</span>
                                                 )}
-                                                <span><strong>Window-selection stability:</strong> {item.windowSelection.summary} Selected window: {item.windowSelection.selectedWindow ?? 'none'}; winner share {(item.windowSelection.winnerShare * 100).toFixed(1)}%; accuracy SD {(item.windowSelection.accuracyStdDev * 100).toFixed(1)} pp; {item.windowSelection.stable ? 'stable' : 'not stable'}.</span>
+                                                <span><strong>Window-selection stability:</strong> {item.windowSelection.summary} Selected window: {item.windowSelection.selectedWindow ?? 'none'}; winner share {(item.windowSelection.winnerShare * 100).toFixed(1)}%; lead {(item.windowSelection.leadMargin * 100).toFixed(2)} pp; fold range {(item.windowSelection.accuracyRange * 100).toFixed(1)} pp; accuracy SD {(item.windowSelection.accuracyStdDev * 100).toFixed(1)} pp; {item.windowSelection.stable ? 'stable' : 'not stable'}.</span>
                                                 {item.windowSelection.candidates.length > 0 && (
                                                     <span><strong>Window fold evidence:</strong> {item.windowSelection.candidates.map(candidate =>
                                                         `${candidate.window}t: ${candidate.foldWins} wins, mean accuracy ${(candidate.meanAccuracy * 100).toFixed(1)}%`
