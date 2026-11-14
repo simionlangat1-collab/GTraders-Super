@@ -20,7 +20,12 @@ export interface AITradeEvidence {
     /** Model win rate on the untouched out-of-sample validation set (0-1). */
     observedWinRate: number;
     /** Lower bound of a precomputed confidence interval for observed win rate (0-1). */
+    /** Descriptive accuracy interval; not the paired validation decision. */
     winRateConfidenceLowerBound: number;
+    modelOnlyCorrect: number;
+    baselineOnlyCorrect: number;
+    pairedPValue: number;
+    adjustedPairedPValue: number;
     /** Must only be true after leakage-free, out-of-sample validation. */
     validationPassed: boolean;
 }
@@ -50,6 +55,10 @@ export const evaluateAITradeEvidence = (
         evidence.baselineWinRate,
         evidence.observedWinRate,
         evidence.winRateConfidenceLowerBound,
+        evidence.modelOnlyCorrect,
+        evidence.baselineOnlyCorrect,
+        evidence.pairedPValue,
+        evidence.adjustedPairedPValue,
     ];
 
     if (
@@ -65,7 +74,11 @@ export const evaluateAITradeEvidence = (
         evidence.observedWinRate < 0 ||
         evidence.observedWinRate > 1 ||
         evidence.winRateConfidenceLowerBound < 0 ||
-        evidence.winRateConfidenceLowerBound > 1
+        evidence.winRateConfidenceLowerBound > 1 ||
+        !Number.isInteger(evidence.modelOnlyCorrect) || evidence.modelOnlyCorrect < 0 ||
+        !Number.isInteger(evidence.baselineOnlyCorrect) || evidence.baselineOnlyCorrect < 0 ||
+        evidence.pairedPValue < 0 || evidence.pairedPValue > 1 ||
+        evidence.adjustedPairedPValue < 0 || evidence.adjustedPairedPValue > 1
     ) {
         reasons.push('INVALID_EVIDENCE');
     } else {
@@ -85,9 +98,8 @@ export const evaluateAITradeEvidence = (
             reasons.push('MODEL_NOT_VALIDATED');
         }
 
-        // The conservative confidence bound must beat the matched baseline,
-        // not merely the point estimate or historical digit frequency.
-        if (evidence.winRateConfidenceLowerBound <= evidence.baselineWinRate) {
+        // Paired exact test compares model-only wins against baseline-only wins.
+        if (evidence.adjustedPairedPValue > 0.05) {
             reasons.push('NO_STATISTICALLY_SUPPORTED_EDGE');
         }
     }
