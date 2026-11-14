@@ -47,15 +47,15 @@ describe('generateAIPrediction', () => {
     });
 
     it('rejects a window whose fold performance varies beyond the stability limit', () => {
+        const alternating = Array.from({ length: 100 }, (_, index) => index % 2);
         const digits = [
             ...Array(200).fill(0),
-            ...Array(50).fill(1),
-            ...Array(50).fill(0),
+            ...alternating.slice(0, 50),
+            ...alternating.slice(50),
             ...Array(200).fill(7),
         ];
         const result = generateAIPrediction(digits, 100, {
             candidateWindows: [20, 30],
-            maximumWindowSelectionAccuracyStdDev: 0,
         }, timestamps(500));
 
         expect(result.decision).toBe('NO_TRADE');
