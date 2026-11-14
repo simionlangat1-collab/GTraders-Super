@@ -31,12 +31,11 @@ describe('validatePairedDependence', () => {
         expect(clusteredResult.effectiveSampleSize).toBeLessThan(100);
     });
 
-    it('does not turn a constant positive paired edge into a null bootstrap result', () => {
+    it('fails closed when a constant positive series makes serial dependence unidentifiable', () => {
         const result = validatePairedDependence(Array(240).fill(1), 1000);
 
-        expect(result.effectiveSampleSize).toBe(240);
-        expect(result.blockBootstrapPValue).toBeCloseTo(1 / 1001, 12);
-        expect(result.blockBootstrapPValue).toBeLessThan(0.05);
+        expect(result.effectiveSampleSize).toBe(1);
+        expect(result.blockBootstrapPValue).toBe(1);
     });
 
     it('returns a conservative finite p-value for a positive, dispersed paired edge', () => {
