@@ -85,9 +85,11 @@ describe('generateAIPrediction', () => {
     });
 
     it('rejects a highly clustered holdout even when its raw win count looks strong', () => {
-        const digits = [...Array(300).fill(0), ...Array(200).fill(7)];
+        const digits = [...Array(150).fill(0), ...Array(350).fill(7)];
         const result = generateAIPrediction(digits, 100, {
-            candidateWindows: [20, 30, 50, 75, 100],
+            // A single pre-declared candidate isolates the dependence gate;
+            // window ambiguity is tested separately below.
+            candidateWindows: [20],
         }, timestamps(500));
 
         expect(result.windowSelectionStable).toBe(true);
