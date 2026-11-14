@@ -37,6 +37,7 @@ export interface AIModelValidationResult {
     pairedPValue: number;
     adjustedPairedPValue: number;
     lagOneCorrelation: number;
+    /** Conservative minimum effective sample across paired outcomes and model accuracy. */
     effectiveSampleSize: number;
     bootstrapBlockLength: number;
     blockBootstrapPValue: number;
@@ -229,7 +230,11 @@ export const validateAIModelOutOfSample = (
         pairedPValue,
         adjustedPairedPValue,
         lagOneCorrelation: dependence.lagOneCorrelation,
-        effectiveSampleSize: dependence.effectiveSampleSize,
+        // A holdout is only as independent as its more dependent evidence stream.
+        effectiveSampleSize: Math.min(
+            dependence.effectiveSampleSize,
+            accuracyDependence.effectiveSampleSize
+        ),
         bootstrapBlockLength: dependence.blockLength,
         blockBootstrapPValue: dependence.blockBootstrapPValue,
         dependenceAdjustedPValue,
