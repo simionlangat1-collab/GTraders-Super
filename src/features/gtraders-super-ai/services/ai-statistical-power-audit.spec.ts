@@ -49,6 +49,22 @@ describe('runAIStatisticalPowerAudit', () => {
         expect(result.interpretation).toContain('never as permission to weaken');
     });
 
+    it('reports window-selection fragility and dependence sensitivity separately', () => {
+        const result = runAIStatisticalPowerAudit({
+            repetitions: 200,
+            sampleSizes: [500],
+            trainingFractions: [0.6],
+            baselines: [0.5],
+            trueEdges: [0.05],
+            pairedModelImprovements: [0],
+        });
+        expect(result.windowSelectionScenarios.map(item => item.profile)).toEqual([
+            'CLEAR_WINNER', 'NEAR_TIE', 'REGIME_SHIFT',
+        ]);
+        expect(result.windowSelectionScenarios.every(item => item.aggregateSelectionAvailableRate === 1)).toBe(true);
+        expect(result.dependenceSensitivity.some(item => item.lagOneCorrelation === 0.5)).toBe(true);
+    });
+
     it('reports paired prediction power separately from contract power', () => {
         const result = runAIStatisticalPowerAudit({
             repetitions: 200,
