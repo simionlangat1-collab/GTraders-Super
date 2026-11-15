@@ -1,6 +1,7 @@
 import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 import { OAuthTokenExchangeService } from '@/services/oauth-token-exchange.service';
 import brandConfig from '../../../../../brand.config.json';
+import { setConnectionDiagnostic } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 
 // =============================================================================
 // Constants - Domain & Server Configuration (from brand.config.json)
@@ -72,14 +73,18 @@ export const getSocketURL = async (): Promise<string> => {
         // Check if user is authenticated
         const authInfo = OAuthTokenExchangeService.getAuthInfo();
         if (!authInfo || !authInfo.access_token) {
+            setConnectionDiagnostic('Connection route selected: public Deriv market-data endpoint.');
             return getDefaultServerURL();
         }
 
-        // Use the DerivWSAccountsService to get authenticated WebSocket URL
+        // Use the DerivWSAccountsService to get the authenticated WebSocket URL.
+        setConnectionDiagnostic('Authenticated connection: retrieving account details and requesting a fresh WebSocket OTP.');
         const wsUrl = await DerivWSAccountsService.getAuthenticatedWebSocketURL(authInfo.access_token);
+        setConnectionDiagnostic('Authenticated account and OTP setup succeeded. Opening the authenticated Deriv WebSocket.');
         return wsUrl;
     } catch (error) {
         console.error('[DerivWS] Error in getSocketURL:', error);
+        setConnectionDiagnostic('Authenticated account/OTP setup failed. Falling back to the public Deriv market-data endpoint.');
         return getDefaultServerURL();
     }
 };
