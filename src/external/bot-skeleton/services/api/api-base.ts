@@ -65,6 +65,22 @@ class APIBase {
     common_store: CommonStore | undefined;
     reconnection_attempts: number = 0;
 
+    // Keep stable WebSocket listeners and handle sockets that opened before
+    // the listener could be attached.
+    private socketConnection: TApiBaseApi['connection'] | null = null;
+    private socketOpenHandled = false;
+
+    private readonly handleSocketOpen = () => {
+        if (this.api?.connection !== this.socketConnection || this.socketOpenHandled) return;
+        this.socketOpenHandled = true;
+        this.onsocketopen();
+    };
+
+    private readonly handleSocketClose = () => {
+        if (this.api?.connection !== this.socketConnection) return;
+        this.onsocketclose();
+    };
+
     // Constants for timeouts - extracted magic numbers for better maintainability
     private readonly ACTIVE_SYMBOLS_TIMEOUT_MS = 10000; // 10 seconds
     private readonly ENRICHMENT_TIMEOUT_MS = 10000; // 10 seconds
@@ -164,17 +180,27 @@ class APIBase {
 
         if (!this.api || this.api?.connection.readyState !== 1 || force_create_connection) {
             if (this.api?.connection) {
+                // Remove the exact listener references before disconnecting the old socket.
+                this.api.connection.removeEventListener('open', this.handleSocketOpen);
+                this.api.connection.removeEventListener('close', this.handleSocketClose);
                 ApiHelpers.disposeInstance();
                 setConnectionStatus(CONNECTION_STATUS.CLOSED);
                 this.api.disconnect();
-                this.api.connection.removeEventListener('open', this.onsocketopen.bind(this));
-                this.api.connection.removeEventListener('close', this.onsocketclose.bind(this));
             }
 
             this.api = await generateDerivApiInstance();
 
-            this.api?.connection.addEventListener('open', this.onsocketopen.bind(this));
-            this.api?.connection.addEventListener('close', this.onsocketclose.bind(this));
+            if (this.api?.connection) {
+                this.socketConnection = this.api.connection;
+                this.socketOpenHandled = false;
+                this.api.connection.addEventListener('open', this.handleSocketOpen);
+                this.api.connection.addEventListener('close', this.handleSocketClose);
+
+                // The socket may have opened while generateDerivApiInstance was resolving.
+                if (this.api.connection.readyState === 1) {
+                    this.handleSocketOpen();
+                }
+            }
 
             // Store the current account ID used for this WebSocket connection
             // This will be used to check if we need to regenerate the connection when the tab becomes active
