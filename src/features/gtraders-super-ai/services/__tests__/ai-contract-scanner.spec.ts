@@ -23,18 +23,37 @@ describe('doesAIPredictionSupportContract', () => {
 });
 
 describe('evaluateAIContractOpportunity', () => {
-    it('selects an Over/Under contract from training and validates it on later unseen ticks', () => {
-        const digits = [...Array(300).fill(8), ...Array(200).fill(8)];
+    it('selects a contract only when its dependence-adjusted unseen holdout is sufficient', () => {
+        let state = 42;
+        const holdout = Array.from({ length: 400 }, () => {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            return state / 4294967296 < 0.8 ? 8 : 0;
+        });
+        const digits = [...Array(600).fill(8), ...holdout];
         const result = evaluateAIContractOpportunity(digits, 100);
 
         expect(result.decision).toBe('MARKET_CANDIDATE');
         expect(result.rejectionReasons).toEqual([]);
         expect(result.contractLabel).toBe('Over');
         expect(result.barrier).toBe(7);
-        expect(result.trainingSampleSize).toBe(300);
-        expect(result.holdoutSampleSize).toBe(200);
+        expect(result.trainingSampleSize).toBe(600);
+        expect(result.holdoutSampleSize).toBe(400);
+        expect(result.holdoutEffectiveSampleSize).toBeGreaterThanOrEqual(200);
         expect(result.confidenceLowerBound).toBeGreaterThan(result.baselineWinRate);
+        expect(result.explanation).toContain('dependence-adjusted holdout effective sample');
         expect(result.explanation).toContain('never authorizes an order');
+    });
+
+    it('rejects a constant contract-outcome holdout because its dependence is unidentifiable', () => {
+        const result = evaluateAIContractOpportunity(
+            [...Array(600).fill(8), ...Array(400).fill(8)],
+            100
+        );
+
+        expect(result.decision).toBe('NO_TRADE');
+        expect(result.holdoutEffectiveSampleSize).toBe(1);
+        expect(result.rejectionReasons).toContain('DEPENDENCE_ADJUSTED_HOLDOUT_BELOW_MINIMUM');
+        expect(result.confidenceLowerBound).toBeLessThan(result.baselineWinRate);
     });
 
     it('returns NO TRADE when balanced digits do not beat a fair baseline', () => {
