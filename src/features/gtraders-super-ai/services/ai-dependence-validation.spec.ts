@@ -1,6 +1,14 @@
-import { validatePairedDependence } from './ai-dependence-validation';
+import { estimateEffectiveSampleSize, validatePairedDependence } from './ai-dependence-validation';
 
 describe('validatePairedDependence', () => {
+    it('uses full-series variance normalization for the conventional sample autocorrelation', () => {
+        // For [0, 0, 1, 1], the lag-one covariance divided by the full
+        // series variance is 0.25. Segment-wise Pearson normalization would
+        // incorrectly report 1/3 for this short series.
+        const estimate = estimateEffectiveSampleSize([0, 0, 1, 1]);
+        expect(estimate.lagOneCorrelation).toBeCloseTo(0.25, 12);
+    });
+
     it('is deterministic for the same ordered holdout observations', () => {
         const values = Array.from({ length: 240 }, (_, index) => (index * 7) % 11 < 3 ? 1 : 0);
         expect(validatePairedDependence(values)).toEqual(validatePairedDependence(values));
