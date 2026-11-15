@@ -1077,14 +1077,14 @@ const GTradersSuperAI = () => {
                                                     <span>Contract code: {marketOpportunity.contractType} · 1 tick</span>
                                                     <span>AI estimated next last digit: {marketOpportunity.prediction.predictedDigit}</span>
                                                     <span>Recent-window historical share: {((marketOpportunity.prediction.historicalShare ?? 0) * 100).toFixed(1)}% (not a calibrated probability)</span>
-                                                    <span>Prediction holdout accuracy: {(marketOpportunity.prediction.modelWinRate * 100).toFixed(1)}%</span>
-                                                    <span>Matched baseline accuracy: {(marketOpportunity.prediction.baselineWinRate * 100).toFixed(1)}%</span>
+                                                    <span>Prediction holdout accuracy: {marketOpportunity.prediction.modelWinRate === null ? '—' : `${(marketOpportunity.prediction.modelWinRate * 100).toFixed(1)}%`}</span>
+                                                    <span>Matched baseline accuracy: {marketOpportunity.prediction.baselineWinRate === null ? '—' : `${(marketOpportunity.prediction.baselineWinRate * 100).toFixed(1)}%`}</span>
                                                     <span>Lag-1 paired-outcome correlation: {marketOpportunity.prediction.lagOneCorrelation.toFixed(3)}</span>
                                                     <span>Paired-difference effective holdout: {marketOpportunity.prediction.effectiveSampleSize.toFixed(0)} / {marketOpportunity.prediction.holdoutSampleSize}</span>
                                                     <span>Accuracy lag-1 correlation: {marketOpportunity.prediction.accuracyLagOneCorrelation.toFixed(3)}</span>
                                                     <span>Accuracy effective holdout: {marketOpportunity.prediction.accuracyEffectiveSampleSize.toFixed(0)} / {marketOpportunity.prediction.holdoutSampleSize}</span>
                                                     <span>Circular block-bootstrap p-value: {marketOpportunity.prediction.blockBootstrapPValue.toFixed(4)} · block length {marketOpportunity.prediction.bootstrapBlockLength}</span>
-                                                    <span>Prediction descriptive Wilson lower bound: {(marketOpportunity.prediction.confidenceLowerBound * 100).toFixed(1)}%</span>
+                                                    <span>Prediction descriptive Wilson lower bound: {marketOpportunity.prediction.confidenceLowerBound === null ? '—' : `${(marketOpportunity.prediction.confidenceLowerBound * 100).toFixed(1)}%`}</span>
                                                     <span>Training win rate: {(marketOpportunity.trainingWinRate * 100).toFixed(1)}%</span>
                                                     <span>Unseen holdout win rate: {(marketOpportunity.holdoutWinRate * 100).toFixed(1)}%</span>
                                                     <span>Fair baseline: {(marketOpportunity.baselineWinRate * 100).toFixed(1)}%</span>
