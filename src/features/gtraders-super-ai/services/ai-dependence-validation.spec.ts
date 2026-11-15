@@ -9,6 +9,12 @@ describe('validatePairedDependence', () => {
         expect(estimate.lagOneCorrelation).toBeCloseTo(0.25, 12);
     });
 
+    it('fails closed when a constant binary outcome has unidentifiable dependence', () => {
+        const estimate = estimateEffectiveSampleSize(Array(400).fill(1));
+        expect(estimate.effectiveSampleSize).toBe(1);
+        expect(estimate.lagOneCorrelation).toBe(0);
+    });
+
     it('is deterministic for the same ordered holdout observations', () => {
         const values = Array.from({ length: 240 }, (_, index) => (index * 7) % 11 < 3 ? 1 : 0);
         expect(validatePairedDependence(values)).toEqual(validatePairedDependence(values));
