@@ -132,7 +132,7 @@ describe('generateAIPrediction', () => {
         expect(result.explanation).toContain('stability FAILED');
     });
 
-    it('rejects a two-of-three fold winner when its aggregate lead is still ambiguous', () => {
+    it('does not credit a tied fold when the aggregate window lead is ambiguous', () => {
         let state = 3;
         const random = () => {
             state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
@@ -158,13 +158,16 @@ describe('generateAIPrediction', () => {
             timestamps(500)
         );
 
+        // Window 20 wins one fold outright; window 30 wins one; the third
+        // fold is an exact tie. The tied fold supplies no selection evidence.
         expect(result.selectedWindow).toBe(20);
-        expect(result.windowSelectionWinShare).toBeCloseTo(2 / 3, 10);
+        expect(result.windowSelectionWinShare).toBeCloseTo(1 / 3, 10);
         expect(result.windowSelectionLeadMargin).toBeCloseTo(0, 10);
         expect(result.windowSelectionAccuracyRange).toBeGreaterThan(0.12);
         expect(result.windowSelectionStable).toBe(false);
         expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
-        expect(result.windowSelectionSummary).toContain('aggregate leader 20-tick window won 2/3 folds');
+        expect(result.windowSelectionSummary).toContain('aggregate leader 20-tick window won 1/3 folds');
+        expect(result.windowSelectionSummary).toContain('tied folds 1');
         expect(result.windowSelectionSummary).toContain('lead over runner-up 0.00 pp');
     });
 
