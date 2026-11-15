@@ -58,28 +58,67 @@ describe('AIMarketScanner', () => {
     });
 
 
-    it('requests 5000 ticks and records Deriv echo count separately from returned history length', async () => {
-        const request = jest.fn(async () => ({
-            echo_req: { ticks_history: 'R_100', count: 5000 },
+    it('reconstructs 5000 ticks across capped pages without losing repeated-second boundary ticks', async () => {
+        const records = Array.from({ length: 5000 }, (_, index) => ({
+            price: '123.45',
+            time: 1_700_000_000 + Math.floor(index / 2),
+        }));
+        // Each older page overlaps the newer page by both ticks in the shared
+        // second. Identical prices make timestamp multiplicity essential.
+        const ranges: Array<[number, number]> = [
+            [4000, 5000],
+            [3002, 4002],
+            [2004, 3004],
+            [1006, 2006],
+            [8, 1008],
+            [0, 10],
+        ];
+        const responses = ranges.map(([start, end], index) => ({
+            echo_req: { ticks_history: 'R_100', count: index === 0 ? 5000 : 1000 },
             history: {
-                prices: Array(1000).fill('123.45'),
-                times: Array.from({ length: 1000 }, (_, index) => 1_700_000_000 + index),
+                prices: records.slice(start, end).map(record => record.price),
+                times: records.slice(start, end).map(record => record.time),
             },
             pip_size: 2,
         }));
+        const request = jest.fn(async () => responses.shift());
         const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
 
         const history = await scanner.getTickHistory('R_100', 5000);
 
-        expect(request).toHaveBeenCalledWith(expect.objectContaining({
-            ticks_history: 'R_100',
-            count: 5000,
-            end: 'latest',
-            style: 'ticks',
+        expect(request).toHaveBeenCalledTimes(6);
+        expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            ticks_history: 'R_100', count: 5000, end: 'latest', style: 'ticks',
+        }));
+        expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            ticks_history: 'R_100', count: 1000, end: String(records[4000].time),
         }));
         expect(history.requestedTickCount).toBe(5000);
         expect(history.echoedTickCount).toBe(5000);
-        expect(history.ticks).toBe(1000);
+        expect(history.historyPageCount).toBe(6);
+        expect(history.ticks).toBe(5000);
+        expect(history.tickTimes).toEqual(records.map(record => record.time));
+        expect(history.digitSequence).toHaveLength(5000);
+    });
+
+    it('fails closed when pagination cannot move beyond a repeated-second boundary', async () => {
+        const repeatedSecond = Array(1000).fill(1_700_000_000);
+        const request = jest.fn()
+            .mockResolvedValueOnce({
+                echo_req: { count: 5000 },
+                history: { prices: Array(1000).fill('123.45'), times: repeatedSecond },
+                pip_size: 2,
+            })
+            .mockResolvedValueOnce({
+                echo_req: { count: 1000 },
+                history: { prices: Array(1000).fill('123.45'), times: repeatedSecond },
+                pip_size: 2,
+            });
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
+
+        await expect(scanner.getTickHistory('R_100', 5000)).rejects.toThrow(
+            /cannot move past a repeated-timestamp boundary/i
+        );
     });
 
     it('caps oversized history requests at the supported 5000-tick window', async () => {
