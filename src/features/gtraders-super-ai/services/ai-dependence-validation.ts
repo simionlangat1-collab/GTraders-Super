@@ -20,21 +20,30 @@ const createSeededRandom = (seed: number): (() => number) => {
     };
 };
 
+/**
+ * Biased sample autocorrelation at a positive lag. Every lag covariance is
+ * normalized by the variance of the complete ordered series, not by the
+ * variance of the two shortened overlapping segments. The latter is a
+ * segment-wise Pearson correlation and is not the ACF required by the
+ * integrated-autocorrelation effective-sample-size calculation.
+ */
 const correlationAtLag = (values: number[], lag: number): number => {
     if (lag < 1 || values.length <= lag + 1) return 0;
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
     let numerator = 0;
-    let leftSquares = 0;
-    let rightSquares = 0;
-    for (let index = lag; index < values.length; index += 1) {
-        const left = values[index - lag] - mean;
-        const right = values[index] - mean;
-        numerator += left * right;
-        leftSquares += left * left;
-        rightSquares += right * right;
+    let totalSquares = 0;
+    const centered = values.map(value => value - mean);
+
+    for (let index = 0; index < centered.length; index += 1) {
+        totalSquares += centered[index] * centered[index];
+        if (index >= lag) {
+            numerator += centered[index] * centered[index - lag];
+        }
     }
-    const denominator = Math.sqrt(leftSquares * rightSquares);
-    return denominator > 0 ? clamp(numerator / denominator, -0.99, 0.99) : 0;
+
+    return totalSquares > 0
+        ? clamp(numerator / totalSquares, -0.99, 0.99)
+        : 0;
 };
 
 const correlationAtLagOne = (values: number[]): number => correlationAtLag(values, 1);
@@ -46,10 +55,10 @@ const estimateMultiLagEffectiveSampleSize = (values: number[]): number => {
     const maximumLag = Math.min(MAX_DEPENDENCE_LAG, values.length - 2);
     let positiveAutocorrelationSum = 0;
 
-    // Pair adjacent autocorrelations before applying the positive-sequence
-    // truncation. This reduces the upward noise bias from independently
-    // summing every positive sample autocorrelation, while retaining
-    // sensitivity to patterns where lag 1 is negative but lag 2 is positive.
+    // Geyer's initial-positive-sequence style truncation: pair adjacent ACF
+    // estimates before stopping. This reduces noise from summing isolated
+    // positive sample autocorrelations and retains lag-two dependence when
+    // lag one is negative.
     for (let lag = 1; lag <= maximumLag; lag += 2) {
         const pairedCorrelation =
             correlationAtLag(values, lag) +
