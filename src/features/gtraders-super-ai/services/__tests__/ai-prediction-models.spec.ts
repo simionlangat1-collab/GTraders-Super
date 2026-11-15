@@ -54,6 +54,80 @@ describe('shadow prediction models', () => {
     });
 });
 
+const seededRandomDigits = (length: number, seed = 123456789): number[] => {
+    let state = seed >>> 0;
+    return Array.from({ length }, () => {
+        state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+        return (state >>> 16) % 10;
+    });
+};
+
+describe('Phase 3 synthetic validation', () => {
+    it('recognizes a planted repeating transition without using future ticks', () => {
+        const digits = Array.from({ length: 300 }, (_, index) => index % 10);
+        const result = evaluateAIPredictionCompetition(digits, {
+            warmupTicks: 100,
+            minimumHistory: 20,
+            windowSize: 100,
+            foldCount: 4,
+        });
+        const transition = result.scores.find(score => score.modelId === 'first-order-transition')!;
+        expect(transition.observations).toBe(200);
+        expect(transition.coverage).toBe(1);
+        expect(transition.accuracy).toBe(1);
+        expect(result.decision).toBe('RESEARCH_ONLY');
+    });
+
+    it('does not report a convincing edge on seeded IID-like random digits', () => {
+        const digits = seededRandomDigits(2100);
+        const result = evaluateAIPredictionCompetition(digits, {
+            warmupTicks: 100,
+            minimumHistory: 20,
+            windowSize: 100,
+            foldCount: 4,
+        });
+        expect(result.evaluatedTicks).toBe(2000);
+        result.scores.forEach(score => {
+            expect(score.observations).toBe(2000);
+            expect(score.accuracy).toBeLessThan(0.2);
+            expect(score.folds.every(fold => fold.observations > 0)).toBe(true);
+        });
+    });
+
+    it('uses the configured recent window for transition evidence', () => {
+        const history = [
+            ...Array(40).fill(2), 3,
+            ...Array(20).fill(7), 8,
+        ];
+        expect(predictFirstOrderTransition(history, {
+            minimumHistory: 10,
+            windowSize: 10,
+        })).toBeNull();
+        expect(predictFirstOrderTransition(history, {
+            minimumHistory: 10,
+            windowSize: 30,
+        })).toBe(8);
+    });
+
+    it('keeps all model comparisons aligned across folds and window settings', () => {
+        const digits = seededRandomDigits(900, 987654321);
+        [20, 50, 100].forEach(windowSize => {
+            const result = evaluateAIPredictionCompetition(digits, {
+                warmupTicks: 100,
+                minimumHistory: 20,
+                windowSize,
+                foldCount: 5,
+            });
+            expect(result.scores).toHaveLength(4);
+            result.scores.forEach(score => {
+                expect(score.observations).toBe(800);
+                expect(score.folds.map(fold => fold.observations).reduce((a, b) => a + b, 0)).toBe(800);
+                expect(score.predictions + score.abstentions).toBe(800);
+            });
+        });
+    });
+});
+
 describe('evaluateAIPredictionCompetition', () => {
     it('scores all models on the same chronological ticks without future leakage', () => {
         const digits = Array.from({ length: 180 }, (_, index) => index < 100
