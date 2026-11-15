@@ -96,17 +96,18 @@ describe('Phase 3 synthetic validation', () => {
 
     it('uses the configured recent window for transition evidence', () => {
         const history = [
-            ...Array(40).fill(2), 3,
-            ...Array(20).fill(7), 8,
+            ...Array.from({ length: 20 }, () => [8, 1]).flat(),
+            ...Array.from({ length: 20 }, () => [8, 9]).flat(),
+            8,
         ];
         expect(predictFirstOrderTransition(history, {
             minimumHistory: 10,
             windowSize: 10,
-        })).toBeNull();
+        })).toBe(9);
         expect(predictFirstOrderTransition(history, {
             minimumHistory: 10,
-            windowSize: 30,
-        })).toBe(8);
+            windowSize: 100,
+        })).toBeNull();
     });
 
     it('keeps all model comparisons aligned across folds and window settings', () => {
