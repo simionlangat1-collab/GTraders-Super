@@ -50,8 +50,15 @@ export const runAIWindowSelectionShadowAudit = (
         };
         for (let run = 0; run < count; run += 1) {
             const folds = rates.map(candidate => candidate.map(binomialRate));
-            const winners = [0,1,2].map(fold => folds.reduce((best, row, index) =>
-                row[fold] > folds[best][fold] ? index : best, 0));
+            const winners = [0,1,2].map(fold => {
+                const bestRate = Math.max(...folds.map(row => row[fold]));
+                const leaders = folds
+                    .map((row, index) => ({ index, rate: row[fold] }))
+                    .filter(item => item.rate === bestRate);
+                return leaders.length === 1 ? leaders[0].index : -1;
+            });
+            // Match the live selector: exact fold ties are not awarded to the
+            // shortest candidate and therefore cannot inflate stability.
             const foldWins = rates.map((_, candidate) => winners.filter(w => w === candidate).length);
             const means = folds.map(row => row.reduce((a,b) => a+b, 0) / 3);
             const ranking = means.map((mean,index) => ({mean,index})).sort((a,b) => b.mean-a.mean);
