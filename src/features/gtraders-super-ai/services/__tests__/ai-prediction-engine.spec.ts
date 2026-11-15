@@ -64,6 +64,7 @@ describe('generateAIPrediction', () => {
         expect(result.windowSelectionAccuracyRange).toBeLessThanOrEqual(0.12);
         expect(result.windowSelectionSummary).toContain('required >2.00 pp');
         expect(result.windowSelectionSummary).toContain('maximum 12.0 pp');
+        expect(result.windowSelectionSummary).toContain('selected-window fold range');
         expect(result.windowSelectionSummary).toContain('fold winners');
         expect(result.windowSelectionDiagnostics).toHaveLength(5);
         expect(result.windowSelectionDiagnostics.every(item => item.foldAccuracies.length === 3)).toBe(true);
