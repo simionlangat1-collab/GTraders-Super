@@ -46,9 +46,10 @@ export interface AIPredictionResult {
     marketSampleSize: number;
     trainingSampleSize: number;
     holdoutSampleSize: number;
-    modelWinRate: number;
-    baselineWinRate: number;
-    confidenceLowerBound: number;
+    /** Null until the untouched holdout has actually been evaluated. */
+    modelWinRate: number | null;
+    baselineWinRate: number | null;
+    confidenceLowerBound: number | null;
     validationPassed: boolean;
     /** True only when walk-forward predictions were evaluated on the untouched holdout. */
     holdoutEvaluated: boolean;
@@ -293,9 +294,9 @@ export const generateAIPrediction = (
         marketSampleSize: digits.length,
         trainingSampleSize,
         holdoutSampleSize,
-        modelWinRate: 0,
-        baselineWinRate: 0,
-        confidenceLowerBound: 0,
+        modelWinRate: null,
+        baselineWinRate: null,
+        confidenceLowerBound: null,
         validationPassed: false,
         holdoutEvaluated: false,
         modelWins: 0,
