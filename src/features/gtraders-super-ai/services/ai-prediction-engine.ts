@@ -234,7 +234,7 @@ const selectWindowWithinTraining = (
     const frequency = windows
         .map(window => `${window}t: ${winnerCounts.get(window) ?? 0}/${foldCount}`)
         .join(', ');
-    const summary = `Chronological training folds: ${foldCount}; unique fold winners (${frequency}); tied folds ${tiedFoldCount}; aggregate leader ${selected.window}-tick window won ${selected.foldWins}/${foldCount} folds; lead over runner-up ${(leadMargin * 100).toFixed(2)} pp (required >2.00 pp); maximum fold range ${(accuracyRange * 100).toFixed(1)} pp (maximum 12.0 pp); fold accuracy SD ${(accuracyStdDev * 100).toFixed(1)} pp; stability ${stable ? 'PASSED' : 'FAILED'}.`;
+    const summary = `Chronological training folds: ${foldCount}; unique fold winners (${frequency}); tied folds ${tiedFoldCount}; aggregate leader ${selected.window}-tick window won ${selected.foldWins}/${foldCount} folds; lead over runner-up ${(leadMargin * 100).toFixed(2)} pp (required >2.00 pp); selected-window fold range ${(accuracyRange * 100).toFixed(1)} pp (maximum 12.0 pp); fold accuracy SD ${(accuracyStdDev * 100).toFixed(1)} pp; stability ${stable ? 'PASSED' : 'FAILED'}.`;
 
     return {
         window: selected.window,
