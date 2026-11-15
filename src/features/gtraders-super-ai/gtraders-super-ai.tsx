@@ -13,7 +13,6 @@ import { AIPredictionResult, generateAIPrediction } from './services/ai-predicti
 import { requestFreshAIProposal } from './services/ai-proposal-service';
 import { executeAIDemoTrade } from './services/ai-demo-execution';
 import { AISessionLedger, AISessionSnapshot } from './services/ai-session-ledger';
-import { evaluateAIRealMarketScan, AIRealMarketValidationReport } from './services/ai-real-market-validation';
 import AIStatisticalPowerAuditPanel from './ai-statistical-power-audit-panel';
 import './gtraders-super-ai.scss';
 
@@ -56,7 +55,6 @@ const GTradersSuperAI = () => {
     const [account, setAccount] = useState<AIAccountSnapshot | null>(null);
     const [connectionError, setConnectionError] = useState('');
     const [marketResults, setMarketResults] = useState<AIMarketHistory[]>([]);
-    const [realMarketReports, setRealMarketReports] = useState<AIRealMarketValidationReport[]>([]);
     const [rejectionDiagnostics, setRejectionDiagnostics] = useState<AIMarketRejectionDiagnostic[]>([]);
     const [availableMarketCount, setAvailableMarketCount] = useState(0);
     const [scannedMarketCount, setScannedMarketCount] = useState(0);
@@ -145,7 +143,6 @@ const GTradersSuperAI = () => {
         setScannerError('');
         setScannerOutcomeMessage('');
         setMarketResults([]);
-        setRealMarketReports([]);
         setRejectionDiagnostics([]);
         setMarketStatistics(null);
         setMarketOpportunity(null);
@@ -177,10 +174,6 @@ const GTradersSuperAI = () => {
             const results = freshScan.histories;
             setScannedMarketCount(results.length);
             setMarketResults(results);
-            // Research-only evaluation of the exact same fresh, timestamped Deriv
-            // histories. This report is display-only and is never passed to trade gates.
-            setRealMarketReports(evaluateAIRealMarketScan(results));
-
             const evaluatedMarkets = results.map(market => ({
                 market,
                 opportunity: evaluateAIContractOpportunity(
@@ -1021,50 +1014,6 @@ const GTradersSuperAI = () => {
                                                 )}
                                             </article>
                                         ))}
-                                    </section>
-                                )}
-                                {realMarketReports.length > 0 && (
-                                    <section className='gtraders-ai-real-validation' aria-live='polite'>
-                                        <div className='gtraders-ai-real-validation__heading'>
-                                            <strong>Phase 4 · Real-market model validation</strong>
-                                            <span>Chronological out-of-sample research using the fresh Deriv histories above. All four models share the same untouched holdout; abstentions count as incorrect. This panel cannot authorize a trade.</span>
-                                        </div>
-                                        <div className='gtraders-ai-real-validation__totals'>
-                                            <div><strong>{realMarketReports.length}</strong><span>Histories evaluated</span></div>
-                                            <div><strong>{realMarketReports.filter(report => report.decision === 'RESEARCH_ONLY').length}</strong><span>Valid research samples</span></div>
-                                            <div><strong>{realMarketReports.reduce((count, report) => count + report.scores.filter(score => score.researchGatePassed).length, 0)}</strong><span>Model research gates passed</span></div>
-                                            <div><strong>{realMarketReports.filter(report => report.decision === 'NO_TRADE').length}</strong><span>Insufficient / invalid histories</span></div>
-                                        </div>
-                                        {realMarketReports.slice(0, 8).map(report => (
-                                            <article className='gtraders-ai-real-validation__market' key={report.symbol}>
-                                                <strong>{report.displayName} · {report.symbol}</strong>
-                                                <span>{report.totalTicks} ticks · training {report.trainingTicks} · untouched holdout {report.holdoutTicks} · data quality {report.dataQuality.toFixed(1)}%</span>
-                                                {report.decision === 'NO_TRADE' ? (
-                                                    <span className='gtraders-ai-real-validation__rejected'>{report.explanation}</span>
-                                                ) : (
-                                                    <>
-                                                        <span>Training cutoff: {new Date(report.trainingCutoffTimestamp * 1000).toLocaleString()} · holdout: {new Date(report.firstHoldoutTimestamp * 1000).toLocaleString()} – {new Date(report.lastHoldoutTimestamp * 1000).toLocaleString()} · {report.foldCount} chronological folds · chance baseline 10%</span>
-                                                        <div className='gtraders-ai-real-validation__models'>
-                                                            {report.scores.map(score => (
-                                                                <div className='gtraders-ai-real-validation__model' key={score.modelId}>
-                                                                    <div className='gtraders-ai-real-validation__model-heading'>
-                                                                        <strong>{score.label}</strong>
-                                                                        <span className={score.researchGatePassed ? 'is-passed' : 'is-rejected'}>{score.researchGatePassed ? 'RESEARCH PASS' : 'REJECTED'}</span>
-                                                                    </div>
-                                                                    <span>Accuracy {(score.accuracy * 100).toFixed(1)}% · coverage {(score.coverage * 100).toFixed(1)}% · correct {score.correct}/{score.observations}</span>
-                                                                    <span>Predictions {score.predictions} · abstentions {score.abstentions} · effective holdout {score.effectiveSampleSize.toFixed(0)} · lag-1 correlation {score.accuracyLagOneCorrelation.toFixed(3)}</span>
-                                                                    <span>Adjusted p-value {score.adjustedPValue.toFixed(4)} · corrected lower bound {(score.confidenceLowerBound * 100).toFixed(1)}% · folds {score.folds.map(fold => `${fold.fold}:${(fold.accuracy * 100).toFixed(1)}%`).join(' · ')}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </article>
-                                        ))}
-                                        {realMarketReports.length > 8 && (
-                                            <span>Showing the first 8 activity-ranked markets; {realMarketReports.length - 8} additional market reports were evaluated.</span>
-                                        )}
-                                        <span className='gtraders-ai-real-validation__notice'>RESEARCH ONLY — a research pass is not a trading signal or authorization. Existing independent contract, prediction, pricing and risk safeguards remain unchanged.</span>
                                     </section>
                                 )}
                                 {marketStatistics && (
