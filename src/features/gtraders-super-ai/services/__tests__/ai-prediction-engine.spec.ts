@@ -181,19 +181,22 @@ describe('generateAIPrediction', () => {
         expect(first.windowSelectionDiagnostics).toEqual(second.windowSelectionDiagnostics);
     });
 
-    it('breaks exact fold-score ties deterministically in favour of the shorter window', () => {
+    it('does not award fold wins when every candidate has an exact tie', () => {
         const result = generateAIPrediction(Array(500).fill(4), 100, {
             candidateWindows: [50, 20, 30],
         }, timestamps(500));
 
+        // Aggregate ties retain a deterministic display choice, but no fold
+        // is credited as evidence for that arbitrary tie-break.
         expect(result.selectedWindow).toBe(20);
         expect(result.windowSelectionFoldCount).toBe(3);
-        expect(result.windowSelectionWinShare).toBe(1);
+        expect(result.windowSelectionWinShare).toBe(0);
         expect(result.windowSelectionStable).toBe(false);
         expect(result.windowSelectionLeadMargin).toBe(0);
         expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
         expect(result.windowSelectionDiagnostics.map(item => item.window)).toEqual([20, 30, 50]);
-        expect(result.windowSelectionDiagnostics.map(item => item.foldWins)).toEqual([3, 0, 0]);
+        expect(result.windowSelectionDiagnostics.map(item => item.foldWins)).toEqual([0, 0, 0]);
+        expect(result.windowSelectionSummary).toContain('tied folds 3');
         expect(result.decision).toBe('NO_TRADE');
         expect(result.validationPassed).toBe(false);
     });
