@@ -11,6 +11,8 @@ export interface AIMarketHistory {
     symbol: string;
     displayName: string;
     ticks: number;
+    requestedTickCount: number;
+    echoedTickCount: number | null;
     firstTickAt: number;
     lastTickAt: number;
     averageAbsoluteMove: number;
@@ -42,6 +44,8 @@ interface ActiveSymbolsResponse {
 }
 
 interface TickHistoryResponse {
+    /** Server echo of the exact request accepted by Deriv. */
+    echo_req?: { count?: number; ticks_history?: string };
     history?: {
         prices?: Array<string | number>;
         times?: number[];
@@ -116,6 +120,10 @@ export class AIMarketScanner {
             style: 'ticks',
         });
 
+        const requestedTickCount = Math.max(100, Math.min(MAX_HISTORY_TICKS, Math.floor(count)));
+        const echoedTickCount = Number.isInteger(response.echo_req?.count)
+            ? Number(response.echo_req?.count)
+            : null;
         const rawPrices = response.history?.prices ?? [];
         const priceRecords = rawPrices
             .map((rawPrice, index) => ({ rawPrice, price: Number(rawPrice), index }))
@@ -208,6 +216,8 @@ export class AIMarketScanner {
             symbol,
             displayName: symbol,
             ticks: prices.length,
+            requestedTickCount,
+            echoedTickCount,
             firstTickAt,
             lastTickAt,
             averageAbsoluteMove,
@@ -266,6 +276,8 @@ export class AIMarketScanner {
                     const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
                     results.push({
                         symbol: batch[index].symbol, displayName: batch[index].display_name, ticks: 0,
+                        requestedTickCount: Math.max(100, Math.min(MAX_HISTORY_TICKS, Math.floor(options.historyCount ?? 500))),
+                        echoedTickCount: null,
                         firstTickAt: 0, lastTickAt: 0, averageAbsoluteMove: 0, ticksPerMinute: 0,
                         observedRange: 0, digitCounts: Array<number>(10).fill(0), digitSequence: [], tickTimes: [],
                         dataQuality: 0, isFresh: false, dataQualityReason: 'Tick-history request failed.',
