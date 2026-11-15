@@ -69,7 +69,7 @@ describe('AIMarketScanner', () => {
         }));
         const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
 
-        await scanner.getTickHistory('R_100', 5000);
+        const history = await scanner.getTickHistory('R_100', 5000);
 
         expect(request).toHaveBeenCalledWith(expect.objectContaining({
             ticks_history: 'R_100',
