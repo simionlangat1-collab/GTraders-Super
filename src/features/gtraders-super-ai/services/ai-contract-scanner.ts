@@ -1,4 +1,5 @@
 import { getFamilyWiseConfidenceZ } from './ai-model-validation';
+import { estimateEffectiveSampleSize } from './ai-dependence-validation';
 
 export type AIContractType = 'DIGITOVER' | 'DIGITUNDER';
 
@@ -32,7 +33,8 @@ export type AIContractRejectionReasonCode =
     | 'DATA_QUALITY_BELOW_THRESHOLD'
     | 'INSUFFICIENT_TRAINING_OR_HOLDOUT'
     | 'NO_POSITIVE_TRAINING_EDGE'
-    | 'HOLDOUT_CONFIDENCE_BOUND_FAILED';
+    | 'HOLDOUT_CONFIDENCE_BOUND_FAILED'
+    | 'DEPENDENCE_ADJUSTED_HOLDOUT_BELOW_MINIMUM';
 
 export interface AIContractOpportunity {
     rejectionReasons: AIContractRejectionReasonCode[];
@@ -48,6 +50,8 @@ export interface AIContractOpportunity {
     marketSampleSize: number;
     trainingSampleSize: number;
     holdoutSampleSize: number;
+    holdoutEffectiveSampleSize: number;
+    holdoutLagOneCorrelation: number;
     dataQuality: number;
     explanation: string;
 }
@@ -111,7 +115,9 @@ const noTrade = (
     trainingSampleSize: number,
     holdoutSampleSize: number,
     explanation: string,
-    rejectionReasons: AIContractRejectionReasonCode[]
+    rejectionReasons: AIContractRejectionReasonCode[],
+    holdoutEffectiveSampleSize = 0,
+    holdoutLagOneCorrelation = 0
 ): AIContractOpportunity => ({
     rejectionReasons,
     decision: 'NO_TRADE',
@@ -126,6 +132,8 @@ const noTrade = (
     marketSampleSize: digits.length,
     trainingSampleSize,
     holdoutSampleSize,
+    holdoutEffectiveSampleSize,
+    holdoutLagOneCorrelation,
     dataQuality,
     explanation: `NO TRADE — ${explanation}`,
 });
@@ -198,11 +206,30 @@ export const evaluateAIContractOpportunity = (
 
     const holdoutWins = countWins(holdoutDigits, selected.rule);
     const holdoutWinRate = holdoutWins / holdoutSampleSize;
+    const holdoutOutcomes = holdoutDigits.map(digit => Number(selected.rule.wins(digit)));
+    const holdoutDependence = estimateEffectiveSampleSize(holdoutOutcomes);
+    const holdoutEffectiveSampleSize = holdoutDependence.effectiveSampleSize;
+    const effectiveHoldoutWins = holdoutWinRate * holdoutEffectiveSampleSize;
     const confidenceZ = getFamilyWiseConfidenceZ(options.multipleComparisonCount);
-    const confidenceLowerBound = wilsonLowerBound(holdoutWins, holdoutSampleSize, confidenceZ);
-    const validated = confidenceLowerBound > selected.rule.baselineWinRate;
+    // The proposal-economics gate consumes this lower bound, so it must use
+    // the effective rather than nominal holdout count when outcomes cluster.
+    const confidenceLowerBound = wilsonLowerBound(
+        effectiveHoldoutWins,
+        holdoutEffectiveSampleSize,
+        confidenceZ
+    );
+    const enoughIndependentEvidence = holdoutEffectiveSampleSize >= minimumHoldoutSample;
+    const validated = enoughIndependentEvidence &&
+        confidenceLowerBound > selected.rule.baselineWinRate;
 
     if (!validated) {
+        const rejectionReasons: AIContractRejectionReasonCode[] = [];
+        if (!enoughIndependentEvidence) {
+            rejectionReasons.push('DEPENDENCE_ADJUSTED_HOLDOUT_BELOW_MINIMUM');
+        }
+        if (confidenceLowerBound <= selected.rule.baselineWinRate) {
+            rejectionReasons.push('HOLDOUT_CONFIDENCE_BOUND_FAILED');
+        }
         return {
             decision: 'NO_TRADE',
             contractType: null,
@@ -216,9 +243,11 @@ export const evaluateAIContractOpportunity = (
             marketSampleSize: digits.length,
             trainingSampleSize,
             holdoutSampleSize,
+            holdoutEffectiveSampleSize,
+            holdoutLagOneCorrelation: holdoutDependence.lagOneCorrelation,
             dataQuality,
-            rejectionReasons: ['HOLDOUT_CONFIDENCE_BOUND_FAILED'],
-            explanation: 'NO TRADE — the training-selected contract did not beat its fair baseline with the conservative holdout confidence bound.',
+            rejectionReasons,
+            explanation: 'NO TRADE — the training-selected contract did not beat its fair baseline with dependence-adjusted holdout evidence. Effective holdout: ' + holdoutEffectiveSampleSize.toFixed(0) + '/' + holdoutSampleSize + '; lag-1 correlation: ' + holdoutDependence.lagOneCorrelation.toFixed(3) + '; require at least ' + minimumHoldoutSample + ' effective observations and a conservative lower bound above baseline.',
         };
     }
 
@@ -236,8 +265,10 @@ export const evaluateAIContractOpportunity = (
         marketSampleSize: digits.length,
         trainingSampleSize,
         holdoutSampleSize,
+        holdoutEffectiveSampleSize,
+        holdoutLagOneCorrelation: holdoutDependence.lagOneCorrelation,
         dataQuality,
-        explanation: 'Research candidate only: the contract was selected before the holdout and its conservative adjusted lower confidence bound beat the fair digit baseline. Check live proposal pricing and breakeven before any demo execution; this result never authorizes an order.',
+        explanation: 'Research candidate only: dependence-adjusted holdout effective sample ' + holdoutEffectiveSampleSize.toFixed(0) + '/' + holdoutSampleSize + '; lag-1 correlation ' + holdoutDependence.lagOneCorrelation.toFixed(3) + '. The contract was selected before the holdout and its conservative adjusted lower confidence bound beat the fair digit baseline. Check live proposal pricing and breakeven before any demo execution; this result never authorizes an order.',
     };
 };
 
