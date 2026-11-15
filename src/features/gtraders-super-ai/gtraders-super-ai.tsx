@@ -57,6 +57,7 @@ const GTradersSuperAI = () => {
     const [marketResults, setMarketResults] = useState<AIMarketHistory[]>([]);
     const [rejectionDiagnostics, setRejectionDiagnostics] = useState<AIMarketRejectionDiagnostic[]>([]);
     const [availableMarketCount, setAvailableMarketCount] = useState(0);
+    const [scannedMarketCount, setScannedMarketCount] = useState(0);
     const [marketStatistics, setMarketStatistics] = useState<AIMarketStatistics | null>(null);
     const [marketOpportunity, setMarketOpportunity] = useState<SelectedMarketOpportunity | null>(null);
     const [scannerOutcomeMessage, setScannerOutcomeMessage] = useState('');
@@ -146,6 +147,7 @@ const GTradersSuperAI = () => {
         setMarketStatistics(null);
         setMarketOpportunity(null);
         setAvailableMarketCount(0);
+        setScannedMarketCount(0);
         setScannedAt(null);
         setIsScanning(true);
         try {
@@ -170,6 +172,7 @@ const GTradersSuperAI = () => {
             }
 
             const results = freshScan.histories;
+            setScannedMarketCount(results.length);
             setMarketResults(results);
 
             const evaluatedMarkets = results.map(market => ({
@@ -921,7 +924,7 @@ const GTradersSuperAI = () => {
                                 <div className='gtraders-ai-scanner__heading'>
                                     <div>
                                         <strong>Independent Market Scanner</strong>
-                                        <span>{availableMarketCount} Volatility Index markets found · fresh scan across all returned eligible markets</span>
+                                        <span>{availableMarketCount} Volatility Index markets found · {scannedMarketCount} scanned · {Math.max(0, availableMarketCount - scannedMarketCount)} not scanned (100-market limit)</span>
                                     </div>
                                     <button
                                         type='button'
