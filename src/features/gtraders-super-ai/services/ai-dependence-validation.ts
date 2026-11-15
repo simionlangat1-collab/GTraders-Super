@@ -83,11 +83,17 @@ export interface AIEffectiveSampleEstimate {
 export const estimateEffectiveSampleSize = (values: number[]): AIEffectiveSampleEstimate => {
     const valid = values.filter(Number.isFinite);
     const lagOneCorrelation = correlationAtLagOne(valid);
+    const hasVariation = valid.length > 1 && valid.some(value => value !== valid[0]);
     return {
         lagOneCorrelation,
-        effectiveSampleSize: valid.length
-            ? estimateMultiLagEffectiveSampleSize(valid)
-            : 0,
+        // A constant binary outcome has no estimable autocorrelation. Do not
+        // silently treat it as a full independent sample; one effective
+        // observation is the conservative, fail-closed representation.
+        effectiveSampleSize: !valid.length
+            ? 0
+            : hasVariation
+                ? estimateMultiLagEffectiveSampleSize(valid)
+                : 1,
     };
 };
 
