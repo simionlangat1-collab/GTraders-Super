@@ -14,6 +14,7 @@ import {
     setAccountList,
     setAuthData,
     setConnectionStatus,
+    setConnectionDiagnostic,
     setIsAuthorized,
     setIsAuthorizing,
 } from './observables/connection-status-stream';
@@ -76,9 +77,21 @@ class APIBase {
         this.onsocketopen();
     };
 
-    private readonly handleSocketClose = () => {
+    private readonly handleSocketClose = (event?: CloseEvent) => {
         if (this.api?.connection !== this.socketConnection) return;
+        const detail = event
+            ? `WebSocket closed (code ${event.code}${event.reason ? `, reason: ${event.reason}` : ''}, clean: ${event.wasClean}).`
+            : 'WebSocket closed without close-event details.';
+        setConnectionDiagnostic(detail);
+        console.error('[DerivWS] ' + detail);
         this.onsocketclose();
+    };
+
+    private readonly handleSocketError = () => {
+        if (this.api?.connection !== this.socketConnection) return;
+        const detail = 'WebSocket error event received. The browser did not expose further error details.';
+        setConnectionDiagnostic(detail);
+        console.error('[DerivWS] ' + detail);
     };
 
     // Constants for timeouts - extracted magic numbers for better maintainability
@@ -100,6 +113,7 @@ class APIBase {
     };
 
     onsocketopen() {
+        setConnectionDiagnostic('');
         setConnectionStatus(CONNECTION_STATUS.OPENED);
 
         // Reset reconnection attempts on successful connection
@@ -183,6 +197,7 @@ class APIBase {
                 // Remove the exact listener references before disconnecting the old socket.
                 this.api.connection.removeEventListener('open', this.handleSocketOpen);
                 this.api.connection.removeEventListener('close', this.handleSocketClose);
+                this.api.connection.removeEventListener('error', this.handleSocketError);
                 ApiHelpers.disposeInstance();
                 setConnectionStatus(CONNECTION_STATUS.CLOSED);
                 this.api.disconnect();
@@ -195,6 +210,7 @@ class APIBase {
                 this.socketOpenHandled = false;
                 this.api.connection.addEventListener('open', this.handleSocketOpen);
                 this.api.connection.addEventListener('close', this.handleSocketClose);
+                this.api.connection.addEventListener('error', this.handleSocketError);
 
                 // The socket may have opened while generateDerivApiInstance was resolving.
                 if (this.api.connection.readyState === 1) {
