@@ -162,7 +162,9 @@ const selectWindowWithinTraining = (
     }
 
     const foldScores: WindowFoldScore[][] = [];
-    const foldWinners: number[] = [];
+    // A fold is credited only when one window wins outright. Exact ties carry
+    // no evidence that any candidate is more stable than its competitors.
+    const foldWinners: Array<number | null> = [];
 
     for (let fold = 0; fold < foldCount; fold += 1) {
         const foldStart = selectionStart + Math.floor((selectionSize * fold) / foldCount);
@@ -177,16 +179,22 @@ const selectWindowWithinTraining = (
             return { window, correct, total, accuracy: total ? correct / total : 0 };
         });
 
-        const winner = [...scores].sort((a, b) =>
-            b.accuracy - a.accuracy || a.window - b.window
-        )[0];
-        if (!winner) return null;
+        const bestAccuracy = Math.max(...scores.map(score => score.accuracy));
+        const foldLeaders = scores.filter(score => score.accuracy === bestAccuracy);
+        if (!foldLeaders.length) return null;
         foldScores.push(scores);
-        foldWinners.push(winner.window);
+        foldWinners.push(foldLeaders.length === 1 ? foldLeaders[0].window : null);
     }
 
     const winnerCounts = new Map<number, number>();
-    foldWinners.forEach(window => winnerCounts.set(window, (winnerCounts.get(window) ?? 0) + 1));
+    let tiedFoldCount = 0;
+    foldWinners.forEach(window => {
+        if (window === null) {
+            tiedFoldCount += 1;
+            return;
+        }
+        winnerCounts.set(window, (winnerCounts.get(window) ?? 0) + 1);
+    });
 
     const aggregate = windows.map(window => {
         const scores = foldScores.map(fold => fold.find(score => score.window === window)!);
@@ -225,7 +233,7 @@ const selectWindowWithinTraining = (
     const frequency = windows
         .map(window => `${window}t: ${winnerCounts.get(window) ?? 0}/${foldCount}`)
         .join(', ');
-    const summary = `Chronological training folds: ${foldCount}; fold winners (${frequency}); aggregate leader ${selected.window}-tick window won ${selected.foldWins}/${foldCount} folds; lead over runner-up ${(leadMargin * 100).toFixed(2)} pp (required >2.00 pp); maximum fold range ${(accuracyRange * 100).toFixed(1)} pp (maximum 12.0 pp); fold accuracy SD ${(accuracyStdDev * 100).toFixed(1)} pp; stability ${stable ? 'PASSED' : 'FAILED'}.`;
+    const summary = `Chronological training folds: ${foldCount}; unique fold winners (${frequency}); tied folds ${tiedFoldCount}; aggregate leader ${selected.window}-tick window won ${selected.foldWins}/${foldCount} folds; lead over runner-up ${(leadMargin * 100).toFixed(2)} pp (required >2.00 pp); maximum fold range ${(accuracyRange * 100).toFixed(1)} pp (maximum 12.0 pp); fold accuracy SD ${(accuracyStdDev * 100).toFixed(1)} pp; stability ${stable ? 'PASSED' : 'FAILED'}.`;
 
     return {
         window: selected.window,
