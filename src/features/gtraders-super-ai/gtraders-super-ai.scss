@@ -1486,3 +1486,32 @@
     &__reason { padding: 0.65rem; border-left: 3px solid #dc7a22; border-radius: 0.4rem; color: #7c2d12 !important; background: #fff7ed; }
 }
 @media (max-width: 420px) { .gtraders-ai-diagnostics__totals { grid-template-columns: 1fr; } }
+
+/* Phase 4 real-market model comparison; research display only. */
+.gtraders-ai-real-validation {
+    display: grid; gap: 0.85rem; padding: 1.1rem; border: 1px solid #cbd5e1;
+    border-radius: 1.1rem; background: #f8fafc;
+    &__heading { display: grid; gap: 0.3rem; strong { color: #172033; font-size: 1.1rem; } span { color: #64748b; font-size: 0.85rem; line-height: 1.45; } }
+    &__totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem;
+        > div { display: grid; gap: 0.2rem; padding: 0.65rem; border: 1px solid #e2e8f0; border-radius: 0.7rem; background: #fff; }
+        strong { color: #172033; font-size: 1.15rem; } span { color: #64748b; font-size: 0.72rem; }
+    }
+    &__market { display: grid; gap: 0.55rem; padding: 0.85rem; border: 1px solid #e2e8f0; border-radius: 0.85rem; background: #fff;
+        > strong { color: #172033; font-size: 0.95rem; } > span { color: #475569; font-size: 0.78rem; line-height: 1.4; overflow-wrap: anywhere; }
+    }
+    &__models { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+    &__model { display: grid; gap: 0.35rem; padding: 0.7rem; border: 1px solid #e8edf4; border-radius: 0.7rem; background: #fbfcfe;
+        > span { color: #475569; font-size: 0.74rem; line-height: 1.4; overflow-wrap: anywhere; }
+    }
+    &__model-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.4rem;
+        strong { color: #172033; font-size: 0.82rem; }
+        span { padding: 0.2rem 0.45rem; border-radius: 99px; font-size: 0.65rem; font-weight: 800; }
+        .is-passed { color: #166534; background: #dcfce7; } .is-rejected { color: #991b1b; background: #fee2e2; }
+    }
+    &__rejected { color: #991b1b !important; }
+    &__notice { padding: 0.65rem; border-left: 3px solid #64748b; border-radius: 0.4rem; color: #334155; background: #eef2f7; font-size: 0.78rem; font-weight: 700; line-height: 1.4; }
+}
+@media (max-width: 560px) {
+    .gtraders-ai-real-validation__totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gtraders-ai-real-validation__models { grid-template-columns: 1fr; }
+}
