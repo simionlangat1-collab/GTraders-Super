@@ -122,12 +122,13 @@ export const predictFirstOrderTransition = (
     if (!validDigits(history) || history.length < resolveMinimumHistory(options)) return null;
     const alpha = options.transitionSmoothing ?? 1;
     if (!Number.isFinite(alpha) || alpha <= 0) return null;
-    const current = history[history.length - 1];
+    const sample = history.slice(-resolveWindow(options));
+    const current = sample[sample.length - 1];
     const counts = Array<number>(10).fill(0);
     let transitions = 0;
-    for (let index = 0; index < history.length - 1; index += 1) {
-        if (history[index] === current) {
-            counts[history[index + 1]] += 1;
+    for (let index = 0; index < sample.length - 1; index += 1) {
+        if (sample[index] === current) {
+            counts[sample[index + 1]] += 1;
             transitions += 1;
         }
     }
