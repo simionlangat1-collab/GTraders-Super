@@ -13,6 +13,7 @@ export interface AIMarketHistory {
     ticks: number;
     requestedTickCount: number;
     echoedTickCount: number | null;
+    historyPageCount: number;
     firstTickAt: number;
     lastTickAt: number;
     averageAbsoluteMove: number;
@@ -110,27 +111,130 @@ export class AIMarketScanner {
             .filter((item): item is AIMarketSymbol => item !== null);
     }
 
-    async getTickHistory(symbol: string, count = 500): Promise<AIMarketHistory> {
-        const response = await this.request<TickHistoryResponse>({
+    private async getCompleteTickHistory(
+        symbol: string,
+        requestedTickCount: number
+    ): Promise<{ prices: Array<string | number>; times: number[]; pipSize?: number; echoedTickCount: number | null; historyPageCount: number }> {
+        const firstResponse = await this.request<TickHistoryResponse>({
             ticks_history: symbol,
             adjust_start_time: 1,
-            // Request up to 5,000 explicitly; the current API default is only 1,000.
-            count: Math.max(100, Math.min(MAX_HISTORY_TICKS, Math.floor(count))),
+            count: requestedTickCount,
             end: 'latest',
             style: 'ticks',
         });
-
-        const requestedTickCount = Math.max(100, Math.min(MAX_HISTORY_TICKS, Math.floor(count)));
-        const echoedTickCount = Number.isInteger(response.echo_req?.count)
-            ? Number(response.echo_req?.count)
+        const firstPrices = firstResponse.history?.prices ?? [];
+        const firstTimes = firstResponse.history?.times ?? [];
+        const echoedTickCount = Number.isInteger(firstResponse.echo_req?.count)
+            ? Number(firstResponse.echo_req?.count)
             : null;
-        const rawPrices = response.history?.prices ?? [];
+        let prices = [...firstPrices];
+        let times = firstTimes.map(Number);
+        let pipSize = firstResponse.pip_size;
+        let historyPageCount = 1;
+
+        // The current Deriv API may cap a response at 1,000 even when it echoes
+        // the requested 5,000. Only larger samples need time-bound pagination;
+        // smaller legacy/test requests retain their existing partial-data path.
+        if (requestedTickCount <= 1000 || prices.length >= requestedTickCount) {
+            return { prices, times, pipSize, echoedTickCount, historyPageCount };
+        }
+        const validatePage = (pagePrices: Array<string | number>, pageTimes: number[]): void => {
+            if (!pagePrices.length || pagePrices.length !== pageTimes.length) {
+                throw new Error('Deriv returned an incomplete tick page: prices and timestamps are empty or misaligned.');
+            }
+            if (!pageTimes.every(Number.isFinite) || pageTimes.some((time, index) => index > 0 && time < pageTimes[index - 1])) {
+                throw new Error('Deriv returned an unsafe tick page: timestamps are invalid or out of order.');
+            }
+        };
+        validatePage(prices, times);
+        let cursor = times[0];
+        const maxPages = 10;
+
+        while (prices.length < requestedTickCount) {
+            if (historyPageCount >= maxPages) {
+                throw new Error(`Tick history remains incomplete after ${historyPageCount} pages (${prices.length}/${requestedTickCount} ticks).`);
+            }
+            const pageRequestCount = 1000;
+            const pageResponse = await this.request<TickHistoryResponse>({
+                ticks_history: symbol,
+                adjust_start_time: 1,
+                count: pageRequestCount,
+                end: String(cursor),
+                style: 'ticks',
+            });
+            historyPageCount += 1;
+            const pagePrices = pageResponse.history?.prices ?? [];
+            const pageTimes = (pageResponse.history?.times ?? []).map(Number);
+            validatePage(pagePrices, pageTimes);
+            const pageEcho = Number.isInteger(pageResponse.echo_req?.count)
+                ? Number(pageResponse.echo_req?.count)
+                : null;
+            if (pageEcho !== null && pageEcho !== pageRequestCount) {
+                throw new Error(`Deriv echoed ${pageEcho} for a historical page that requested ${pageRequestCount}.`);
+            }
+            if (pageResponse.pip_size !== undefined && pipSize !== undefined && pageResponse.pip_size !== pipSize) {
+                throw new Error('Tick precision changed between historical pages; the combined sample is unsafe.');
+            }
+            if (pipSize === undefined) pipSize = pageResponse.pip_size;
+            const pageLastTime = pageTimes[pageTimes.length - 1];
+            if (pageLastTime > cursor) {
+                throw new Error('Deriv returned a historical page newer than its requested time boundary.');
+            }
+
+            let overlap = 0;
+            if (pageLastTime === cursor) {
+                const maxOverlap = Math.min(pagePrices.length, prices.length);
+                for (let size = maxOverlap; size > 0; size -= 1) {
+                    let matches = true;
+                    for (let index = 0; index < size; index += 1) {
+                        const pageIndex = pagePrices.length - size + index;
+                        if (pageTimes[pageIndex] !== times[index] || String(pagePrices[pageIndex]) !== String(prices[index])) {
+                            matches = false;
+                            break;
+                        }
+                    }
+                    if (matches) {
+                        overlap = size;
+                        break;
+                    }
+                }
+                if (!overlap) {
+                    throw new Error('Historical pages meet at the same second but their boundary ticks cannot be matched safely.');
+                }
+            }
+
+            const olderPrices = pagePrices.slice(0, pagePrices.length - overlap);
+            const olderTimes = pageTimes.slice(0, pageTimes.length - overlap);
+            if (!olderPrices.length || olderTimes[olderTimes.length - 1] >= cursor) {
+                throw new Error('Historical pagination cannot move past a repeated-timestamp boundary without losing ticks.');
+            }
+            prices = [...olderPrices, ...prices];
+            times = [...olderTimes, ...times];
+            cursor = times[0];
+        }
+
+        return {
+            prices: prices.slice(-requestedTickCount),
+            times: times.slice(-requestedTickCount),
+            pipSize,
+            echoedTickCount,
+            historyPageCount,
+        };
+    }
+
+    async getTickHistory(symbol: string, count = 500): Promise<AIMarketHistory> {
+        const requestedTickCount = Math.max(100, Math.min(MAX_HISTORY_TICKS, Math.floor(count)));
+        const completeHistory = await this.getCompleteTickHistory(symbol, requestedTickCount);
+        const echoedTickCount = completeHistory.echoedTickCount;
+        const historyPageCount = completeHistory.historyPageCount;
+        const rawPrices = completeHistory.prices;
+        const responsePipSize = completeHistory.pipSize;
         const priceRecords = rawPrices
             .map((rawPrice, index) => ({ rawPrice, price: Number(rawPrice), index }))
             .filter(record => Number.isFinite(record.price));
         const prices = priceRecords.map(record => record.price);
-        const times = response.history?.times ?? [];
-        const numericTimes = times.map(Number);
+        const times = completeHistory.times;
+        const numericTimes = times;
         const timestampsAreAligned = times.length === rawPrices.length;
         const timestampsAreFinite =
             timestampsAreAligned && numericTimes.every(Number.isFinite);
@@ -143,7 +247,7 @@ export class AIMarketScanner {
         const tickTimes = priceRecords.map(record => numericTimes[record.index]);
         const digitCounts = Array<number>(10).fill(0);
         const digitSequence: number[] = [];
-        const reportedPrecision = response.pip_size;
+        const reportedPrecision = responsePipSize;
         const decimals =
             Number.isInteger(reportedPrecision) &&
             reportedPrecision! >= 0 &&
@@ -218,6 +322,7 @@ export class AIMarketScanner {
             ticks: prices.length,
             requestedTickCount,
             echoedTickCount,
+            historyPageCount,
             firstTickAt,
             lastTickAt,
             averageAbsoluteMove,
@@ -278,6 +383,7 @@ export class AIMarketScanner {
                         symbol: batch[index].symbol, displayName: batch[index].display_name, ticks: 0,
                         requestedTickCount: Math.max(100, Math.min(MAX_HISTORY_TICKS, Math.floor(options.historyCount ?? 500))),
                         echoedTickCount: null,
+                        historyPageCount: 0,
                         firstTickAt: 0, lastTickAt: 0, averageAbsoluteMove: 0, ticksPerMinute: 0,
                         observedRange: 0, digitCounts: Array<number>(10).fill(0), digitSequence: [], tickTimes: [],
                         dataQuality: 0, isFresh: false, dataQualityReason: 'Tick-history request failed.',
