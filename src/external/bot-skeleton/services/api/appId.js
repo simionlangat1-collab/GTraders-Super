@@ -1,6 +1,7 @@
 import { getSocketURL } from '@/components/shared';
 import DerivAPIBasic from '@deriv/deriv-api/dist/DerivAPIBasic';
 import APIMiddleware from './api-middleware';
+import { connectionDiagnostic$, setConnectionDiagnostic } from './observables/connection-status-stream';
 
 /**
  * Singleton instance management for DerivAPI
@@ -73,8 +74,34 @@ export const generateDerivApiInstance = async (forceNew = false) => {
 
             currentWebSocketURL = wsURL;
 
-            console.log('[DerivAPI] Creating new WebSocket connection to:', wsURL);
+            // Report only the route type and hostname. Never expose OTP query parameters or tokens.
+            let connectionTarget = 'Deriv WebSocket endpoint';
+            try {
+                const parsedURL = new URL(wsURL);
+                const isPublicEndpoint = parsedURL.pathname.endsWith('/public');
+                connectionTarget = `${isPublicEndpoint ? 'public' : 'authenticated OTP'} endpoint (${parsedURL.hostname})`;
+            } catch {
+                // Keep the diagnostic generic if the URL cannot be safely parsed.
+            }
+            setConnectionDiagnostic(`Connection route selected: ${connectionTarget}. Opening WebSocket.`);
+
+            console.log('[DerivAPI] Opening WebSocket using route:', connectionTarget);
             const deriv_socket = new WebSocket(wsURL);
+            let connectionTimeoutId = setTimeout(() => {
+                if (deriv_socket.readyState === WebSocket.CONNECTING) {
+                    const currentDiagnostic = connectionDiagnostic$.getValue();
+                    setConnectionDiagnostic(`${currentDiagnostic} WebSocket is still CONNECTING after 15 seconds; the server handshake has not completed.`);
+                }
+            }, 15000);
+            const clearConnectionTimeout = () => {
+                if (connectionTimeoutId) {
+                    clearTimeout(connectionTimeoutId);
+                    connectionTimeoutId = null;
+                }
+            };
+            deriv_socket.addEventListener('open', clearConnectionTimeout, { once: true });
+            deriv_socket.addEventListener('close', clearConnectionTimeout, { once: true });
+            deriv_socket.addEventListener('error', clearConnectionTimeout, { once: true });
             const deriv_api = new DerivAPIBasic({
                 connection: deriv_socket,
                 middleware: new APIMiddleware({}),
