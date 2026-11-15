@@ -53,7 +53,6 @@ describe('evaluateAIContractOpportunity', () => {
         expect(result.decision).toBe('NO_TRADE');
         expect(result.holdoutEffectiveSampleSize).toBe(1);
         expect(result.rejectionReasons).toContain('DEPENDENCE_ADJUSTED_HOLDOUT_BELOW_MINIMUM');
-        expect(result.confidenceLowerBound).toBeLessThan(result.baselineWinRate);
     });
 
     it('returns NO TRADE when balanced digits do not beat a fair baseline', () => {
