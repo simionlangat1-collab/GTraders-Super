@@ -971,8 +971,10 @@ const GTradersSuperAI = () => {
                                         </div>
                                         <div className='gtraders-ai-diagnostics__totals'>
                                             <div><strong>{rejectionDiagnostics.length}</strong><span>Markets evaluated</span></div>
+                                            <div><strong>{marketResults.filter(item => Boolean(item.scanError)).length}</strong><span>History requests failed</span></div>
+                                            <div><strong>{rejectionDiagnostics.filter(item => item.dataQuality < 95).length}</strong><span>Below data-quality gate</span></div>
                                             <div><strong>{rejectionDiagnostics.filter(item => item.finalReason.startsWith('Passed all')).length}</strong><span>Passed all scanner gates</span></div>
-                                            <div><strong>{rejectionDiagnostics.filter(item => !item.finalReason.startsWith('Passed all')).length}</strong><span>Rejected / not selected</span></div>
+                                            <div><strong>{rejectionDiagnostics.filter(item => !item.finalReason.startsWith('Passed all')).length}</strong><span>Did not reach selection</span></div>
                                         </div>
                                         {rejectionDiagnostics.map(item => (
                                             <article className='gtraders-ai-diagnostics__item' key={item.symbol}>
