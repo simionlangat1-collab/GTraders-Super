@@ -953,7 +953,7 @@ const GTradersSuperAI = () => {
                                                 </span>
                                                 <div>
                                                     <strong>{market.displayName}</strong>
-                                                    <span>{market.symbol} · {market.ticks} ticks · {market.ticksPerMinute.toFixed(1)}/min</span>
+                                                    <span>{market.symbol} · {market.ticks} received · {market.requestedTickCount} requested · {market.echoedTickCount === null ? 'echo unavailable' : `${market.echoedTickCount} echoed`} · {market.ticksPerMinute.toFixed(1)}/min</span>
                                                 </div>
                                                 <div className='gtraders-ai-scanner__score'>
                                                     <strong>{market.activityScore}</strong>
