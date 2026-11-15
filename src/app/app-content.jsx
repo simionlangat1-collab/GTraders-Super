@@ -8,7 +8,7 @@ import ChunkLoader from '@/components/loader/chunk-loader';
 import { getUrlBase } from '@/components/shared';
 import TransactionDetailsModal from '@/components/transaction-details';
 import { api_base, ApiHelpers, ServerTime } from '@/external/bot-skeleton';
-import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
+import { CONNECTION_STATUS, connectionDiagnostic$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { useApiBase } from '@/hooks/useApiBase';
 import useDevMode from '@/hooks/useDevMode';
 import { useStore } from '@/hooks/useStore';
@@ -41,6 +41,9 @@ const AppContent = observer(({
     const [loadingMessage, setLoadingMessage] = React.useState(
         'Preparing live market data...'
     );
+    const [connectionDiagnostic, setConnectionDiagnostic] = React.useState(
+        connectionDiagnostic$.getValue()
+    );
 
     const store = useStore();
     const { app, transactions, common, client } = store;
@@ -54,6 +57,22 @@ const AppContent = observer(({
     const { connectionStatus } = useApiBase();
 
     useDevMode();
+
+    useEffect(() => {
+        const subscription = connectionDiagnostic$.subscribe(setConnectionDiagnostic);
+        return () => subscription.unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        if (connectionStatus === CONNECTION_STATUS.OPENED) return;
+        const timeoutId = setTimeout(() => {
+            const socketState = api_base.getConnectionStatus();
+            setLoadingMessage(
+                connectionDiagnostic || `Deriv connection still pending. WebSocket state: ${socketState}.`
+            );
+        }, 12000);
+        return () => clearTimeout(timeoutId);
+    }, [connectionStatus, connectionDiagnostic]);
 
     const livechat_client_information = {
         is_client_store_initialized: client?.is_logged_in ? true : !!client,
@@ -266,7 +285,7 @@ const AppContent = observer(({
             <ChunkLoader
                 progress={75}
                 isConnected={connectionStatus === CONNECTION_STATUS.OPENED}
-                message={localize(loadingMessage)}
+                message={localize(connectionDiagnostic || loadingMessage)}
             />
         )
     ) : (
