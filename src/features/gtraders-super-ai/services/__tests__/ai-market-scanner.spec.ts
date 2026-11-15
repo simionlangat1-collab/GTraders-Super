@@ -58,9 +58,13 @@ describe('AIMarketScanner', () => {
     });
 
 
-    it('requests up to 5000 ticks when a larger evidence window is configured', async () => {
+    it('requests 5000 ticks and records Deriv echo count separately from returned history length', async () => {
         const request = jest.fn(async () => ({
-            history: { prices: [], times: [] },
+            echo_req: { ticks_history: 'R_100', count: 5000 },
+            history: {
+                prices: Array(1000).fill('123.45'),
+                times: Array.from({ length: 1000 }, (_, index) => 1_700_000_000 + index),
+            },
             pip_size: 2,
         }));
         const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
@@ -73,6 +77,9 @@ describe('AIMarketScanner', () => {
             end: 'latest',
             style: 'ticks',
         }));
+        expect(history.requestedTickCount).toBe(5000);
+        expect(history.echoedTickCount).toBe(5000);
+        expect(history.ticks).toBe(1000);
     });
 
     it('caps oversized history requests at the supported 5000-tick window', async () => {
