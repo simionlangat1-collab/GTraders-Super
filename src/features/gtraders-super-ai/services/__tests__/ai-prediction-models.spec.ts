@@ -81,14 +81,21 @@ describe('evaluateAIPredictionCompetition', () => {
         });
     });
 
-    it('counts abstentions as incorrect instead of inflating accuracy', () => {
-        const result = evaluateAIPredictionCompetition(Array(130).fill(4), {
-            warmupTicks: 100,
+    it('counts transition-model abstentions as incorrect instead of inflating accuracy', () => {
+        const digits = [
+            ...Array(19).fill(4),
+            9, 8, 7, 6, 5, 3, 2, 1, 0,
+            9, 8, 7, 6, 5, 3, 2, 1, 0,
+        ];
+        const result = evaluateAIPredictionCompetition(digits, {
+            warmupTicks: 20,
             minimumHistory: 20,
+            foldCount: 2,
         });
         const transition = result.scores.find(score => score.modelId === 'first-order-transition')!;
-        expect(transition.abstentions).toBe(0);
-        expect(transition.accuracy).toBe(1);
+        expect(transition.abstentions).toBeGreaterThan(0);
+        expect(transition.predictions + transition.abstentions).toBe(result.evaluatedTicks);
+        expect(transition.accuracy).toBe(transition.correct / result.evaluatedTicks);
     });
 
     it('fails closed on malformed history', () => {
