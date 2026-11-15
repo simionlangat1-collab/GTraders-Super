@@ -127,6 +127,9 @@ export class AIMarketScanner {
         const echoedTickCount = Number.isInteger(firstResponse.echo_req?.count)
             ? Number(firstResponse.echo_req?.count)
             : null;
+        if (echoedTickCount !== null && echoedTickCount !== requestedTickCount) {
+            throw new Error(`Deriv echoed ${echoedTickCount} for a history request that asked for ${requestedTickCount}.`);
+        }
         let prices = [...firstPrices];
         let times = firstTimes.map(Number);
         let pipSize = firstResponse.pip_size;
