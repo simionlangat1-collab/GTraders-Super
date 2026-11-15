@@ -122,6 +122,9 @@ describe('generateAIPrediction', () => {
         expect(result.rejectionReasons).toContain('WINDOW_SELECTION_UNSTABLE');
         expect(result.holdoutEvaluated).toBe(false);
         expect(result.modelWins).toBe(0);
+        expect(result.modelWinRate).toBeNull();
+        expect(result.baselineWinRate).toBeNull();
+        expect(result.confidenceLowerBound).toBeNull();
         expect(result.pairedPValue).toBe(1);
         expect(result.windowSelectionDiagnostics).toHaveLength(2);
         expect(result.windowSelectionDiagnostics[0].foldAccuracies).toHaveLength(3);
