@@ -39,7 +39,7 @@ describe('shadow prediction models', () => {
 
     it('uses only transitions following the current final digit', () => {
         const history = [1, 4, 1, 4, 1, 7, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4];
-        expect(predictFirstOrderTransition(history, { minimumHistory: 10 })).toBe(4);
+        expect(predictFirstOrderTransition(history, { minimumHistory: 10 })).toBe(1);
     });
 
     it('returns the last observed digit for persistence', () => {
