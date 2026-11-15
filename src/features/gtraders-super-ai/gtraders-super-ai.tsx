@@ -24,7 +24,7 @@ const connectionStatusLabel: Record<AIConnectionStatus, string> = {
 };
 
 type AIMarketRejectionDiagnostic = {
-    symbol: string; displayName: string; ticks: number; dataQuality: number; dataQualityReason: string;
+    symbol: string; displayName: string; ticks: number; requestedTickCount: number; echoedTickCount: number | null; dataQuality: number; dataQualityReason: string;
     contractStatus: string; contractEvidence: string; contractRejectionReasons: string[];
     predictionStatus: string; predictionEvidence: string; predictionRejectionReasons: string[];
     pairedEvidence: { evaluated: boolean; modelWins: number; baselineWins: number; modelOnlyWins: number; baselineOnlyWins: number; rawPValue: number; adjustedPValue: number; rejectedObservations: number };
@@ -287,6 +287,7 @@ const GTradersSuperAI = () => {
                 ];
                 return {
                     symbol: item.market.symbol, displayName: item.market.displayName, ticks: item.market.ticks,
+                    requestedTickCount: item.market.requestedTickCount, echoedTickCount: item.market.echoedTickCount,
                     dataQuality: item.market.dataQuality, dataQualityReason: item.market.dataQualityReason,
                     contractStatus: contractPassed ? 'PASSED' : 'REJECTED',
                     contractEvidence: `${item.opportunity.explanation} Training/holdout: ${item.opportunity.trainingSampleSize}/${item.opportunity.holdoutSampleSize}; effective holdout ${item.opportunity.holdoutEffectiveSampleSize.toFixed(0)}/${item.opportunity.holdoutSampleSize}; lag-1 ${item.opportunity.holdoutLagOneCorrelation.toFixed(3)}; holdout win rate ${(item.opportunity.holdoutWinRate * 100).toFixed(1)}%; fair baseline ${(item.opportunity.baselineWinRate * 100).toFixed(1)}%; dependence-adjusted lower bound ${(item.opportunity.confidenceLowerBound * 100).toFixed(1)}%.`,
@@ -979,7 +980,7 @@ const GTradersSuperAI = () => {
                                         {rejectionDiagnostics.map(item => (
                                             <article className='gtraders-ai-diagnostics__item' key={item.symbol}>
                                                 <strong>{item.displayName} · {item.symbol}</strong>
-                                                <span>{item.ticks} valid ticks · data quality {item.dataQuality.toFixed(1)}% · {item.dataQualityReason}</span>
+                                                <span>{item.ticks} received · {item.requestedTickCount} requested · {item.echoedTickCount === null ? 'echo count unavailable' : `${item.echoedTickCount} echoed`} · data quality {item.dataQuality.toFixed(1)}% · {item.dataQualityReason}</span>
                                                 <div className='gtraders-ai-diagnostics__status'>
                                                     <span className={item.contractStatus === 'PASSED' ? 'is-passed' : 'is-rejected'}>Over/Under: {item.contractStatus}</span>
                                                     <span className={item.predictionStatus === 'PASSED' ? 'is-passed' : 'is-rejected'}>Prediction: {item.predictionStatus}</span>
