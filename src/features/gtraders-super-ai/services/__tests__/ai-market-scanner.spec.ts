@@ -101,6 +101,22 @@ describe('AIMarketScanner', () => {
         expect(history.digitSequence).toHaveLength(5000);
     });
 
+    it('fails closed when Deriv echoes a different initial history count', async () => {
+        const request = jest.fn(async () => ({
+            echo_req: { count: 1000 },
+            history: {
+                prices: Array(1000).fill('123.45'),
+                times: Array.from({ length: 1000 }, (_, index) => 1_700_000_000 + index),
+            },
+            pip_size: 2,
+        }));
+        const scanner = new AIMarketScanner(request as unknown as AIMarketRequest);
+
+        await expect(scanner.getTickHistory('R_100', 5000)).rejects.toThrow(
+            /echoed 1000.*asked for 5000/i
+        );
+    });
+
     it('fails closed when pagination cannot move beyond a repeated-second boundary', async () => {
         const repeatedSecond = Array(1000).fill(1_700_000_000);
         const request = jest.fn()
