@@ -79,7 +79,8 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     const basePrediction = Number(
         tradeOptionsBlock.getInputTargetBlock('PREDICTION')?.getFieldValue('NUM')
     );
-    const savedRecovery = Number(window.localStorage.getItem(RECOVERY_PREDICTION_KEY));
+    const savedRecoveryValue = window.localStorage.getItem(RECOVERY_PREDICTION_KEY);
+    const savedRecovery = savedRecoveryValue === null ? Number.NaN : Number(savedRecoveryValue);
     const defaultRecovery = basePrediction === 2 ? 3 : basePrediction === 7 ? 6 : basePrediction;
     const recoveryPrediction =
         Number.isInteger(savedRecovery) && savedRecovery >= 0 && savedRecovery <= 9
