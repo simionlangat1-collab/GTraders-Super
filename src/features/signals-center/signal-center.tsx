@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { analyzeOverTwo, SIGNAL_TICK_WINDOW } from './analysis/over-two';
+import { analyzeOneTickRecovery } from './analysis/one-tick-recovery';
 import { signalCenterStore } from './signal-store';
 import './signal-center.scss';
 
@@ -115,6 +116,7 @@ const SignalCenter = () => {
     }, [snapshot.selectedSymbol, socketReady]);
 
     const analysis = useMemo(() => analyzeOverTwo(snapshot.ticks), [snapshot.ticks]);
+    const recoveryAnalysis = useMemo(() => analyzeOneTickRecovery(snapshot.ticks), [snapshot.ticks]);
     const latestTick = snapshot.ticks[snapshot.ticks.length - 1] || null;
     const isReady = analysis.sampleSize === SIGNAL_TICK_WINDOW;
     const connectionLabel = !snapshot.selectedSymbol
@@ -187,6 +189,52 @@ const SignalCenter = () => {
                         );
                     })}
                 </div>
+            </section>
+
+            <section className='signal-center__recovery'>
+                <div className='signal-center__section-heading'>
+                    <div>
+                        <h2>One-Tick Recovery Intelligence</h2>
+                        <p>Observed movement from the losing zone (0–2) back into the winning zone (3–9)</p>
+                    </div>
+                    <span>{recoveryAnalysis.sampleSize} ticks observed</span>
+                </div>
+
+                <div className='signal-center__recovery-summary'>
+                    <article>
+                        <span>ONE-TOUCH RECOVERY</span>
+                        <strong>{recoveryAnalysis.oneTouchRunPercentage.toFixed(1)}%</strong>
+                        <small>{recoveryAnalysis.oneTouchRuns} of {recoveryAnalysis.completedRecoveryRuns} completed recovery runs</small>
+                    </article>
+                    <article>
+                        <span>MULTI-TOUCH RECOVERY</span>
+                        <strong>{recoveryAnalysis.multiTouchRunPercentage.toFixed(1)}%</strong>
+                        <small>{recoveryAnalysis.multiTouchRuns} of {recoveryAnalysis.completedRecoveryRuns} completed recovery runs</small>
+                    </article>
+                    <article>
+                        <span>IMMEDIATE NEXT-TICK RETURN</span>
+                        <strong>{recoveryAnalysis.immediateRecoveryPercentage.toFixed(1)}%</strong>
+                        <small>{recoveryAnalysis.immediateWinningTicks} of {recoveryAnalysis.losingTouchesWithNextTick} eligible losing touches</small>
+                    </article>
+                </div>
+
+                <div className='signal-center__recovery-digits'>
+                    {[0, 1, 2].map(digit => {
+                        const stats = recoveryAnalysis.byLosingDigit[digit as 0 | 1 | 2];
+                        return (
+                            <div key={digit}>
+                                <strong>{digit}</strong>
+                                <span>{stats.immediateRecoveryPercentage.toFixed(1)}%</span>
+                                <small>{stats.immediateWinningTicks}/{stats.observedTouches} immediate returns to 3–9</small>
+                            </div>
+                        );
+                    })}
+                </div>
+                <p className='signal-center__recovery-note'>
+                    One-touch means exactly one consecutive losing-zone tick (0–2) before a winning-zone tick (3–9).
+                    Multi-touch means two or more consecutive losing-zone ticks before returning to 3–9.
+                    Percentages describe this observed sample only; they are not guarantees or trade-entry instructions.
+                </p>
             </section>
 
             <p className='signal-center__disclaimer'>
