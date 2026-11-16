@@ -109,6 +109,23 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     return true;
 };
 
+// The Deriv trade-options block creates its Prediction input asynchronously
+// after requesting the allowed digit range. Wait for that input before adding
+// the recovery field, rather than silently skipping it during workspace setup.
+const waitForRecoveryPredictionInput = async (workspace: any, Blockly: any, isCancelled: () => boolean) => {
+    for (let attempt = 0; attempt < 200; attempt++) {
+        if (isCancelled()) return false;
+
+        const tradeOptionsBlock = getTradeOptionsBlock(workspace);
+        if (tradeOptionsBlock?.getInput('PREDICTION_AFTER_LOSS')) return true;
+        if (ensureRecoveryPredictionInput(workspace, Blockly)) return true;
+
+        await new Promise<void>(resolve => window.setTimeout(resolve, 50));
+    }
+
+    return false;
+};
+
 const persistRecoveryPrediction = (workspace: any) => {
     const tradeOptionsBlock = getTradeOptionsBlock(workspace);
     if (!tradeOptionsBlock?.getInput('PREDICTION_AFTER_LOSS')) return;
@@ -199,11 +216,16 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 if (savedXml) {
                     const dom = Blockly.utils.xml.textToDom(savedXml);
                     Blockly.Xml.domToWorkspace(dom, workspace);
-                    ensureRecoveryPredictionInput(workspace, Blockly);
+                    const recoveryInputReady = await waitForRecoveryPredictionInput(workspace, Blockly, () => cancelled);
+                    if (!recoveryInputReady && !cancelled) {
+                        throw new Error('G-K Pioneer could not load the normal Prediction field, so the recovery field could not be added.');
+                    }
+                    if (cancelled) return;
                     persistRecoveryPrediction(workspace);
                     syncAmountControls(workspace);
                     workspace.cleanUp();
                     hideInternalSetupBlocks(workspace);
+                    persistWorkspace({ type: 'recovery-input-ready' });
                     setStatus('Your separate G-K Pioneer workspace has been restored.');
                 } else {
                     setStatus('Creating the starter Martingale strategy…');
@@ -227,7 +249,11 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                         'MARTINGALE'
                     );
                     if (cancelled) return;
-                    ensureRecoveryPredictionInput(workspace, Blockly);
+                    const recoveryInputReady = await waitForRecoveryPredictionInput(workspace, Blockly, () => cancelled);
+                    if (!recoveryInputReady && !cancelled) {
+                        throw new Error('G-K Pioneer could not load the normal Prediction field, so the recovery field could not be added.');
+                    }
+                    if (cancelled) return;
                     persistRecoveryPrediction(workspace);
                     syncAmountControls(workspace);
                     workspace.cleanUp();
