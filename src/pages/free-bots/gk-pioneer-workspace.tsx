@@ -67,36 +67,33 @@ const getTradeOptionsBlock = (workspace: any) =>
 
 const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     const tradeOptionsBlock = getTradeOptionsBlock(workspace);
+    const predictionLabelInput = tradeOptionsBlock?.getInput('PREDICTION_LABEL');
     if (
         !tradeOptionsBlock ||
         !tradeOptionsBlock.getInput('PREDICTION') ||
-        !tradeOptionsBlock.getInput('PREDICTION_LABEL') ||
-        tradeOptionsBlock.getInput('PREDICTION_AFTER_LOSS')
+        !predictionLabelInput ||
+        tradeOptionsBlock.getField('PREDICTION_AFTER_LOSS')
     ) {
         return false;
     }
 
-    const basePrediction = Number(
-        tradeOptionsBlock.getInputTargetBlock('PREDICTION')?.getFieldValue('NUM')
-    );
     const savedRecoveryValue = window.localStorage.getItem(RECOVERY_PREDICTION_KEY);
     const savedRecovery = savedRecoveryValue === null ? Number.NaN : Number(savedRecoveryValue);
-    const defaultRecovery = basePrediction === 2 ? 3 : basePrediction === 7 ? 6 : basePrediction;
+    // Keep this as an independent manual setting; never derive it from the
+    // initial Prediction digit. The user sets both digits before running.
     const recoveryPrediction =
         Number.isInteger(savedRecovery) && savedRecovery >= 0 && savedRecovery <= 9
             ? savedRecovery
-            : Number.isInteger(defaultRecovery) && defaultRecovery >= 0 && defaultRecovery <= 9
-              ? defaultRecovery
-              : 3;
+            : 0;
 
     const events = Blockly.Events;
     events?.disable();
     try {
-        tradeOptionsBlock
-            .appendDummyInput('PREDICTION_AFTER_LOSS')
-            .appendField('Prediction after Loss')
+        // Add the second label and digit field to the existing prediction
+        // label row so both prediction controls sit side by side.
+        predictionLabelInput
+            .appendField('   Prediction after Loss')
             .appendField(new Blockly.FieldNumber(recoveryPrediction, 0, 9, 1), 'PREDICTION_AFTER_LOSS');
-        tradeOptionsBlock.moveInputBefore('PREDICTION_AFTER_LOSS', 'PREDICTION_LABEL');
         tradeOptionsBlock.render();
     } finally {
         events?.enable();
@@ -128,7 +125,7 @@ const waitForRecoveryPredictionInput = async (workspace: any, Blockly: any, isCa
 
 const persistRecoveryPrediction = (workspace: any) => {
     const tradeOptionsBlock = getTradeOptionsBlock(workspace);
-    if (!tradeOptionsBlock?.getInput('PREDICTION_AFTER_LOSS')) return;
+    if (!tradeOptionsBlock?.getField('PREDICTION_AFTER_LOSS')) return;
     const value = Number(tradeOptionsBlock.getFieldValue('PREDICTION_AFTER_LOSS'));
     if (Number.isInteger(value) && value >= 0 && value <= 9) {
         window.localStorage.setItem(RECOVERY_PREDICTION_KEY, String(value));
@@ -315,7 +312,7 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 }
 
                 const tradeOptionsBlock = getTradeOptionsBlock(workspace);
-                if (!tradeOptionsBlock?.getInput('PREDICTION_AFTER_LOSS')) {
+                if (!tradeOptionsBlock?.getField('PREDICTION_AFTER_LOSS')) {
                     throw new Error('The recovery prediction input is not ready.');
                 }
 
