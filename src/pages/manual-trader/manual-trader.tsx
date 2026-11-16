@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { manualTradeService } from './services/manual-trade-service';
+import { signalCenterStore } from '@/features/signals-center/signal-store';
 import { TradeControls } from './components/trade-controls';
 import { TradeHistory } from './components/trade-history';
 import { ManualTraderAnalysisDashboard } from './components/analysis-dashboard';
@@ -102,6 +103,8 @@ const ManualTrader = () => {
     useEffect(() => {
         const api = api_base.api as any;
         if (!socketReady || !api || api.connection?.readyState !== 1 || !symbol) {
+            signalCenterStore.setSelectedSymbol(symbol || null);
+            signalCenterStore.setTicks([]);
             setTickConnection('disconnected');
             setDigitTicks([]);
             return undefined;
@@ -114,6 +117,9 @@ const ManualTrader = () => {
 
         setTickConnection('connecting');
 
+        signalCenterStore.setSelectedSymbol(symbol);
+        signalCenterStore.setTicks([]);
+
         const precision = (api_base.pip_sizes as Record<string, number>)?.[symbol];
         const messageSubscription = api.onMessage().subscribe((message: any) => {
             const data = message?.data ?? message;
@@ -121,9 +127,11 @@ const ManualTrader = () => {
             const quote = Number(data.tick.quote);
             const epoch = Number(data.tick.epoch);
             if (!Number.isFinite(quote) || !Number.isFinite(epoch)) return;
+            const nextTick = { quote, epoch, digit: getLastDigit(data.tick.quote, precision) };
+            signalCenterStore.addTick({ symbol, ...nextTick });
             setDigitTicks(previous => [
                 ...previous,
-                { quote, epoch, digit: getLastDigit(data.tick.quote, precision) },
+                nextTick,
             ].slice(-TICK_WINDOW));
         });
 
@@ -150,6 +158,13 @@ const ManualTrader = () => {
                     epoch: Number(times[index] || 0),
                     digit: getLastDigit(price, precision),
                 }));
+                const existingLiveTicks = signalCenterStore.getSnapshot().ticks;
+                signalCenterStore.setTicks(
+                    [...historicalTicks, ...existingLiveTicks]
+                        .sort((a, b) => a.epoch - b.epoch)
+                        .map(tick => ({ ...tick, symbol }))
+                        .slice(-TICK_WINDOW)
+                );
                 setDigitTicks(previous => [...historicalTicks, ...previous].sort((a, b) => a.epoch - b.epoch).slice(-TICK_WINDOW));
                 subscriptionId = responseData?.subscription?.id || response?.subscription?.id || '';
                 setTickConnection('connected');
