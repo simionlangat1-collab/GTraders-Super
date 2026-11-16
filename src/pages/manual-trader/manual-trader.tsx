@@ -264,6 +264,21 @@ const ManualTrader = () => {
                 prediction,
             });
             tradeStage = 'purchase';
+
+            // Over 2 safeguard: recheck the newest received market tick after
+            // the proposal round-trip and immediately before submitting the buy.
+            // This is a client-side strategy filter; Deriv still determines the
+            // contract's actual entry and settlement ticks on its servers.
+            if (selectedContract === 'DIGITOVER' && prediction === 2) {
+                const latestTick = digitTicks[digitTicks.length - 1];
+                if (!latestTick) {
+                    throw new Error('Over 2 purchase rejected: waiting for a live market tick. Please try again.');
+                }
+                if (latestTick.digit >= 3) {
+                    throw new Error(`Over 2 purchase rejected: the latest live digit is ${latestTick.digit}. Wait for a digit from 0 to 2.`);
+                }
+            }
+
             const purchase = await manualTradeService.buy(proposal.id, proposal.ask_price);
             const contractId = Number(purchase.contract_id);
             const record: ManualTradeRecord = {
