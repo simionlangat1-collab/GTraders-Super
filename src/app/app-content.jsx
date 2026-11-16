@@ -207,6 +207,7 @@ const AppContent = observer(({
         const completeStartup = (message, error = null) => {
             if (cancelled || startupCompleted) return;
             startupCompleted = true;
+            clearTimeout(startupTimeoutId);
 
             if (intervalId) {
                 clearInterval(intervalId);
