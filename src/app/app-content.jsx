@@ -202,6 +202,35 @@ const AppContent = observer(({
 
         let intervalId;
         let cancelled = false;
+        let startupCompleted = false;
+
+        const completeStartup = (message, error = null) => {
+            if (cancelled || startupCompleted) return;
+            startupCompleted = true;
+
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = undefined;
+            }
+
+            if (error) {
+                console.error('GTraders Super market-data startup fallback:', error);
+            }
+
+            onStartupProgress?.(75);
+            onStartupMessage?.(message);
+            setLoadingMessage(message);
+            setIsLoading(false);
+        };
+
+        // Never leave the user on the startup screen indefinitely if a
+        // market-data request or its prerequisite initialization does not settle.
+        const startupTimeoutId = setTimeout(() => {
+            completeStartup(
+                'Market data is taking longer than expected. Dashboard opened; market data will retry when available.',
+                new Error('Market-data startup exceeded 20 seconds')
+            );
+        }, 20000);
 
         const retrieveActiveSymbols = () => {
             const active_symbols = ApiHelpers?.instance?.active_symbols;
@@ -220,37 +249,13 @@ const AppContent = observer(({
 
             Promise.resolve(active_symbols.retrieveActiveSymbols(true))
                 .then(() => {
-                    if (!cancelled) {
-                        onStartupProgress?.(75);
-                        onStartupMessage?.(
-                            'Market data loaded. Preparing workspace...'
-                        );
-
-                        setLoadingMessage(
-                            'Market data loaded. Preparing workspace...'
-                        );
-
-                        setIsLoading(false);
-                    }
+                    completeStartup('Market data loaded. Preparing workspace...');
                 })
                 .catch(error => {
-                    console.error(
-                        'GTraders Super active symbols initialization failed:',
+                    completeStartup(
+                        'Market data unavailable. Dashboard opened; market data will retry when available.',
                         error
                     );
-
-                    if (!cancelled) {
-                        onStartupProgress?.(75);
-                        onStartupMessage?.(
-                            'Market data unavailable. Continuing safely...'
-                        );
-
-                        setLoadingMessage(
-                            'Market data unavailable. Continuing safely...'
-                        );
-
-                        setIsLoading(false);
-                    }
                 });
         };
 
@@ -262,6 +267,7 @@ const AppContent = observer(({
 
         return () => {
             cancelled = true;
+            clearTimeout(startupTimeoutId);
 
             if (intervalId) {
                 clearInterval(intervalId);
