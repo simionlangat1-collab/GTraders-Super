@@ -26,7 +26,7 @@ const getLastDigit = (quote: number | string, precision?: number) => {
 
 const ManualTrader = () => {
     const [symbols, setSymbols] = useState<ManualMarketSymbol[]>([]);
-    const [symbol, setSymbol] = useState('');
+    const [symbol, setSymbol] = useState(() => signalCenterStore.getSnapshot().selectedSymbol || '');
     const [contractType, setContractType] = useState<ManualContractType>('DIGITOVER');
     const [duration, setDuration] = useState(1);
     const [stake, setStake] = useState('0.00');
