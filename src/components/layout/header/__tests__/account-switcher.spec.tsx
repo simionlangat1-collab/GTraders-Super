@@ -130,7 +130,7 @@ describe('AccountSwitcher', () => {
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
         expect(screen.getByRole('dialog')).toBeInTheDocument();
-        fireEvent.mouseDown(document.body);
+        fireEvent.mouseDown(screen.getByRole('dialog'));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
