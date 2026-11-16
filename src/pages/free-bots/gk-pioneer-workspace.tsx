@@ -114,7 +114,7 @@ const waitForRecoveryPredictionInput = async (workspace: any, Blockly: any, isCa
         if (isCancelled()) return false;
 
         const tradeOptionsBlock = getTradeOptionsBlock(workspace);
-        if (tradeOptionsBlock?.getInput('PREDICTION_AFTER_LOSS')) return true;
+        if (tradeOptionsBlock?.getField('PREDICTION_AFTER_LOSS')) return true;
         if (ensureRecoveryPredictionInput(workspace, Blockly)) return true;
 
         await new Promise<void>(resolve => window.setTimeout(resolve, 50));
