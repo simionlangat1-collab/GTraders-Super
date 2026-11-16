@@ -41,6 +41,7 @@ const ManualTrader = () => {
     const [tradeNotification, setTradeNotification] = useState<TradeNotification | null>(null);
     const notificationTimer = useRef<number | null>(null);
     const completedContracts = useRef(new Set<number>());
+    const latestDigitTickRef = useRef<TDigitTick | null>(null);
     const buyLock = useRef(false);
     const accountKey = String((api_base.account_info as any)?.loginid || 'guest');
     const historyStorageKey = `gtraders_manual_trader_history_${accountKey}`;
@@ -109,6 +110,7 @@ const ManualTrader = () => {
 
         let active = true;
         let subscriptionId = '';
+        latestDigitTickRef.current = null;
         setDigitTicks([]);
         setTickError('');
 
@@ -121,10 +123,9 @@ const ManualTrader = () => {
             const quote = Number(data.tick.quote);
             const epoch = Number(data.tick.epoch);
             if (!Number.isFinite(quote) || !Number.isFinite(epoch)) return;
-            setDigitTicks(previous => [
-                ...previous,
-                { quote, epoch, digit: getLastDigit(data.tick.quote, precision) },
-            ].slice(-TICK_WINDOW));
+            const nextTick = { quote, epoch, digit: getLastDigit(data.tick.quote, precision) };
+            latestDigitTickRef.current = nextTick;
+            setDigitTicks(previous => [...previous, nextTick].slice(-TICK_WINDOW));
         });
 
         const startStream = async () => {
@@ -150,6 +151,10 @@ const ManualTrader = () => {
                     epoch: Number(times[index] || 0),
                     digit: getLastDigit(price, precision),
                 }));
+                const latestHistoricalTick = historicalTicks[historicalTicks.length - 1];
+                if (!latestDigitTickRef.current || (latestHistoricalTick && latestHistoricalTick.epoch >= latestDigitTickRef.current.epoch)) {
+                    latestDigitTickRef.current = latestHistoricalTick || null;
+                }
                 setDigitTicks(previous => [...historicalTicks, ...previous].sort((a, b) => a.epoch - b.epoch).slice(-TICK_WINDOW));
                 subscriptionId = responseData?.subscription?.id || response?.subscription?.id || '';
                 setTickConnection('connected');
@@ -270,7 +275,7 @@ const ManualTrader = () => {
             // This is a client-side strategy filter; Deriv still determines the
             // contract's actual entry and settlement ticks on its servers.
             if (selectedContract === 'DIGITOVER' && prediction === 2) {
-                const latestTick = digitTicks[digitTicks.length - 1];
+                const latestTick = latestDigitTickRef.current;
                 if (!latestTick) {
                     throw new Error('Over 2 purchase rejected: waiting for a live market tick. Please try again.');
                 }
