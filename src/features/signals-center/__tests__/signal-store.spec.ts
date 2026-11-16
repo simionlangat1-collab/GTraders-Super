@@ -24,6 +24,15 @@ describe('SignalCenterStore', () => {
         expect(snapshot.ticks[99].epoch).toBe(104);
     });
 
+    it('keeps the snapshot reference stable until the store changes', () => {
+        const store = new SignalCenterStore();
+        const initialSnapshot = store.getSnapshot();
+
+        expect(store.getSnapshot()).toBe(initialSnapshot);
+        store.setSelectedSymbol('R_100');
+        expect(store.getSnapshot()).not.toBe(initialSnapshot);
+    });
+
     it('ignores ticks from a market other than the selected market', () => {
         const store = new SignalCenterStore();
         store.setSelectedSymbol('R_100');
