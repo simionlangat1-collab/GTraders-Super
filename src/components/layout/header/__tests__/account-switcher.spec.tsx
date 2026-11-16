@@ -91,10 +91,10 @@ describe('AccountSwitcher', () => {
         expect(screen.getByTestId('dt_balance')).toHaveTextContent('100.00 USD');
     });
 
-    it('opens dropdown on click when multiple accounts exist', () => {
+    it('opens account-switcher dialog on click when multiple accounts exist', () => {
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
-        expect(screen.getByRole('listbox')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('does not open dropdown when bot is running via run_panel', () => {
@@ -105,14 +105,14 @@ describe('AccountSwitcher', () => {
         });
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
-        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('does not open dropdown when api_base.is_running is true', () => {
         require('@/external/bot-skeleton/services/api/api-base').api_base.is_running = true;
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
-        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('does not open dropdown with a single account', () => {
@@ -123,23 +123,23 @@ describe('AccountSwitcher', () => {
         });
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
-        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('closes dropdown on outside click', () => {
+    it('closes account-switcher dialog on outside click', () => {
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
-        expect(screen.getByRole('listbox')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
         fireEvent.mouseDown(document.body);
-        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('closes dropdown on Escape key', () => {
+    it('closes account-switcher dialog on Escape key', () => {
         render(<AccountSwitcher activeAccount={mockActiveAccount} />);
         fireEvent.click(screen.getByTestId('dt_acc_info'));
-        expect(screen.getByRole('listbox')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
         fireEvent.keyDown(document, { key: 'Escape' });
-        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('sets localStorage and calls checkAndRegenerateWebSocket on account select', () => {
@@ -183,7 +183,7 @@ describe('AccountSwitcher', () => {
         const trigger = screen.getByTestId('dt_acc_info');
         expect(trigger).toHaveAttribute('role', 'button');
         expect(trigger).toHaveAttribute('aria-expanded', 'false');
-        expect(trigger).toHaveAttribute('aria-haspopup', 'listbox');
+        expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
         fireEvent.click(trigger);
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
     });
