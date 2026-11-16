@@ -67,12 +67,10 @@ const getTradeOptionsBlock = (workspace: any) =>
 
 const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     const tradeOptionsBlock = getTradeOptionsBlock(workspace);
-    const predictionLabelInput = tradeOptionsBlock?.getInput('PREDICTION_LABEL');
     if (
         !tradeOptionsBlock ||
         !tradeOptionsBlock.getInput('PREDICTION') ||
-        !predictionLabelInput ||
-        tradeOptionsBlock.getField('PREDICTION_AFTER_LOSS')
+        tradeOptionsBlock.getInput('PREDICTION_AFTER_LOSS_ROW')
     ) {
         return false;
     }
@@ -89,10 +87,13 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     const events = Blockly.Events;
     events?.disable();
     try {
-        // Add the second label and digit field to the existing prediction
-        // label row so both prediction controls sit side by side.
-        predictionLabelInput
-            .appendField('   Prediction after Loss')
+        // Create a distinct Blockly input AFTER the original connected
+        // Prediction value input. Trade Options already uses inline inputs,
+        // so Blockly renders this separate label + digit control to its right
+        // on the same horizontal row (expanding the block width as needed).
+        tradeOptionsBlock
+            .appendDummyInput('PREDICTION_AFTER_LOSS_ROW')
+            .appendField('Prediction after Loss')
             .appendField(new Blockly.FieldNumber(recoveryPrediction, 0, 9, 1), 'PREDICTION_AFTER_LOSS');
         tradeOptionsBlock.render();
     } finally {
