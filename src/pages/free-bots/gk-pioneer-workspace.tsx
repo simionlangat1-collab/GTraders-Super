@@ -5,6 +5,42 @@ import './gk-pioneer-workspace.scss';
 
 const STORAGE_KEY = 'gtraders-super:gk-pioneer-workspace:v4';
 
+const ensureRecoveryPredictionInSavedWorkspace = (xml: Element) => {
+    const tradeOptions = xml.querySelector('block[type="trade_definition_tradeoptions"]');
+    if (!tradeOptions || tradeOptions.querySelector('value[name="RECOVERY_PREDICTION"]')) return;
+
+    let mutation = tradeOptions.querySelector(':scope > mutation');
+    if (!mutation) {
+        mutation = document.createElement('mutation');
+        tradeOptions.insertBefore(mutation, tradeOptions.firstChild);
+    }
+    mutation.setAttribute('has_recovery_prediction', 'true');
+
+    const initialValue = Number(
+        tradeOptions.querySelector('value[name="PREDICTION"] shadow field[name="NUM"]')?.textContent ?? 2
+    );
+    const recoveryValue = initialValue >= 5 ? initialValue - 1 : initialValue + 1;
+
+    const recoveryInput = document.createElement('value');
+    recoveryInput.setAttribute('name', 'RECOVERY_PREDICTION');
+    recoveryInput.setAttribute('strategy_value', 'last_digit_recovery_prediction');
+
+    const shadow = document.createElement('shadow');
+    shadow.setAttribute('type', 'math_number_positive');
+    const number = document.createElement('field');
+    number.setAttribute('name', 'NUM');
+    number.textContent = String(recoveryValue);
+    shadow.appendChild(number);
+    recoveryInput.appendChild(shadow);
+
+    const initialInput = tradeOptions.querySelector('value[name="PREDICTION"]');
+    if (initialInput?.parentNode) {
+        initialInput.parentNode.insertBefore(recoveryInput, initialInput.nextSibling);
+    } else {
+        tradeOptions.appendChild(recoveryInput);
+    }
+};
+
 const HIDDEN_SETUP_VARIABLES = new Set([
     'martingale:payoutRate',
     'martingale:cycleLoss',
@@ -132,13 +168,16 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 const savedXml = window.localStorage.getItem(STORAGE_KEY);
                 if (savedXml) {
                     const dom = Blockly.utils.xml.textToDom(savedXml);
+                    ensureRecoveryPredictionInSavedWorkspace(dom);
                     Blockly.Xml.domToWorkspace(dom, workspace);
                     syncAmountControls(workspace);
                     workspace.cleanUp();
                     hideInternalSetupBlocks(workspace);
+                    persistWorkspace({ type: 'create' });
                     setStatus('Your separate G-K Pioneer workspace has been restored.');
                 } else {
                     setStatus('Creating the starter Martingale strategy…');
+                    quick_strategy.setGKPioneerMode(true);
                     await quick_strategy.onSubmit(
                         {
                             symbol: '1HZ10V',
