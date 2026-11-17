@@ -48,6 +48,7 @@ import './main.scss';
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 const Tutorial = lazy(() => import('../tutorials'));
 const AnalysisTool = lazy(() => import('../analysis-tool'));
+const SignalCenter = lazy(() => import('../../features/signals-center/signal-center'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -81,7 +82,7 @@ const AppWrapper = observer(() => {
     const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
     const init_render = React.useRef(true);
     const gkPioneerLoadStarted = React.useRef(false);
-    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool', 'manual_trader'];
+    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool', 'manual_trader', 'signal_center'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -527,6 +528,16 @@ const AppWrapper = observer(() => {
                                 id='id-manual-trader'
                             >
                                 <ManualTrader />
+                            </div>
+                            <div
+                                label={<Localize i18n_default_text='Signal Center' />}
+                                id='id-signal-center'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Loading Signal Center...')} />}
+                                >
+                                    <SignalCenter />
+                                </Suspense>
                             </div>
                         </Tabs>
                         {!isDesktop && right_tab_shadow && <span className='tabs-shadow tabs-shadow--right' />}{' '}
