@@ -306,14 +306,29 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 }
 
                 const tradeEngine = run_panel.dbot?.interpreter?.bot?.tradeEngine;
-                if (!tradeEngine?.trade_option || typeof tradeEngine.makeProposals !== 'function') {
-                    throw new Error('The active G-K Pioneer trade engine is not ready to refresh its next proposal.');
+                if (!tradeEngine?.tradeOptions) {
+                    throw new Error('The active G-K Pioneer trade engine is not ready to update its next prediction.');
                 }
 
-                tradeEngine.makeProposals({
-                    ...tradeEngine.trade_option,
+                // Keep the engine's live purchase options in sync with the result.
+                // This is the path used by direct purchases (no proposal subscription).
+                tradeEngine.tradeOptions = {
+                    ...tradeEngine.tradeOptions,
                     prediction: nextPrediction,
-                });
+                };
+
+                // When proposals are used, refresh them as well so the next buy
+                // carries the updated barrier. Do this before the After Purchase
+                // stack resumes and requests the next contract.
+                if (tradeEngine.is_proposal_subscription_required) {
+                    if (!tradeEngine.trade_option || typeof tradeEngine.makeProposals !== 'function') {
+                        throw new Error('The active G-K Pioneer proposal engine is not ready to refresh its next contract.');
+                    }
+                    tradeEngine.makeProposals({
+                        ...tradeEngine.trade_option,
+                        prediction: nextPrediction,
+                    });
+                }
                 completedContracts.current.add(contractId);
                 setError('');
                 setStatus(
