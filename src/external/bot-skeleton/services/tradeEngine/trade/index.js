@@ -117,6 +117,19 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         this.makeDirectPurchaseDecision();
     }
 
+    setTradePredictionForResult(isWin) {
+        // This feature is inert for every strategy that does not provide both
+        // optional G-K Pioneer prediction values.
+        if (!this.predictionRecovery || !this.tradeOptions) return;
+
+        this.tradeOptions = {
+            ...this.tradeOptions,
+            prediction: isWin
+                ? this.predictionRecovery.initial
+                : this.predictionRecovery.recovery,
+        };
+    }
+
     setTradeAmount(amount) {
         const next_amount = Number(amount);
         if (!Number.isFinite(next_amount) || next_amount <= 0) {
