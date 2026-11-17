@@ -70,7 +70,6 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     if (
         !tradeOptionsBlock ||
         !tradeOptionsBlock.getInput('PREDICTION') ||
-        !tradeOptionsBlock.getInput('PREDICTION_LABEL') ||
         tradeOptionsBlock.getInput('PREDICTION_AFTER_LOSS')
     ) {
         return false;
@@ -96,7 +95,11 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
             .appendDummyInput('PREDICTION_AFTER_LOSS')
             .appendField('Prediction after Loss')
             .appendField(new Blockly.FieldNumber(recoveryPrediction, 0, 9, 1), 'PREDICTION_AFTER_LOSS');
-        tradeOptionsBlock.moveInputBefore('PREDICTION_AFTER_LOSS', 'PREDICTION_LABEL');
+        // Keep the recovery control beside the initial prediction when the
+        // label input is available; do not block creation if Deriv adds it later.
+        if (tradeOptionsBlock.getInput('PREDICTION_LABEL')) {
+            tradeOptionsBlock.moveInputBefore('PREDICTION_AFTER_LOSS', 'PREDICTION_LABEL');
+        }
         tradeOptionsBlock.render();
     } finally {
         events?.enable();
@@ -107,6 +110,26 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     }
 
     return true;
+};
+
+// Deriv creates the Prediction input asynchronously while configuring the
+// trade-options block. Retry until it exists, then add the recovery control.
+const waitForRecoveryPredictionInput = async (
+    workspace: any,
+    Blockly: any,
+    isCancelled: () => boolean
+) => {
+    for (let attempt = 0; attempt < 200; attempt++) {
+        if (isCancelled()) return false;
+
+        const tradeOptionsBlock = getTradeOptionsBlock(workspace);
+        if (tradeOptionsBlock?.getField('PREDICTION_AFTER_LOSS')) return true;
+        if (ensureRecoveryPredictionInput(workspace, Blockly)) return true;
+
+        await new Promise<void>(resolve => window.setTimeout(resolve, 50));
+    }
+
+    return false;
 };
 
 const persistRecoveryPrediction = (workspace: any) => {
@@ -199,8 +222,17 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                 if (savedXml) {
                     const dom = Blockly.utils.xml.textToDom(savedXml);
                     Blockly.Xml.domToWorkspace(dom, workspace);
-                    ensureRecoveryPredictionInput(workspace, Blockly);
+                    const recoveryInputReady = await waitForRecoveryPredictionInput(
+                        workspace,
+                        Blockly,
+                        () => cancelled
+                    );
+                    if (cancelled) return;
+                    if (!recoveryInputReady) {
+                        throw new Error('The Prediction after Loss control could not be initialized. Please reopen G-K Pioneer and try again.');
+                    }
                     persistRecoveryPrediction(workspace);
+                    persistWorkspace({ type: 'recovery-input-ready' });
                     syncAmountControls(workspace);
                     workspace.cleanUp();
                     hideInternalSetupBlocks(workspace);
@@ -227,7 +259,15 @@ const GKPioneerWorkspace = observer(({ onBack }: TGKPioneerWorkspaceProps) => {
                         'MARTINGALE'
                     );
                     if (cancelled) return;
-                    ensureRecoveryPredictionInput(workspace, Blockly);
+                    const recoveryInputReady = await waitForRecoveryPredictionInput(
+                        workspace,
+                        Blockly,
+                        () => cancelled
+                    );
+                    if (cancelled) return;
+                    if (!recoveryInputReady) {
+                        throw new Error('The Prediction after Loss control could not be initialized. Please reopen G-K Pioneer and try again.');
+                    }
                     persistRecoveryPrediction(workspace);
                     syncAmountControls(workspace);
                     workspace.cleanUp();
