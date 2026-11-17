@@ -70,6 +70,7 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
     if (
         !tradeOptionsBlock ||
         !tradeOptionsBlock.getInput('PREDICTION') ||
+        !tradeOptionsBlock.getInput('PREDICTION_LABEL') ||
         tradeOptionsBlock.getInput('PREDICTION_AFTER_LOSS')
     ) {
         return false;
@@ -95,11 +96,9 @@ const ensureRecoveryPredictionInput = (workspace: any, Blockly: any) => {
             .appendDummyInput('PREDICTION_AFTER_LOSS')
             .appendField('Prediction after Loss')
             .appendField(new Blockly.FieldNumber(recoveryPrediction, 0, 9, 1), 'PREDICTION_AFTER_LOSS');
-        // Keep the recovery control beside the initial prediction when the
-        // label input is available; do not block creation if Deriv adds it later.
-        if (tradeOptionsBlock.getInput('PREDICTION_LABEL')) {
-            tradeOptionsBlock.moveInputBefore('PREDICTION_AFTER_LOSS', 'PREDICTION_LABEL');
-        }
+        // Place the recovery control immediately before the existing
+        // Prediction label so both numeric controls remain together.
+        tradeOptionsBlock.moveInputBefore('PREDICTION_AFTER_LOSS', 'PREDICTION_LABEL');
         tradeOptionsBlock.render();
     } finally {
         events?.enable();
@@ -124,7 +123,16 @@ const waitForRecoveryPredictionInput = async (
 
         const tradeOptionsBlock = getTradeOptionsBlock(workspace);
         if (tradeOptionsBlock?.getField('PREDICTION_AFTER_LOSS')) return true;
-        if (ensureRecoveryPredictionInput(workspace, Blockly)) return true;
+
+        // Wait for BOTH the numeric Prediction input and its label anchor.
+        // The latter is required to keep Prediction after Loss beside it.
+        if (
+            tradeOptionsBlock?.getInput('PREDICTION') &&
+            tradeOptionsBlock?.getInput('PREDICTION_LABEL') &&
+            ensureRecoveryPredictionInput(workspace, Blockly)
+        ) {
+            return true;
+        }
 
         await new Promise<void>(resolve => window.setTimeout(resolve, 50));
     }
