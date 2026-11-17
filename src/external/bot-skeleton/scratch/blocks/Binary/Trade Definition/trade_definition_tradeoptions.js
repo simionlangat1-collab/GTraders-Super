@@ -211,6 +211,27 @@ window.Blockly.Blocks.trade_definition_tradeoptions = {
             }
         });
     },
+    createRecoveryPredictionInput(prediction_range) {
+        runIrreversibleEvents(() => {
+            if (prediction_range.length === 0) {
+                this.removeInput('RECOVERY_PREDICTION_LABEL', true);
+                this.removeInput('RECOVERY_PREDICTION', true);
+            } else if (!this.getInput('RECOVERY_PREDICTION')) {
+                this.appendDummyInput('RECOVERY_PREDICTION_LABEL')
+                    .appendField(localize('Prediction after Loss:'));
+
+                const recovery_input = this.appendValueInput('RECOVERY_PREDICTION');
+                const shadow_block = this.workspace.newBlock('math_number_positive');
+
+                shadow_block.setInputsInline(true);
+                shadow_block.setShadow(true);
+                shadow_block.setFieldValue(prediction_range[0], 'NUM');
+                shadow_block.outputConnection.connect(recovery_input.connection);
+                shadow_block.initSvg();
+                shadow_block.renderEfficiently();
+            }
+        });
+    },
     createBarrierInputs(barriers) {
         runIrreversibleEvents(() => {
             const input_names = ['BARRIEROFFSET', 'SECONDBARRIEROFFSET'];
@@ -545,6 +566,7 @@ window.Blockly.Blocks.trade_definition_tradeoptions = {
         const has_first_barrier = xmlElement.getAttribute('has_first_barrier') === 'true';
         const has_second_barrier = xmlElement.getAttribute('has_second_barrier') === 'true';
         const has_prediction = xmlElement.getAttribute('has_prediction') === 'true';
+        const has_recovery_prediction = xmlElement.getAttribute('has_recovery_prediction') === 'true';
 
         if (has_first_barrier && has_second_barrier) {
             this.createBarrierInputs({ values: [1, -1] }); // These values are overwritten with XML values.
@@ -553,6 +575,10 @@ window.Blockly.Blocks.trade_definition_tradeoptions = {
         } else if (has_prediction) {
             this.createPredictionInput([1]);
         }
+
+        if (has_recovery_prediction) {
+            this.createRecoveryPredictionInput([1]);
+        }
     },
     mutationToDom() {
         const container = document.createElement('mutation');
@@ -560,6 +586,7 @@ window.Blockly.Blocks.trade_definition_tradeoptions = {
         container.setAttribute('has_first_barrier', !!this.getInput('BARRIEROFFSET'));
         container.setAttribute('has_second_barrier', !!this.getInput('SECONDBARRIEROFFSET'));
         container.setAttribute('has_prediction', !!this.getInput('PREDICTION'));
+        container.setAttribute('has_recovery_prediction', !!this.getInput('RECOVERY_PREDICTION'));
 
         return container;
     },
@@ -650,7 +677,7 @@ window.Blockly.JavaScript.javascriptGenerator.forBlock.trade_definition_tradeopt
         return barrier_offset_type === 'absolute' ? value : `'${barrier_offset_type}' + ${value}`;
     };
 
-    let prediction_value, barrier_offset_value, second_barrier_offset_value;
+    let prediction_value, recovery_prediction_value, barrier_offset_value, second_barrier_offset_value;
 
     if (block.getInput('PREDICTION')) {
         prediction_value =
@@ -659,6 +686,15 @@ window.Blockly.JavaScript.javascriptGenerator.forBlock.trade_definition_tradeopt
                 'PREDICTION',
                 window.Blockly.JavaScript.javascriptGenerator.ORDER_ATOMIC
             ) || '-1';
+    }
+
+    if (block.getInput('RECOVERY_PREDICTION')) {
+        recovery_prediction_value =
+            window.Blockly.JavaScript.javascriptGenerator.valueToCode(
+                block,
+                'RECOVERY_PREDICTION',
+                window.Blockly.JavaScript.javascriptGenerator.ORDER_ATOMIC
+            ) || 'undefined';
     }
 
     if (block.getInput('BARRIEROFFSET')) {
@@ -691,6 +727,8 @@ window.Blockly.JavaScript.javascriptGenerator.forBlock.trade_definition_tradeopt
             currency           : '${currency}',
             amount             : ${stake_amount},
             prediction         : ${prediction_value || 'undefined'},
+            initialPrediction  : ${prediction_value || 'undefined'},
+            recoveryPrediction : ${recovery_prediction_value || 'undefined'},
             barrierOffset      : ${barrier_offset_value || 'undefined'},
             secondBarrierOffset: ${second_barrier_offset_value || 'undefined'},
             basis              : '${block.type === 'trade_definition_tradeoptions' ? 'stake' : 'payout'}',
