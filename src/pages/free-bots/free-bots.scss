@@ -1195,7 +1195,13 @@
     font-size: 1rem;
     font-weight: 950;
     letter-spacing: 0.1rem;
+    font-size: 0;
     box-shadow: 0 0.35rem 1.1rem rgba(245, 189, 50, 0.22);
+}
+
+.free-bots-page > .free-bots-card .free-bots-card__label::after {
+    content: 'PREMIUM';
+    font-size: 1rem;
 }
 
 .free-bots-page > .free-bots-card h2 {
@@ -1227,7 +1233,7 @@
     line-height: 1.55;
 }
 
-.free-bots-page > .free-bots-card__details::after {
+.free-bots-page > .free-bots-card .free-bots-card__details::after {
     display: block;
     margin-top: 1.1rem;
     color: #ffd84d;
