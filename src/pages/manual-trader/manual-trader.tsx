@@ -3,6 +3,7 @@ import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { signalCenterStore } from '../../features/signals-center/signal-store';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { manualTradeService } from './services/manual-trade-service';
+import { signalCenterStore } from '../../features/signals-center/signal-store';
 import { TradeControls } from './components/trade-controls';
 import { TradeHistory } from './components/trade-history';
 import { ManualTraderAnalysisDashboard } from './components/analysis-dashboard';
@@ -126,6 +127,7 @@ const ManualTrader = () => {
             if (!Number.isFinite(quote) || !Number.isFinite(epoch)) return;
             const nextTick = { quote, epoch, digit: getLastDigit(data.tick.quote, precision) };
             latestDigitTickRef.current = nextTick;
+            signalCenterStore.addTick({ symbol, ...nextTick });
             setDigitTicks(previous => [...previous, nextTick].slice(-TICK_WINDOW));
         });
 
@@ -156,6 +158,12 @@ const ManualTrader = () => {
                 if (!latestDigitTickRef.current || (latestHistoricalTick && latestHistoricalTick.epoch >= latestDigitTickRef.current.epoch)) {
                     latestDigitTickRef.current = latestHistoricalTick || null;
                 }
+                const historicalSignalTicks = historicalTicks.map(tick => ({ symbol, ...tick }));
+                const currentSignalTicks = signalCenterStore.getSnapshot().ticks;
+                const mergedSignalTicks = [...historicalSignalTicks, ...currentSignalTicks]
+                    .sort((a, b) => a.epoch - b.epoch)
+                    .filter((tick, index, all) => index === 0 || tick.epoch !== all[index - 1].epoch);
+                signalCenterStore.setTicks(mergedSignalTicks);
                 setDigitTicks(previous => [...historicalTicks, ...previous].sort((a, b) => a.epoch - b.epoch).slice(-TICK_WINDOW));
                 subscriptionId = responseData?.subscription?.id || response?.subscription?.id || '';
                 setTickConnection('connected');
