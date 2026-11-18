@@ -129,11 +129,6 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
                 : this.predictionRecovery.recovery,
         };
 
-        // Refresh proposals when this strategy uses the proposal-subscription
-        // purchase route; direct purchases read the updated tradeOptions above.
-        if (this.is_proposal_subscription_required) {
-            this.makeProposals({ ...this.options, ...this.tradeOptions });
-        }
     }
 
     setTradeAmount(amount) {
