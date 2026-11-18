@@ -146,4 +146,107 @@
         &__signal-card h2 { font-size: 1.8rem; }
         &__digit-grid { gap: 0.5rem; }
     }
+
+    &__recovery {
+        padding: 1.6rem;
+        border: 1px solid var(--border-normal);
+        border-radius: 1.2rem;
+        background:
+            radial-gradient(ellipse at 0% 0%, rgba(34, 211, 238, 0.09), transparent 52%),
+            radial-gradient(ellipse at 100% 100%, rgba(139, 92, 246, 0.09), transparent 52%),
+            var(--general-section-1);
+    }
+
+    &__recovery-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+
+        article {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            gap: 0.55rem;
+            padding: 1rem;
+            border: 1px solid var(--border-normal);
+            border-radius: 0.8rem;
+            background: var(--general-main-1);
+        }
+
+        span {
+            color: var(--text-less-prominent);
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        strong {
+            color: var(--text-prominent);
+            font-size: clamp(1.7rem, 4vw, 2.5rem);
+            font-weight: 850;
+        }
+
+        small {
+            color: var(--text-less-prominent);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+    }
+
+    &__recovery-digits {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.8rem;
+        margin-top: 0.9rem;
+
+        > div {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.9rem 1rem;
+            border: 1px solid var(--border-normal);
+            border-radius: 0.8rem;
+            background: var(--general-main-1);
+        }
+
+        strong {
+            display: grid;
+            width: 2.5rem;
+            height: 2.5rem;
+            flex: 0 0 auto;
+            place-items: center;
+            border-radius: 50%;
+            color: #fff;
+            background: #2583ff;
+            font-size: 1.2rem;
+        }
+
+        span {
+            color: var(--text-prominent);
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+
+        small {
+            margin-left: auto;
+            color: var(--text-less-prominent);
+            font-size: 0.85rem;
+            text-align: right;
+        }
+    }
+
+    &__recovery-note {
+        margin: 1rem 0 0;
+        color: var(--text-less-prominent);
+        font-size: 0.98rem;
+        line-height: 1.5;
+    }
+
+    @media (max-width: 600px) {
+        &__recovery { padding: 1.1rem; }
+        &__recovery-summary { grid-template-columns: 1fr; }
+        &__recovery-digits { grid-template-columns: 1fr; }
+        &__recovery-digits > div { flex-wrap: wrap; }
+        &__recovery-digits small { margin-left: 0; text-align: left; }
+    }
 }
