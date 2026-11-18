@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useSyncExternalStore } from 'react';
+import { analyzeOverTwo, SIGNAL_TICK_WINDOW } from '../../../features/signals-center/analysis/over-two';
+import { signalCenterStore } from '../../../features/signals-center/signal-store';
 import { ManualContractType, ManualMarketSymbol } from '../types';
 
 type TradeSide = 'over' | 'under';
@@ -46,6 +48,17 @@ const formatPayout = (value: number | null, currency: string) =>
     value === null || !Number.isFinite(value) ? '—' : `${value.toFixed(2)} ${currency}`;
 
 export const TradeControls = (props: Props) => {
+    const signalSnapshot = useSyncExternalStore(
+        signalCenterStore.subscribe,
+        signalCenterStore.getSnapshot,
+        signalCenterStore.getSnapshot
+    );
+    const signalAnalysis = useMemo(() => analyzeOverTwo(signalSnapshot.ticks), [signalSnapshot.ticks]);
+    const signalReady = signalAnalysis.sampleSize === SIGNAL_TICK_WINDOW;
+    const signalLabel = signalReady
+        ? `${signalAnalysis.qualifyingPercentage.toFixed(1)}%`
+        : `${signalAnalysis.sampleSize}/${SIGNAL_TICK_WINDOW}`;
+    const signalIsBuy = signalReady && signalAnalysis.status === 'BUY_OVER_2';
     const [marketOpen, setMarketOpen] = useState(false);
     const [stakeEditing, setStakeEditing] = useState(false);
     const [stakeDraft, setStakeDraft] = useState('0.00');
@@ -107,6 +120,16 @@ export const TradeControls = (props: Props) => {
         <section className='manual-trader__card manual-trader__trade-setup'>
             <div className='manual-trader__trade-setup-header'>
                 <div className='manual-trader__trade-setup-title'>Trade Setup</div>
+                <div
+                    className={`manual-trader__live-signal ${signalIsBuy ? 'is-buy' : ''}`}
+                    role='status'
+                    aria-live='polite'
+                    aria-label={`Signal Center confidence ${signalLabel}, ${signalIsBuy ? 'Buy Over 2' : 'Wait'}`}
+                    title='Live Signal Center decision'
+                >
+                    <strong>{signalLabel}</strong>
+                    <span>{signalIsBuy ? 'BUY OVER 2' : 'WAIT'}</span>
+                </div>
                 <button
                     type='button'
                     className='manual-trader__contract-switch'
