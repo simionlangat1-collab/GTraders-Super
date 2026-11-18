@@ -16,10 +16,8 @@ const ensureRecoveryPredictionInSavedWorkspace = (xml: Element) => {
     }
     mutation.setAttribute('has_recovery_prediction', 'true');
 
-    const initialValue = Number(
-        tradeOptions.querySelector('value[name="PREDICTION"] shadow field[name="NUM"]')?.textContent ?? 2
-    );
-    const recoveryValue = initialValue >= 5 ? initialValue - 1 : initialValue + 1;
+    // Older saved workspaces receive a neutral recovery digit; never derive it.
+    const recoveryValue = 0;
 
     const recoveryInput = document.createElement('value');
     recoveryInput.setAttribute('name', 'RECOVERY_PREDICTION');
