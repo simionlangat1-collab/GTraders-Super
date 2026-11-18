@@ -183,7 +183,7 @@ describe('AccountSwitcher', () => {
         const trigger = screen.getByTestId('dt_acc_info');
         expect(trigger).toHaveAttribute('role', 'button');
         expect(trigger).toHaveAttribute('aria-expanded', 'false');
-        expect(trigger).toHaveAttribute('aria-haspopup', 'listbox');
+        expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
         fireEvent.click(trigger);
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
     });
