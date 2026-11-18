@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
+import { signalCenterStore } from '../../features/signals-center/signal-store';
 import { manualTradeService } from './services/manual-trade-service';
 import { TradeControls } from './components/trade-controls';
 import { TradeHistory } from './components/trade-history';
@@ -25,7 +26,7 @@ const getLastDigit = (quote: number | string, precision?: number) => {
 
 const ManualTrader = () => {
     const [symbols, setSymbols] = useState<ManualMarketSymbol[]>([]);
-    const [symbol, setSymbol] = useState('');
+    const [symbol, setSymbol] = useState(() => signalCenterStore.getSnapshot().selectedSymbol || '');
     const [contractType, setContractType] = useState<ManualContractType>('DIGITOVER');
     const [duration, setDuration] = useState(1);
     const [stake, setStake] = useState('0.00');
@@ -101,6 +102,10 @@ const ManualTrader = () => {
     }, [connection, symbols.length, loadSymbols]);
 
     useEffect(() => {
+        signalCenterStore.setSelectedSymbol(symbol || null);
+    }, [symbol]);
+
+    useEffect(() => {
         const api = api_base.api as any;
         if (!socketReady || !api || api.connection?.readyState !== 1 || !symbol) {
             setTickConnection('disconnected');
@@ -125,6 +130,7 @@ const ManualTrader = () => {
             if (!Number.isFinite(quote) || !Number.isFinite(epoch)) return;
             const nextTick = { quote, epoch, digit: getLastDigit(data.tick.quote, precision) };
             latestDigitTickRef.current = nextTick;
+            signalCenterStore.addTick({ symbol, ...nextTick });
             setDigitTicks(previous => [...previous, nextTick].slice(-TICK_WINDOW));
         });
 
@@ -151,6 +157,11 @@ const ManualTrader = () => {
                     epoch: Number(times[index] || 0),
                     digit: getLastDigit(price, precision),
                 }));
+                const existingLiveTicks = signalCenterStore.getSnapshot().ticks;
+                signalCenterStore.setTicks(
+                    [...historicalTicks.map(tick => ({ symbol, ...tick })), ...existingLiveTicks]
+                        .sort((a, b) => a.epoch - b.epoch)
+                );
                 const latestHistoricalTick = historicalTicks[historicalTicks.length - 1];
                 if (!latestDigitTickRef.current || (latestHistoricalTick && latestHistoricalTick.epoch >= latestDigitTickRef.current.epoch)) {
                     latestDigitTickRef.current = latestHistoricalTick || null;

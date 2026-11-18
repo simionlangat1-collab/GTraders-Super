@@ -92,6 +92,33 @@
     &__trade-setup { padding: 1.35rem; }
     &__trade-setup-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.15rem; }
     &__trade-setup-title { font-size: 1.55rem; font-weight: 800; letter-spacing: .01em; }
+    &__live-signal {
+        display: inline-flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        padding: .38rem .55rem;
+        border: 1px solid rgba(250, 204, 21, .3);
+        border-radius: .65rem;
+        background: rgba(161, 98, 7, .12);
+        color: #facc15;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+
+        strong { color: #eaf4ff; font-variant-numeric: tabular-nums; }
+        span { color: #facc15; }
+
+        &.is-buy {
+            border-color: rgba(52, 211, 153, .4);
+            background: rgba(16, 185, 129, .12);
+            strong, span { color: #5ee6b2; }
+        }
+    }
     &__contract-switch {
         display: inline-flex; align-items: center; gap: .7rem; min-height: 3.4rem; padding: .45rem .25rem .45rem .8rem;
         border: 0; background: transparent; color: var(--text-prominent); font-weight: 800; font-size: 1.25rem; cursor: pointer;
