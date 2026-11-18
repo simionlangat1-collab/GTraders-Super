@@ -227,17 +227,14 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
 
             // G-K Pioneer gets a second prediction input beside the initial prediction.
             if (isGKPioneerMode) {
-                const initialPrediction = Number(data.last_digit_prediction ?? 2);
-                const recoveryPrediction = initialPrediction >= 5
-                    ? initialPrediction - 1
-                    : initialPrediction + 1;
-
+                // Recovery prediction is a user-selected digit. Do not derive
+                // it from the initial prediction (for example, 2 -> 3 or 7 -> 6).
                 addDynamicBlockToDOM(
                     'RECOVERY_PREDICTION',
                     'last_digit_recovery_prediction',
                     trade_type_cat,
                     strategy_dom,
-                    recoveryPrediction
+                    0
                 );
             }
 
