@@ -98,12 +98,36 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         globalObserver.emit('bot.running');
 
         const validated_trade_options = this.validateTradeOptions(tradeOptions);
+        const initialPrediction = Number(tradeOptions.initialPrediction);
+        const recoveryPrediction = Number(tradeOptions.recoveryPrediction);
+        this.predictionRecovery =
+            Number.isInteger(initialPrediction) &&
+            Number.isInteger(recoveryPrediction) &&
+            initialPrediction >= 0 &&
+            initialPrediction <= 9 &&
+            recoveryPrediction >= 0 &&
+            recoveryPrediction <= 9
+                ? { initial: initialPrediction, recovery: recoveryPrediction }
+                : null;
 
         this.tradeOptions = { ...validated_trade_options, symbol: this.options.symbol };
         this.store.dispatch(start());
         this.checkLimits(validated_trade_options);
 
         this.makeDirectPurchaseDecision();
+    }
+
+    setTradePredictionForResult(isWin) {
+        // This feature is inert for every strategy that does not provide both
+        // optional G-K Pioneer prediction values.
+        if (!this.predictionRecovery || !this.tradeOptions) return;
+
+        this.tradeOptions = {
+            ...this.tradeOptions,
+            prediction: isWin
+                ? this.predictionRecovery.initial
+                : this.predictionRecovery.recovery,
+        };
     }
 
     setTradeAmount(amount) {
