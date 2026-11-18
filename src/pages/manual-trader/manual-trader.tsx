@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
+import { signalCenterStore } from '../../features/signals-center/signal-store';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { manualTradeService } from './services/manual-trade-service';
 import { TradeControls } from './components/trade-controls';
@@ -223,6 +224,11 @@ const ManualTrader = () => {
     }, [historyStorageKey, trades]);
 
     const selectedSymbol = useMemo(() => symbols.find(item => item.symbol === symbol), [symbols, symbol]);
+
+    // Keep Signal Center aligned with the market selected in Manual Trader.
+    useEffect(() => {
+        signalCenterStore.setSelectedSymbol(symbol || null);
+    }, [symbol]);
 
     const clearTradeResultHighlight = useCallback((key: string) => {
         setTradeResultHighlight(current => current?.key === key ? null : current);
