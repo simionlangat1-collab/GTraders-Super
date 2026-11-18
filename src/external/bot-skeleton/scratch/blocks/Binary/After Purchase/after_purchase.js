@@ -76,6 +76,7 @@ window.Blockly.JavaScript.javascriptGenerator.forBlock.after_purchase = block =>
     const code = `
     BinaryBotPrivateAfterPurchase = function BinaryBotPrivateAfterPurchase() {
         Bot.highlightBlock('${block.id}');
+        Bot.setTradePredictionForResult(Bot.isResult('won'));
         ${stack}
         Bot.isTradeAgain(false);
         return false;
