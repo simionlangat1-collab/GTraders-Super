@@ -577,7 +577,7 @@ window.Blockly.Blocks.trade_definition_tradeoptions = {
         }
 
         if (has_recovery_prediction) {
-            this.createRecoveryPredictionInput([1]);
+            this.createRecoveryPredictionInput([0]);
         }
     },
     mutationToDom() {
