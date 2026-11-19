@@ -127,6 +127,7 @@ const renderForm = () =>
                     const key = `${field.name || field.type} + ${field_index}`;
 
                     if (
+                        (field.name === 'last_digit_recovery_prediction' && !is_gk_pioneer_mode) ||
                         (!isDesktop && field.hide?.includes('mobile')) ||
                         (isDesktop && field.hide?.includes('desktop'))
                     ) {
@@ -167,6 +168,11 @@ const renderForm = () =>
                                 if (isNaN(min)) {
                                     min = initial_stake;
                                 }
+                            }
+
+                            if (field.name === 'last_digit_recovery_prediction') {
+                                min = 0;
+                                max = 9;
                             }
 
                             if (
