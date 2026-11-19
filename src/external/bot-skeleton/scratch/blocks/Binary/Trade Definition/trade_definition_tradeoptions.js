@@ -523,6 +523,14 @@ window.Blockly.Blocks.trade_definition_tradeoptions = {
         contracts_for.getPredictionRange(this.selected_symbol, this.selected_trade_type).then(prediction_range => {
             this.createPredictionInput(prediction_range);
 
+            // Keep the optional G-K Pioneer recovery input synchronized with
+            // the selected contract's valid prediction range. Existing user
+            // selections are preserved because createRecoveryPredictionInput
+            // only creates a missing input and does not overwrite its value.
+            if (this.getInput('RECOVERY_PREDICTION')) {
+                this.createRecoveryPredictionInput(prediction_range);
+            }
+
             if (prediction_range.length > 0) {
                 const prediction_input = this.getInput('PREDICTION');
                 const { connection } = prediction_input;
