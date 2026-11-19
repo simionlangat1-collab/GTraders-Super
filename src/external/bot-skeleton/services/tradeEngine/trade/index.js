@@ -110,7 +110,14 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
                 ? { initial: initialPrediction, recovery: recoveryPrediction }
                 : null;
 
-        this.tradeOptions = { ...validated_trade_options, symbol: this.options.symbol };
+        // Keep the user's two G-K Pioneer digits attached to the live trade options.
+        // The recovery digit must remain the exact value selected in the Blockly block.
+        this.tradeOptions = {
+            ...validated_trade_options,
+            symbol: this.options.symbol,
+            initialPrediction,
+            recoveryPrediction,
+        };
         this.store.dispatch(start());
         this.checkLimits(validated_trade_options);
 
