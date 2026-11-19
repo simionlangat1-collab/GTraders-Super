@@ -77,6 +77,7 @@ const FormikWrapper: React.FC<TFormikWrapper> = observer(({ children }) => {
             max_stake: data?.max_stake ?? 10,
             boolean_max_stake: data?.boolean_max_stake ?? false,
             last_digit_prediction: data?.last_digit_prediction ?? 1,
+            last_digit_recovery_prediction: data?.last_digit_recovery_prediction ?? 0,
             growth_rate: data?.growth_rate ?? '0.01',
             tick_count: data?.tick_count ?? 0,
             take_profit: data?.take_profit ?? 0,
@@ -132,7 +133,11 @@ const FormikWrapper: React.FC<TFormikWrapper> = observer(({ children }) => {
                             }
                             min_error = getErrorMessage('MIN', min);
                         }
-                        if (should_validate && field.name === 'last_digit_prediction') {
+                        if (
+                            should_validate &&
+                            (field.name === 'last_digit_prediction' ||
+                                field.name === 'last_digit_recovery_prediction')
+                        ) {
                             min = 0;
                             max = 9;
                             max_error = getErrorMessage('MAX', max, 'LAST_DIGIT_PREDICTION');
