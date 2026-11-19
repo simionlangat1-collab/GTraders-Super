@@ -688,6 +688,24 @@ window.Blockly.JavaScript.javascriptGenerator.forBlock.trade_definition_tradeopt
             ) || '-1';
     }
 
+    let recovery_prediction_value;
+    let prediction_recovery_options = '';
+
+    // G-K Pioneer recovery is opt-in: ordinary strategies keep their existing arguments.
+    if (block.getInput('RECOVERY_PREDICTION')) {
+        recovery_prediction_value =
+            window.Blockly.JavaScript.javascriptGenerator.valueToCode(
+                block,
+                'RECOVERY_PREDICTION',
+                window.Blockly.JavaScript.javascriptGenerator.ORDER_ATOMIC
+            ) || '-1';
+
+        prediction_recovery_options = `
+            initialPrediction  : ${prediction_value || '-1'},
+            recoveryPrediction : ${recovery_prediction_value},
+        `;
+    }
+
     if (block.getInput('BARRIEROFFSET')) {
         const barrier_offset_type = block.getFieldValue('BARRIEROFFSETTYPE_LIST');
         const value =
@@ -718,6 +736,7 @@ window.Blockly.JavaScript.javascriptGenerator.forBlock.trade_definition_tradeopt
             currency           : '${currency}',
             amount             : ${stake_amount},
             prediction         : ${prediction_value || 'undefined'},
+            ${prediction_recovery_options}
             barrierOffset      : ${barrier_offset_value || 'undefined'},
             secondBarrierOffset: ${second_barrier_offset_value || 'undefined'},
             basis              : '${block.type === 'trade_definition_tradeoptions' ? 'stake' : 'payout'}',
