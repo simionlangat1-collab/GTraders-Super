@@ -85,6 +85,14 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         this.initArgs = args;
         this.options = options;
         this.xvtState = null;
+
+        // A fresh interpreter initialization starts a new trading session.
+        // The Start block runs again before every trade, so keep the active
+        // recovery digit between those repeated start() calls, but reset it
+        // when a genuinely new session is initialized.
+        this.predictionRecovery = null;
+        this.activeTradePrediction = undefined;
+
         this.startPromise = this.loginAndGetBalance(token);
 
         if (!this.checkTicksPromiseExists()) this.watchTicks(symbol);
@@ -110,7 +118,22 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
                 ? { initial: initialPrediction, recovery: recoveryPrediction }
                 : null;
 
-        this.tradeOptions = { ...validated_trade_options, symbol: this.options.symbol };
+        // BinaryBotPrivateStart is executed before every purchase. Do not let
+        // its repeated Bot.start() call overwrite the digit selected after
+        // the previous result. init() resets this value for a new session.
+        if (this.predictionRecovery) {
+            if (!Number.isInteger(this.activeTradePrediction)) {
+                this.activeTradePrediction = initialPrediction;
+            }
+        } else {
+            this.activeTradePrediction = undefined;
+        }
+
+        this.tradeOptions = {
+            ...validated_trade_options,
+            ...(this.predictionRecovery ? { prediction: this.activeTradePrediction } : {}),
+            symbol: this.options.symbol,
+        };
         this.store.dispatch(start());
         this.checkLimits(validated_trade_options);
 
@@ -122,12 +145,19 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         // optional G-K Pioneer prediction values.
         if (!this.predictionRecovery || !this.tradeOptions) return;
 
+        this.activeTradePrediction = isWin
+            ? this.predictionRecovery.initial
+            : this.predictionRecovery.recovery;
+
         this.tradeOptions = {
             ...this.tradeOptions,
-            prediction: isWin
-                ? this.predictionRecovery.initial
-                : this.predictionRecovery.recovery,
+            prediction: this.activeTradePrediction,
         };
+
+        // Refresh cached proposals too when the active strategy uses them.
+        if (this.is_proposal_subscription_required) {
+            this.makeProposals({ ...this.options, ...this.tradeOptions });
+        }
     }
 
     setTradeAmount(amount) {
