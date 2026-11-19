@@ -151,7 +151,9 @@ const QSInput: React.FC<TQSInput> = observer(
                 value < 1 &&
                 name !== 'stake' &&
                 name !== 'max_stake' &&
-                name !== 'take_profit'
+                name !== 'take_profit' &&
+                name !== 'last_digit_prediction' &&
+                name !== 'last_digit_recovery_prediction'
             ) {
                 value = 1;
             }
