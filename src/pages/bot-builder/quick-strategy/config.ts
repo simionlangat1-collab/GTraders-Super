@@ -312,6 +312,23 @@ const LAST_DIGIT_PREDICTION = (): TConfigItem => ({
     hide_without_should_have: true,
 });
 
+const LABEL_LAST_DIGIT_RECOVERY_PREDICTION = (): TConfigItem => ({
+    type: 'label',
+    name: 'label_last_digit_recovery_prediction',
+    label: localize('Prediction After Loss'),
+    description: localize('The digit to use for the next trade after a losing trade.'),
+    should_have: [{ key: 'tradetype', value: '', multiple: ['matchesdiffers', 'overunder'] }],
+    hide_without_should_have: true,
+});
+
+const LAST_DIGIT_RECOVERY_PREDICTION = (): TConfigItem => ({
+    type: 'number',
+    name: 'last_digit_recovery_prediction',
+    validation: ['number', 'required', 'min', 'max', 'integer'],
+    should_have: [{ key: 'tradetype', value: '', multiple: ['matchesdiffers', 'overunder'] }],
+    hide_without_should_have: true,
+});
+
 export const STRATEGIES = (): TStrategies => ({
     MARTINGALE: {
         name: 'martingale_max-stake',
@@ -328,6 +345,8 @@ export const STRATEGIES = (): TStrategies => ({
                 PURCHASE_TYPE(),
                 LABEL_LAST_DIGIT_PREDICTION(),
                 LAST_DIGIT_PREDICTION(),
+                LABEL_LAST_DIGIT_RECOVERY_PREDICTION(),
+                LAST_DIGIT_RECOVERY_PREDICTION(),
                 LABEL_MARTINGALE_SIZE(),
                 SIZE(true),
                 LABEL_PROFIT(),
