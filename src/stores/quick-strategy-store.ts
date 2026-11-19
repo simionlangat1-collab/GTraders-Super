@@ -234,7 +234,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     'last_digit_recovery_prediction',
                     trade_type_cat,
                     strategy_dom,
-                    0
+                    Number(data.last_digit_recovery_prediction ?? 0)
                 );
             }
 
